@@ -27,40 +27,41 @@ cd vector-system
 
 # Install root and all package dependencies
 npm install
+```
 2. Environment Setup (Blockchain Core)
 The blockchain-core package requires API keys and a private key for the Polygon Amoy testnet.
 
 Navigate to the package:
-
-bash
+```bash
 cd packages/blockchain-core
 Copy the example environment file and edit it:
-
-bash
+```
+```bash
 cp .env.example .env  # If you have an example file, or create .env manually
+```
 Open the .env file and fill in your credentials:
-
-env
+```bash
 # Get from your Alchemy dashboard for the 'Polygon Amoy' network
 POLYGON_AMOY_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/your-api-key-here
 
 # Export from your development wallet (e.g., MetaMask). NEVER SHARE THIS.
 PRIVATE_KEY=0xYourPrivateKeyHexStringHere
 ⚠️ CRITICAL SECURITY: The .env file is listed in .gitignore. Never commit it to the repository.
-
+```
 3. Fund Your Test Wallet
 To deploy contracts, your wallet needs testnet POL tokens. Visit a Polygon Amoy Faucet and send tokens to your wallet's public address.
 
 4. Verify the Setup
 Run a test to confirm the blockchain environment is connected:
 
-bash
+```bash
 # From the packages/blockchain-core directory
 npx hardhat test
+```
 📁 Project Structure (vector-system/)
 This monorepo uses a modular, package-based architecture.
 
-text
+```bash
 vector-system/
 ├── packages/              # Core modular code packages
 │   ├── blockchain-core/   # ERC-1155 smart contracts, tests & deployment (Hardhat)
@@ -75,6 +76,7 @@ vector-system/
 ├── docs/                  # Technical documentation, architecture decisions, manuals
 ├── configs/               # Shared configuration files (ESLint, Jest, etc.)
 └── scripts/               # Utility scripts for development and deployment
+```
 🧪 Available Scripts
 From the project root, you can run:
 
