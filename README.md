@@ -1,4 +1,4 @@
-# VECTOR: A Decentralized Micro-Credentialing System
+# VECTOR (MARKDOWN SUBJECT TO CHANGE)
 
 **VECTOR** transforms static academic records into a dynamic, market-aware career engine. It tackles credential fraud and the skills gap by issuing blockchain-verified micro-credentials and providing AI-powered career insights.
 
