@@ -1,167 +1,116 @@
 # VECTOR: A Decentralized Micro-Credentialing System
 
-> **Transforming academic records from static documents into dynamic, market-aware career engines.**
+**VECTOR** transforms static academic records into a dynamic, market-aware career engine. It tackles credential fraud and the skills gap by issuing blockchain-verified micro-credentials and providing AI-powered career insights.
 
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
-[![Hardhat](https://img.shields.io/badge/Built%20with-Hardhat-FF9966.svg)](https://hardhat.org)
-[![Polygon](https://img.shields.io/badge/Network-Polygon%20Amoy-8247E5.svg)](https://polygon.technology/)
+**Core Innovations:**
+*   **Granular Skill Verification:** Issues ERC-1155 tokens for specific skills (e.g., "Advanced SQL") on the Polygon blockchain.
+*   **Predictive Career Analytics:** An AI engine analyzes real-time job market data to detect skill decay and recommend upskilling.
+*   **Cryptographically Verified Resumes (CVR):** Generates QR-linked resumes where employers can verify credentials in seconds.
 
-## 🎯 Project Overview
+---
 
-VECTOR addresses the **Credibility and Relevance Crisis** in the Philippine education sector by providing:
-- **Granular Skill Verification**: Converts diplomas into blockchain-backed micro-credentials.
-- **Predictive Career Analytics**: Uses AI to analyze job market trends and detect skill decay.
-- **Cryptographically Verified Resumes (CVR)**: Enables instant employer verification via QR codes.
+## 🚀 Getting Started (For Developers & Contributors)
 
-**Vision**: To shift from archive-based academic records to a living, intelligent ledger of skills.
+This project is a monorepo managed with npm workspaces. Follow these steps to set up your local development environment.
 
-## 🏗️ System Architecture
+### Prerequisites
+*   [Node.js](https://nodejs.org/) (v18 or later recommended)
+*   [Git](https://git-scm.com/)
+*   A code editor (e.g., [VS Code](https://code.visualstudio.com/))
+*   A crypto wallet (e.g., [MetaMask](https://metamask.io/)) for blockchain interaction
 
-VECTOR is built as a modular monorepo with three core layers:
-
-```mermaid
-graph TB
-    subgraph "VECTOR Architecture"
-        BC[Blockchain Layer<br>ERC-1155 on Polygon]
-        AI[AI Layer<br>LLM & Job Market APIs]
-        APP[Application Layer<br>Web Portal & CVR Generator]
-        
-        BC -- "Provides Verifiable Credentials" --> APP
-        AI -- "Provides Skill Analytics" --> APP
-    end
-Core Packages:
-
-/packages/blockchain-core: Smart contracts (ERC-1155) and deployment scripts.
-
-/packages/ai-engine: LLM integration and job market analysis engine.
-
-/packages/web-portal: Frontend dashboard for students and registrars.
-
-/packages/shared: Shared utilities, constants, and API clients.
-
-📁 Project Structure
-text
-vector-system/
-├── packages/                    # Core modular packages
-│   ├── blockchain-core/         # Smart contracts & blockchain integration
-│   ├── ai-engine/              # AI career coach & analytics
-│   ├── web-portal/             # Student/Registrar dashboard (React/Vue)
-│   ├── shared/                 # Shared utilities & types
-│   └── backend-api/            # (Optional) Central API server
-├── apps/                       # Standalone applications
-│   ├── cvr-generator/          # Cryptographically Verified Resume tool
-│   └── mobile-app/             # Future mobile application
-├── research/                   # Capstone thesis & literature review
-├── docs/                       # Technical & user documentation
-├── configs/                    # Shared ESLint, Jest, Tailwind configs
-├── scripts/                    # Development & deployment utilities
-└── .github/workflows/          # CI/CD pipelines
-🚀 Getting Started
-Prerequisites
-Node.js (v18 or later) and npm
-
-Git
-
-A MetaMask wallet (for blockchain interactions)
-
-An Alchemy account (for Polygon Amoy RPC)
-
-1. Clone the Repository
-bash
-git clone https://github.com/your-username/vector-system.git
+### 1. Clone and Install
+```bash
+# Clone the repository
+git clone https://github.com/[YOUR_GITHUB_USERNAME]/vector-system.git
 cd vector-system
-2. Install Workspace Dependencies
-bash
+
+# Install root and all package dependencies
 npm install
-3. Set Up the Blockchain Core Package
-This is the most critical setup step. Navigate to the package and configure your environment:
+2. Environment Setup (Blockchain Core)
+The blockchain-core package requires API keys and a private key for the Polygon Amoy testnet.
+
+Navigate to the package:
 
 bash
 cd packages/blockchain-core
-a. Configure Environment Variables
-Create a .env file with your Polygon Amoy testnet credentials:
+Copy the example environment file and edit it:
+
+bash
+cp .env.example .env  # If you have an example file, or create .env manually
+Open the .env file and fill in your credentials:
 
 env
-# Get your RPC URL from Alchemy (create an app for Polygon Amoy)
-POLYGON_AMOY_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/your-api-key
+# Get from your Alchemy dashboard for the 'Polygon Amoy' network
+POLYGON_AMOY_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/your-api-key-here
 
-# Your wallet's private key (for deployment)
-# NEVER commit this to version control!
-PRIVATE_KEY=0xYourPrivateKeyHere
-b. Install Package-Specific Dependencies
+# Export from your development wallet (e.g., MetaMask). NEVER SHARE THIS.
+PRIVATE_KEY=0xYourPrivateKeyHexStringHere
+⚠️ CRITICAL SECURITY: The .env file is listed in .gitignore. Never commit it to the repository.
+
+3. Fund Your Test Wallet
+To deploy contracts, your wallet needs testnet POL tokens. Visit a Polygon Amoy Faucet and send tokens to your wallet's public address.
+
+4. Verify the Setup
+Run a test to confirm the blockchain environment is connected:
+
 bash
-npm install --save-dev dotenv
-c. Verify Hardhat Configuration
-Your hardhat.config.ts should be configured for the Polygon Amoy network. Test the setup:
-
-bash
-# Compile smart contracts
-npx hardhat compile
-
-# Run tests
+# From the packages/blockchain-core directory
 npx hardhat test
-d. Get Testnet Funds
-Visit the Polygon Amoy Faucet to get free testnet POL tokens for your wallet address.
+📁 Project Structure (vector-system/)
+This monorepo uses a modular, package-based architecture.
 
-4. Initialize Other Core Packages
-Each package in /packages needs its own initialization:
+text
+vector-system/
+├── packages/              # Core modular code packages
+│   ├── blockchain-core/   # ERC-1155 smart contracts, tests & deployment (Hardhat)
+│   ├── ai-engine/         # LLM integration, job market API clients, skill analysis
+│   ├── web-portal/        # Frontend dashboard for students & registrars
+│   ├── shared/            # Shared utilities, types, and configs for frontend apps
+│   └── backend-api/       # (Optional) Central API server
+├── apps/                  # Standalone deployable applications
+│   ├── cvr-generator/     # Cryptographically Verified Resume generator tool
+│   └── mobile-app/        # Future mobile application
+├── research/              # Capstone thesis, literature review, and data
+├── docs/                  # Technical documentation, architecture decisions, manuals
+├── configs/               # Shared configuration files (ESLint, Jest, etc.)
+└── scripts/               # Utility scripts for development and deployment
+🧪 Available Scripts
+From the project root, you can run:
 
-bash
-# Example: Set up the AI Engine package
-cd ../ai-engine
-npm init -y
-npm install google-generativeai # For Gemini API
-🧪 Development Workflow
-Running the Project
-Since this is a monorepo, you can run commands from the root or within each package:
+npm install: Installs dependencies for all packages and apps.
 
-From the root (for workspace-wide operations):
+npm run build: Builds all packages (when build scripts are defined in each).
 
-bash
-# Install a dev dependency for all packages
-npm install -D eslint --workspaces
-From within a package (for package-specific operations):
+npm test: Runs tests across all packages (when test scripts are defined).
 
-bash
-cd packages/blockchain-core
-npx hardhat test
-Git Branch Strategy
-We use feature branches and pull requests:
+To work on a specific package, cd into its directory (e.g., packages/blockchain-core) and use its specific commands:
 
-bash
-# Create a new feature branch
-git checkout -b feat/erc1155-contract
+npx hardhat compile: Compiles Solidity contracts.
 
-# Work on your feature, then push
-git add .
-git commit -m "feat: add ERC-1155 micro-credential contract"
-git push origin feat/erc1155-contract
-Create a Pull Request on GitHub for team review before merging to main.
+npx hardhat test: Runs smart contract tests.
 
-👥 Team & Roles
-Project Manager: Oversees coordination, documentation, and capstone integration.
+npx hardhat run scripts/deploy.js --network amoy: Deploys contracts to Amoy testnet.
 
-System Integrators (2-3): Develop core modules (blockchain, AI, web portal).
+🔗 Key Technologies
+Blockchain Layer: Solidity, Hardhat, Polygon PoS (Amoy Testnet), ERC-1155
 
-Researcher: Conducts literature review and market analysis.
+AI/Backend Layer: Node.js, Google Gemini API, Job Market Data APIs
 
-Documentarian: Compiles technical documentation and capstone paper.
+Application Layer: React/Vue (for web-portal), Framework TBD for mobile
 
-📚 Documentation
-/research: Contains all capstone paper chapters and references.
+DevOps & QA: Git, GitHub Actions, Jest
 
-/docs: Houses technical documentation, architecture decisions, and user manuals.
+🤝 Contributing & Team Workflow
+Branch: Always create a feature branch from main (e.g., git checkout -b feat/issue-description).
 
-API References: See /docs/api for endpoint documentation.
+Develop: Make your changes in the relevant package.
 
-🔗 Related Resources
-Project Proposal
+Test: Run tests locally for the package you modified.
 
-System Architecture
+Commit & Push: Use clear commit messages. Push your branch.
 
-Polygon Documentation
+Pull Request: Create a PR on GitHub for team review before merging into main.
 
-Hardhat Documentation
-
-📄 License
-This project is licensed under the ISC License - see the LICENSE file for details.
+📄 License & Attribution
+This project is part of a capstone thesis. All rights reserved by the VECTOR team.
