@@ -1,0 +1,31 @@
+{
+  "name": "vector-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A decentralized micro-credentialing system with predictive career analytics.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "echo 'Run dev in all packages'",
+    "build": "echo 'Run build in all packages'",
+    "test": "echo 'Run tests in all packages'",
+    "setup": "npm install && npm run init-subpackages",
+    "init-subpackages": "node scripts/init-packages.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naxareth/vector-system.git"
+  },
+  "keywords": ["blockchain", "education", "ai", "polygon", "career"],
+  "author": "VECTOR Team",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/naxareth/vector-system/issues"
+  },
+  "homepage": "https://github.com/naxareth/vector-system#readme",
+  "devDependencies": {
+    "jest": "^29.0.0"
+  }
+}
