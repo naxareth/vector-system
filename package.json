@@ -18,7 +18,13 @@
     "type": "git",
     "url": "git+https://github.com/naxareth/vector-system.git"
   },
-  "keywords": ["blockchain", "education", "ai", "polygon", "career"],
+  "keywords": [
+    "blockchain",
+    "education",
+    "ai",
+    "polygon",
+    "career"
+  ],
   "author": "VECTOR Team",
   "license": "ISC",
   "bugs": {
@@ -27,5 +33,17 @@
   "homepage": "https://github.com/naxareth/vector-system#readme",
   "devDependencies": {
     "jest": "^29.0.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@prisma/client": "^7.1.0",
+    "@react-pdf/renderer": "^4.3.1",
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "ml-matrix": "^6.12.1",
+    "prisma": "^7.1.0",
+    "simple-statistics": "^7.8.8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }
