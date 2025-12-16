@@ -1,137 +1,131 @@
-# VECTOR (MARKDOWN SUBJECT TO CHANGE)
+***
+# VECTOR: Decentralized Credential Verification & Predictive Career Analytics
 
 **VECTOR** transforms static academic records into a dynamic, market-aware career engine. It tackles credential fraud and the skills gap by issuing blockchain-verified micro-credentials and providing AI-powered career insights.
 
-**Core Innovations:**
-- **Granular Skill Verification:** Issues ERC-1155 tokens for specific skills (e.g., "Advanced SQL") on the Polygon blockchain.
-- **Predictive Career Analytics:** An AI engine analyzes real-time job market data to detect skill decay and recommend upskilling.
-- **Cryptographically Verified Resumes (CVR):** Generates QR-linked resumes where employers can verify credentials in seconds.
+### Core Innovations
+1.  **Granular Skill Verification:** Issues **ERC-1155** tokens for specific skills (e.g., "Advanced SQL") on the **Polygon Amoy** blockchain.
+2.  **Predictive Career Analytics:** A 3-pillar AI engine (NLP, Prediction, Recommendation) analyzes real-time job market data to detect "Skill Decay" using linear regression.
+3.  **Collaborative Upskilling:** Suggests personalized courses based on peer success data (Collaborative Filtering).
+4.  **Cryptographically Verified Resumes (CVR):** Generates QR-linked PDF resumes client-side that allow instant verification.
 
 ---
 
-## 🚀 Getting Started (For Developers & Contributors)
+## Tech Stack (Capstone Edition)
 
-This project is a monorepo managed with npm workspaces. Follow these steps to set up your local development environment.
+| Layer | Technology |
+| :--- | :--- |
+| **Monolith Framework** | **Next.js 14** (App Router) - Handles Frontend & Serverless API |
+| **Blockchain** | **Polygon Amoy Testnet**, Hardhat, Alchemy, Ethers.js |
+| **Database** | **Supabase** (PostgreSQL) + **Prisma ORM** |
+| **AI - NLP** | **Google Gemini 1.5 Flash** (Skill Extraction) |
+| **AI - Analytics** | **Simple-Statistics** (Linear Regression for Decay Prediction) |
+| **AI - Recommendations** | **ML-Matrix** (Cosine Similarity for Course Matching) |
+| **PDF Generation** | **@react-pdf/renderer** (Client-side CVR generation) |
 
-### Prerequisites
+---
 
-- [Node.js](https://nodejs.org/) (v18 or later recommended)
-- [Git](https://git-scm.com/)
-- A code editor (e.g., [VS Code](https://code.visualstudio.com/))
-- A crypto wallet (e.g., [MetaMask](https://metamask.io/)) for blockchain interaction
+## Project Structure
+This project is a **Monorepo** managed with **npm workspaces**.
 
-### 1. Clone and Install
+```text
+vector-system/
+├── packages/              
+│   ├── ai-engine/         # The Brain: NLP, Predictions, and Recommendations
+│   │   ├── src/nlp/       # Gemini Integration
+│   │   ├── src/predictions/ # Decay Analysis logic
+│   │   └── src/recommendations/ # Collaborative Filtering logic
+│   │
+│   ├── blockchain-core/   # The Ledger: Hardhat, Contracts, & Tests
+│   │
+│   ├── web-portal/        # The App: Next.js Frontend + Serverless Backend
+│   │   ├── app/api/       # API Routes (replaces old backend server)
+│   │   └── components/    # UI & CVR PDF Generator
+│   │
+│   └── shared/            # Common Types & Constants
+│
+├── docs/                  # Architecture, API Docs, & User Manuals
+├── research/              # Capstone Manuscript (Chapters 1-5)
+└── scripts/               # DevOps (Seeding DB, Deploying Contracts)
+```
 
+---
+
+## Getting Started
+
+### 1. Prerequisites
+*   Node.js (v18+)
+*   Git
+*   MetaMask Wallet (Configured for Polygon Amoy)
+*   Supabase Account (Free Tier)
+*   Google Gemini API Key
+
+### 2. Installation
 ```bash
 # Clone the repository
-git clone https://github.com/[YOUR_GITHUB_USERNAME]/vector-system.git
+git clone https://github.com/[YOUR_USERNAME]/vector-system.git
 cd vector-system
 
-# Install root and all package dependencies
+# Install dependencies for ALL packages
 npm install
 ```
 
-### 2. Environment Setup (Blockchain Core)
+### 3. Environment Setup
+You need to configure secrets for the Blockchain and the Web App.
 
-The blockchain-core package requires API keys and a private key for the Polygon Amoy testnet.
+**A. Blockchain Config**
+Create `packages/blockchain-core/.env`:
+```env
+POLYGON_AMOY_RPC_URL="https://polygon-amoy.g.alchemy.com/v2/YOUR_ALCHEMY_KEY"
+PRIVATE_KEY="YOUR_WALLET_PRIVATE_KEY" # Never commit this!
+```
 
-Navigate to the package:
+**B. Web Portal Config**
+Create `packages/web-portal/.env`:
+```env
+# Database
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.supabase.co:5432/postgres"
 
+# AI Services
+GEMINI_API_KEY="YOUR_GOOGLE_GEMINI_KEY"
+ADZUNA_APP_ID="YOUR_ID"
+ADZUNA_APP_KEY="YOUR_KEY"
+```
+
+### 4. Running the Project
+
+**To Compile Smart Contracts:**
 ```bash
 cd packages/blockchain-core
-```
-
-Copy the example environment file and edit it:
-
-```bash
-cp .env.example .env  # If you have an example file, or create .env manually
-```
-
-Open the `.env` file and fill in your credentials:
-
-```bash
-# Get from your Alchemy dashboard for the 'Polygon Amoy' network
-POLYGON_AMOY_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/your-api-key-here
-
-# Export from your development wallet (e.g., MetaMask). NEVER SHARE THIS.
-PRIVATE_KEY=0xYourPrivateKeyHexStringHere
-```
-
-⚠️ **CRITICAL SECURITY:** The `.env` file is listed in `.gitignore`. Never commit it to the repository.
-
-### 3. Fund Your Test Wallet
-
-To deploy contracts, your wallet needs testnet POL tokens. Visit a Polygon Amoy Faucet and send tokens to your wallet's public address.
-
-### 4. Verify the Setup
-
-Run a test to confirm the blockchain environment is connected:
-
-```bash
-# From the packages/blockchain-core directory
+npx hardhat compile
 npx hardhat test
 ```
 
----
-
-## 📁 Project Structure
-
-This monorepo uses a modular, package-based architecture.
-
-```
-vector-system/
-├── packages/              # Core modular code packages
-│   ├── blockchain-core/   # ERC-1155 smart contracts, tests & deployment (Hardhat)
-│   ├── ai-engine/         # LLM integration, job market API clients, skill analysis
-│   ├── web-portal/        # Frontend dashboard for students & registrars
-│   ├── shared/            # Shared utilities, types, and configs for frontend apps
-│   └── backend-api/       # (Optional) Central API server
-├── apps/                  # Standalone deployable applications
-│   ├── cvr-generator/     # Cryptographically Verified Resume generator tool
-│   └── mobile-app/        # Future mobile application
-├── research/              # Capstone thesis, literature review, and data
-├── docs/                  # Technical documentation, architecture decisions, manuals
-├── configs/               # Shared configuration files (ESLint, Jest, etc.)
-└── scripts/               # Utility scripts for development and deployment
+**To Run the Web Portal (Frontend + Backend):**
+```bash
+cd packages/web-portal
+npm run dev
+# App opens at http://localhost:3000
 ```
 
 ---
 
-## 🧪 Available Scripts
+## Contributing & Standards
 
-From the project root, you can run:
+### Commit Format
+We use **Conventional Commits** to keep our history clean.
+*   `feat(web): add student dashboard`
+*   `fix(ai): correct linear regression formula`
+*   `docs(research): update chapter 3 methodology`
+*   `refactor(root): cleanup unused folders`
 
-- `npm install`: Installs dependencies for all packages and apps.
-- `npm run build`: Builds all packages (when build scripts are defined in each).
-- `npm test`: Runs tests across all packages (when test scripts are defined).
-
-To work on a specific package, cd into its directory (e.g., `packages/blockchain-core`) and use its specific commands:
-
-- `npx hardhat compile`: Compiles Solidity contracts.
-- `npx hardhat test`: Runs smart contract tests.
-- `npx hardhat run scripts/deploy.js --network amoy`: Deploys contracts to Amoy testnet.
-
----
-
-## 🔗 Key Technologies
-
-- **Blockchain Layer:** Solidity, Hardhat, Polygon PoS (Amoy Testnet), ERC-1155
-- **AI/Backend Layer:** Node.js, Google Gemini API, Job Market Data APIs
-- **Application Layer:** React/Vue (for web-portal), Framework TBD for mobile
-- **DevOps & QA:** Git, GitHub Actions, Jest
+### Development Workflow
+1.  Create a branch: `git checkout -b feat/your-feature-name`
+2.  Code inside the specific package (`web-portal`, `ai-engine`, etc.).
+3.  Test locally.
+4.  Push and create a Pull Request.
 
 ---
 
-## 🤝 Contributing & Team Workflow
-
-1. **Branch:** Always create a feature branch from `main` (e.g., `git checkout -b feat/issue-description`).
-2. **Develop:** Make your changes in the relevant package.
-3. **Test:** Run tests locally for the package you modified.
-4. **Commit & Push:** Use clear commit messages. Push your branch.
-5. **Pull Request:** Create a PR on GitHub for team review before merging into `main`.
-
----
-
-## 📄 License & Attribution
-
-This project is part of a capstone thesis. All rights reserved by the VECTOR team.
+## License
+This project is developed for Academic Capstone purposes.
