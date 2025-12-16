@@ -1,5 +1,5 @@
 ***
-# VECTOR: Decentralized Credential Verification & Predictive Career Analytics
+# VECTOR: A Decentralized Micro-Credentialing System with Predictive Career Analytics and Skill Decay Detection
 
 **VECTOR** transforms static academic records into a dynamic, market-aware career engine. It tackles credential fraud and the skills gap by issuing blockchain-verified micro-credentials and providing AI-powered career insights.
 
@@ -11,7 +11,7 @@
 
 ---
 
-## Tech Stack (Capstone Edition)
+## Tech Stack
 
 | Layer | Technology |
 | :--- | :--- |
