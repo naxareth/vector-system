@@ -1,2 +1,12 @@
-node_modules
-env
+# Environment files
+**/.env
+**/.env.local
+
+# Blockchain
+packages/blockchain-core/artifacts/
+packages/blockchain-core/cache/
+packages/blockchain-core/typechain-types/
+
+# Node
+node_modules/
+npm-debug.log*
