@@ -10,7 +10,7 @@ contract VectorToken is ERC1155, Ownable {
     
     event SkillMinted(address indexed student, uint256 skillId, uint256 amount);
     
-    constructor() ERC1155("https://api.example.com/token/{id}.json") Ownable(msg.sender) {}
+    constructor() ERC1155("https://api.vector.edu/token/{id}.json") Ownable(msg.sender) {}
     
     function mintSkill(address student, uint256 skillId, uint256 amount) public onlyOwner {
         _mint(student, skillId, amount, "");
