@@ -88,8 +88,7 @@ DATABASE_URL="postgresql://postgres:[PASSWORD]@db.supabase.co:5432/postgres"
 
 # AI Services
 GEMINI_API_KEY="YOUR_GOOGLE_GEMINI_KEY"
-ADZUNA_APP_ID="YOUR_ID"
-ADZUNA_APP_KEY="YOUR_KEY"
+RAPIDAPI_KEY="YOUR_RAPIDAPI_JSEARCH_KEY"
 ```
 
 ### 4. Running the Project
