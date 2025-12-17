@@ -76,20 +76,23 @@ You need to configure secrets for the Blockchain and the Web App.
 **A. Blockchain Config**
 Create `packages/blockchain-core/.env`:
 ```env
-POLYGON_AMOY_RPC_URL="https://polygon-amoy.g.alchemy.com/v2/YOUR_ALCHEMY_KEY"
 PRIVATE_KEY="YOUR_WALLET_PRIVATE_KEY" # Never commit this!
 ```
 
-**B. Web Portal Config**
-Create `packages/web-portal/.env`:
+**B. Web Portal & AI Config**
+Create `packages/web-portal/.env.local`:
 ```env
-# Database
-DATABASE_URL="postgresql://postgres:[PASSWORD]@db.supabase.co:5432/postgres"
+# Database (From Supabase -> Settings -> Database -> Connection Pooler)
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.supabase.co:5432/postgres?pgbouncer=true"
 
-# AI Services
+# AI & Market Data Services
 GEMINI_API_KEY="YOUR_GOOGLE_GEMINI_KEY"
-ADZUNA_APP_ID="YOUR_ID"
-ADZUNA_APP_KEY="YOUR_KEY"
+RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY" # Used for JSearch
+JOB_MARKET_API_URL="https://jsearch.p.rapidapi.com/search"
+
+# Blockchain
+NEXT_PUBLIC_CONTRACT_ADDRESS="0xYourDeployedContractAddress"
+NEXT_PUBLIC_WALLET_CONNECT_ID="YOUR_PROJECT_ID" # Optional for RainbowKit
 ```
 
 ### 4. Running the Project
