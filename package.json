@@ -18,7 +18,13 @@
     "type": "git",
     "url": "git+https://github.com/naxareth/vector-system.git"
   },
-  "keywords": ["blockchain", "education", "ai", "polygon", "career"],
+  "keywords": [
+    "blockchain",
+    "education",
+    "ai",
+    "polygon",
+    "career"
+  ],
   "author": "VECTOR Team",
   "license": "ISC",
   "bugs": {
