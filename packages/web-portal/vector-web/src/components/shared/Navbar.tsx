@@ -1,32 +1,43 @@
+'use client';
+import { useState } from 'react';
+
 export default function Navbar() {
+  const [isDark, setIsDark] = useState(false);
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">V</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">VECTOR</span>
+            <span className="text-lg font-bold text-gray-900">VECTOR</span>
           </div>
 
           {/* Nav Links */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Features</a>
+            <a href="#features" className="text-purple-600 hover:text-purple-700 font-medium transition-colors">Features</a>
             <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">How it Works</a>
-            <a href="#solutions" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Solutions</a>
+            <a href="#download" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">Download</a>
           </div>
 
           {/* Auth Buttons */}
-          <div className="flex items-center gap-4">
-            <a href="/login" className="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsDark(!isDark)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            </button>
+            <a href="/login" className="text-gray-700 hover:text-gray-900 font-medium transition-colors px-4 py-2">
               Sign In
             </a>
-            <a href="/register" className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-full font-medium hover:shadow-lg hover:shadow-purple-500/50 transition-all">
-              Get Started
+            <a href="/register" className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all">
+              Sign Up
             </a>
           </div>
         </div>
