@@ -1,4 +1,10 @@
+'use client';
+import { useState } from 'react';
+import ConnectWalletModal from '@/components/shared/ConnectWalletModal';
+
 export default function LoginPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
     <main className="min-h-screen w-full bg-gray-50 flex items-center justify-center p-4 md:p-6">
       <div className="max-w-5xl w-full mx-auto">
@@ -39,6 +45,7 @@ export default function LoginPage() {
             </p>
 
             <button
+              onClick={() => setIsModalOpen(true)}
               className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg hover:translate-y-[-2px] active:translate-y-[0px] transition-all duration-200 flex items-center justify-center gap-2 group-hover:gap-3"
               aria-label="Connect Wallet for Student Access"
             >
@@ -83,6 +90,12 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      {/* Connect Wallet Modal */}
+      <ConnectWalletModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </main>
   );
 }
