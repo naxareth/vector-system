@@ -6,7 +6,6 @@ export default function SkillsPage() {
     {
       name: 'Advanced SQL',
       category: 'Database',
-      proficiency: 92,
       marketDemand: 'High',
       lastUpdated: '2 weeks ago',
       trend: 'up',
@@ -14,7 +13,6 @@ export default function SkillsPage() {
     {
       name: 'React Development',
       category: 'Frontend',
-      proficiency: 88,
       marketDemand: 'Very High',
       lastUpdated: '1 month ago',
       trend: 'up',
@@ -22,7 +20,6 @@ export default function SkillsPage() {
     {
       name: 'Java OOP',
       category: 'Backend',
-      proficiency: 65,
       marketDemand: 'Medium',
       lastUpdated: '3 months ago',
       trend: 'down',
@@ -30,7 +27,6 @@ export default function SkillsPage() {
     {
       name: 'Data Structures',
       category: 'Computer Science',
-      proficiency: 95,
       marketDemand: 'Very High',
       lastUpdated: '1 week ago',
       trend: 'stable',
@@ -40,9 +36,9 @@ export default function SkillsPage() {
   return (
     <DashboardLayout>
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Skills</h1>
-        <p className="text-gray-500">Track and manage your verified skills</p>
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Skills</h1>
+        <p className="text-sm md:text-base text-gray-500">Track and manage your verified skills</p>
       </div>
 
       {/* Skills Grid */}
@@ -64,20 +60,6 @@ export default function SkillsPage() {
                 {skill.trend === 'up' && '↗'}
                 {skill.trend === 'down' && '↘'}
                 {skill.trend === 'stable' && '→'}
-              </div>
-            </div>
-
-            {/* Proficiency Bar */}
-            <div className="mb-4">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Proficiency</span>
-                <span className="font-semibold text-purple-600">{skill.proficiency}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-purple-600 h-2 rounded-full"
-                  style={{ width: `${skill.proficiency}%` }}
-                ></div>
               </div>
             </div>
 
