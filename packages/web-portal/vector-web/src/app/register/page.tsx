@@ -1,11 +1,16 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
 type Role = 'student' | 'registrar' | null;
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [selectedRole, setSelectedRole] = useState<Role>(null);
+  const [loading, setLoading] = useState(false);
+  
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -13,12 +18,12 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
   });
+  
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -27,25 +32,24 @@ export default function RegisterPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+    
+    // Strict Email Regex
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!emailRegex.test(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
     }
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
+
+    if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
@@ -56,18 +60,54 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
+    setLoading(true);
 
-    // TODO: Implement actual registration logic
-    console.log('Registering as:', selectedRole, formData);
-    
-    // Redirect based on role
-    if (selectedRole === 'student') {
-      window.location.href = '/student/dashboard';
-    } else {
-      window.location.href = '/admin/dashboard';
+    try {
+      // 1. Create User in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: `${formData.firstName} ${formData.lastName}`,
+            role: selectedRole,
+          }
+        }
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("No user created");
+
+      // 2. Create Profile in Public Table
+      // Note: 'email' field removed from insert to match your DB schema
+      const placeholderWallet = `0x_pending_${authData.user.id.substring(0, 8)}`;
+      const generatedStudentId = `03-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const { error: dbError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          student_id: generatedStudentId,
+          full_name: `${formData.firstName} ${formData.lastName}`,
+          role: selectedRole,
+          wallet_address: placeholderWallet
+        });
+
+      if (dbError) throw dbError;
+
+      // 3. Success -> Redirect
+      if (selectedRole === 'registrar') {
+        router.push('/dashboard/registrar');
+      } else {
+        router.push('/student/dashboard');
+      }
+
+    } catch (err: any) {
+      console.error('Registration Error:', err);
+      setErrors({ form: err.message || 'Registration failed. Please try again.' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,7 +129,6 @@ export default function RegisterPage() {
 
           {/* Role Selection */}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Student Card */}
             <button
               onClick={() => setSelectedRole('student')}
               className="group bg-white p-8 rounded-2xl border-2 border-gray-200 hover:border-purple-600 hover:shadow-xl transition-all text-left"
@@ -111,7 +150,6 @@ export default function RegisterPage() {
               </div>
             </button>
 
-            {/* Registrar Card */}
             <button
               onClick={() => setSelectedRole('registrar')}
               className="group bg-white p-8 rounded-2xl border-2 border-gray-200 hover:border-purple-600 hover:shadow-xl transition-all text-left"
@@ -134,7 +172,6 @@ export default function RegisterPage() {
             </button>
           </div>
 
-          {/* Footer */}
           <div className="text-center mt-8">
             <p className="text-gray-600">
               Already have an account?{' '}
@@ -151,7 +188,6 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center px-6 py-12">
       <div className="max-w-md w-full">
-        {/* Header */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
@@ -165,9 +201,15 @@ export default function RegisterPage() {
           <p className="text-gray-600">Fill in your details to get started</p>
         </div>
 
-        {/* Form */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-          {/* Role Badge */}
+          
+          {errors.form && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {errors.form}
+            </div>
+          )}
+
           <div className="flex items-center gap-2 mb-6">
             <div className={`px-3 py-1 rounded-full text-sm font-medium ${
               selectedRole === 'student' 
@@ -185,7 +227,6 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* First Name */}
             <div>
               <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                 First Name
@@ -206,7 +247,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Last Name */}
             <div>
               <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
                 Last Name
@@ -227,7 +267,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
@@ -248,7 +287,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Password
@@ -269,7 +307,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
                 Confirm Password
@@ -290,19 +327,30 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+              disabled={loading}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              Create Account
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating Account...
+                </>
+              ) : (
+                <>
+                  Create Account
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </>
+              )}
             </button>
           </form>
 
-          {/* Terms */}
           <p className="text-xs text-gray-500 text-center mt-6">
             By creating an account, you agree to our{' '}
             <a href="#" className="text-purple-600 hover:text-purple-700">Terms of Service</a>
@@ -311,7 +359,6 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-gray-600">
             Already have an account?{' '}

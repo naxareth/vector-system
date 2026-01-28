@@ -1,57 +1,68 @@
+import { calculateSkillDecay } from './predictions/decay-forecaster';
+import { recommendCourses } from './recommendations/course-recommender';
 import { extractSkillsFromResume } from './nlp/skill-extractor';
-import { calculateSkillDecay, SkillHealth } from './predictions/decay-forecaster';
-import { recommendCourses, StudentProfile } from './recommendations/course-recommender';
-import { fetchJobMarketData, countJobsBySkill } from './data/jsearch-client';
 
-export interface AnalysisResult {
-  extractedSkills: string[];
-  skillHealth: SkillHealth[];
-  recommendations: any[]; // Course recommendations
-  analysisDate: Date;
+interface AIInputParams {
+  studentData: {
+    id: string;
+    name: string;
+    skills: string[]; 
+    credentials: any[];
+  };
+  marketData: any[]; // Raw Supabase rows
+  resumeText?: string;
 }
 
-export async function analyzeStudentProfile(
-  resumeText: string,
-  studentProfile: StudentProfile
-): Promise<AnalysisResult> {
-  console.log('🔍 Starting AI analysis...');
+export async function analyzeStudentProfile(params: AIInputParams) {
+  const { studentData, marketData, resumeText } = params;
+
+  console.log("🔍 AI Engine: Processing profile for", studentData?.name);
+
+  if (!studentData) {
+    throw new Error("❌ AI Engine Error: 'studentData' is missing.");
+  }
+
+  // 1. NLP Extraction
+  let extractedSkills: string[] = [];
+  if (resumeText) {
+    try {
+      extractedSkills = await extractSkillsFromResume(resumeText);
+      console.log("✅ NLP Extracted:", extractedSkills);
+    } catch (e) {
+      console.warn("⚠️ NLP extraction skipped:", e);
+    }
+  }
+
+  const finalSkills = Array.from(new Set([...studentData.skills, ...extractedSkills]));
   
-  // 1. NLP: Extract skills from resume
-  const extractedSkills = await extractSkillsFromResume(resumeText);
-  console.log('✅ Extracted skills:', extractedSkills);
-  
-  // 2. Prediction: Analyze skill decay for each skill
-  const skillHealthPromises = extractedSkills.map(async (skill) => {
- const jobData = await fetchJobMarketData(skill);
-const jobCount = jobData.length;
-    
-    // Mock historical data (in real app, fetch from Supabase)
-    const historicalData = [
-      { date: '2024-01-01', jobCount: Math.floor(jobCount * 0.8) },
-      { date: '2024-01-15', jobCount: Math.floor(jobCount * 0.9) },
-      { date: '2024-02-01', jobCount: jobCount }
-    ];
-    
-    return calculateSkillDecay(skill, historicalData);
+  // 2. PREDICTION (Skill Decay)
+  // We process each skill one by one
+  const skillHealth = finalSkills.map(skill => {
+    // Find rows in 'marketData' that match this skill (case-insensitive)
+    const rawHistory = marketData.filter(row => 
+      row.skill_name.toLowerCase() === skill.toLowerCase()
+    );
+
+    // ✅ FIX 2: Map Supabase data (recorded_at/job_count) -> Predictor data (date/jobCount)
+    const formattedHistory = rawHistory.map(row => ({
+      date: row.recorded_at, 
+      jobCount: row.job_count
+    }));
+
+    // Call the correct function
+    return calculateSkillDecay(skill, formattedHistory); 
   });
-  
-  const skillHealth = await Promise.all(skillHealthPromises);
-  
-  // 3. Recommendation: Suggest courses (mock other students for now)
-  const mockStudents: StudentProfile[] = [
-    { id: '1', skills: [1, 2], coursesTaken: ['CS101', 'WEB301'] },
-    { id: '2', skills: [1, 3], coursesTaken: ['CS101', 'BLOCK401'] },
-    { id: '3', skills: [2, 5], coursesTaken: ['CS101', 'AI201'] }
-  ];
-  
-  const recommendations = recommendCourses(studentProfile, mockStudents, [
-    'CS101', 'WEB301', 'AI201', 'BLOCK401', 'NODE301'
-  ]);
-  
+
+  // 3. RECOMMENDATION
+  const recommendations = recommendCourses({
+    ...studentData,
+    skills: finalSkills
+  });
+
   return {
-    extractedSkills,
-    skillHealth,
+    studentId: studentData.id,
+    skillHealth, // This now contains the calculated health/decay scores
     recommendations,
-    analysisDate: new Date()
+    gaps: []
   };
 }
