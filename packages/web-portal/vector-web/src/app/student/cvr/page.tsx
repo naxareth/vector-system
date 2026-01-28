@@ -208,9 +208,6 @@ export default function CVRPage() {
                     <div className="flex-1">
                       <span className="font-medium text-gray-900">{skill.name}</span>
                     </div>
-                    <svg className="w-5 h-5 text-green-600 ml-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
                   </label>
                 ))}
               </div>
@@ -386,8 +383,131 @@ export default function CVRPage() {
               </div>
             </div>
 
+            {/* Blockchain Verification Details */}
+            <div className="pt-6 border-t border-gray-200 bg-gradient-to-br from-purple-50 to-blue-50 -mx-6 md:-mx-8 px-6 md:px-8 py-6 rounded-lg">
+              <div className="flex items-start justify-between gap-6">
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-gray-900">Blockchain Verification</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600 font-medium mb-1">Issuer</p>
+                      <p className="text-gray-900 font-semibold">University of the Philippines</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 font-medium mb-1">Issue Date</p>
+                      <p className="text-gray-900 font-semibold">January 15, 2024</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 font-medium mb-1">Token Standard</p>
+                      <p className="text-gray-900 font-semibold font-mono">ERC-1155</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 font-medium mb-1">Token ID</p>
+                      <p className="text-gray-900 font-semibold font-mono">r4592</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <p className="text-gray-600 font-medium mb-1">Blockchain TX</p>
+                      <p className="text-gray-900 font-mono text-xs break-all">
+                        0x8a7f2c3e9b1a5d4f6c8e2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <p className="text-gray-600 font-medium mb-1">IPFS Metadata</p>
+                      <p className="text-gray-900 font-mono text-xs break-all">
+                        QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* QR Code */}
+                <div className="flex-shrink-0">
+                  <div className="bg-white p-3 rounded-lg shadow-md">
+                    <div className="w-32 h-32 bg-gray-900 relative flex items-center justify-center">
+                      {/* Simple QR code representation */}
+                      <svg viewBox="0 0 100 100" className="w-full h-full">
+                        <rect width="100" height="100" fill="white"/>
+                        
+                        {/* Corner markers */}
+                        <rect x="5" y="5" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
+                        <rect x="10" y="10" width="15" height="15" fill="black"/>
+                        
+                        <rect x="70" y="5" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
+                        <rect x="75" y="10" width="15" height="15" fill="black"/>
+                        
+                        <rect x="5" y="70" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
+                        <rect x="10" y="75" width="15" height="15" fill="black"/>
+                        
+                        {/* Data pattern */}
+                        <rect x="40" y="15" width="5" height="5" fill="black"/>
+                        <rect x="50" y="15" width="5" height="5" fill="black"/>
+                        <rect x="60" y="15" width="5" height="5" fill="black"/>
+                        <rect x="35" y="25" width="5" height="5" fill="black"/>
+                        <rect x="45" y="25" width="5" height="5" fill="black"/>
+                        <rect x="55" y="25" width="5" height="5" fill="black"/>
+                        <rect x="65" y="25" width="5" height="5" fill="black"/>
+                        
+                        <rect x="40" y="35" width="5" height="5" fill="black"/>
+                        <rect x="50" y="35" width="5" height="5" fill="black"/>
+                        <rect x="60" y="35" width="5" height="5" fill="black"/>
+                        <rect x="70" y="35" width="5" height="5" fill="black"/>
+                        <rect x="80" y="35" width="5" height="5" fill="black"/>
+                        
+                        <rect x="35" y="45" width="5" height="5" fill="black"/>
+                        <rect x="45" y="45" width="5" height="5" fill="black"/>
+                        <rect x="55" y="45" width="5" height="5" fill="black"/>
+                        <rect x="65" y="45" width="5" height="5" fill="black"/>
+                        <rect x="75" y="45" width="5" height="5" fill="black"/>
+                        <rect x="85" y="45" width="5" height="5" fill="black"/>
+                        
+                        <rect x="40" y="55" width="5" height="5" fill="black"/>
+                        <rect x="50" y="55" width="5" height="5" fill="black"/>
+                        <rect x="60" y="55" width="5" height="5" fill="black"/>
+                        <rect x="70" y="55" width="5" height="5" fill="black"/>
+                        <rect x="80" y="55" width="5" height="5" fill="black"/>
+                        <rect x="90" y="55" width="5" height="5" fill="black"/>
+                        
+                        <rect x="35" y="65" width="5" height="5" fill="black"/>
+                        <rect x="45" y="65" width="5" height="5" fill="black"/>
+                        <rect x="55" y="65" width="5" height="5" fill="black"/>
+                        <rect x="65" y="65" width="5" height="5" fill="black"/>
+                        <rect x="75" y="65" width="5" height="5" fill="black"/>
+                        
+                        <rect x="40" y="75" width="5" height="5" fill="black"/>
+                        <rect x="50" y="75" width="5" height="5" fill="black"/>
+                        <rect x="60" y="75" width="5" height="5" fill="black"/>
+                        <rect x="70" y="75" width="5" height="5" fill="black"/>
+                        <rect x="80" y="75" width="5" height="5" fill="black"/>
+                        
+                        <rect x="35" y="85" width="5" height="5" fill="black"/>
+                        <rect x="45" y="85" width="5" height="5" fill="black"/>
+                        <rect x="55" y="85" width="5" height="5" fill="black"/>
+                        <rect x="65" y="85" width="5" height="5" fill="black"/>
+                        <rect x="75" y="85" width="5" height="5" fill="black"/>
+                        <rect x="85" y="85" width="5" height="5" fill="black"/>
+                      </svg>
+                    </div>
+                    <p className="text-xs text-center text-gray-600 mt-2 font-medium">Scan to Verify</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2 text-sm text-gray-700 bg-white/50 px-4 py-2 rounded-lg">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span className="font-medium">This credential is verified and stored on Polygon Amoy Testnet blockchain</span>
+              </div>
+            </div>
+
             {/* Template & Generated Date */}
-            <div className="pt-6 border-t border-gray-200">
+            <div className="pt-4">
               <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
