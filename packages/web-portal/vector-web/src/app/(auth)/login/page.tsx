@@ -1,9 +1,11 @@
 'use client';
 import { useState } from 'react';
 import ConnectWalletModal from '@/components/shared/ConnectWalletModal';
+import RegistrarLoginModal from '@/components/shared/RegistrarLoginModal';
 
 export default function LoginPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRegistrarModalOpen, setIsRegistrarModalOpen] = useState(false);
 
   return (
     <main className="min-h-screen w-full bg-gray-50 flex items-center justify-center p-4 md:p-6">
@@ -75,6 +77,7 @@ export default function LoginPage() {
             </p>
 
             <button
+              onClick={() => setIsRegistrarModalOpen(true)}
               className="w-full py-4 px-6 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2"
               aria-label="Login with Email for Registrar Access"
             >
@@ -95,6 +98,12 @@ export default function LoginPage() {
       <ConnectWalletModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+      />
+
+      {/* Registrar Login Modal */}
+      <RegistrarLoginModal
+        isOpen={isRegistrarModalOpen}
+        onClose={() => setIsRegistrarModalOpen(false)}
       />
     </main>
   );

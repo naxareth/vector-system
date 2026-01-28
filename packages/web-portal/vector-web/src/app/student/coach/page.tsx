@@ -32,9 +32,6 @@ export default function CoachPage() {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <svg className="w-6 h-6 md:w-7 md:h-7 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-              </svg>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Career Intelligence Report</h1>
             </div>
             <p className="text-sm md:text-base text-gray-500">AI-powered analysis of your skill portfolio against real-time market data.</p>
@@ -42,19 +39,19 @@ export default function CoachPage() {
           <div className="flex flex-wrap items-center gap-2 md:gap-3 text-sm">
             <span className="text-gray-500 text-xs md:text-sm">Last updated: 2 hours ago</span>
             <button className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-xs md:text-sm">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="gray" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              <span>Update Analysis</span>
+              <span className="text-xs md:text-sm text-gray-500">Update Analysis</span>
             </button>
             <button 
               onClick={() => setIsExportModalOpen(true)}
               className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-xs md:text-sm"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="gray" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              <span>Export</span>
+              <span className="text-xs md:text-sm text-gray-500">Export</span>
             </button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import CredentialCard from '@/components/dashboard/CredentialCard';
 import RecentActivity from '@/components/dashboard/RecentActivity';
+import MetricCards from '@/components/dashboard/MetricCards';
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -60,6 +61,9 @@ export default function StudentDashboard() {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
         <p className="text-sm md:text-base text-gray-500">Overview of your credentials and market standing</p>
       </div>
+
+      {/* Metric Cards */}
+      <MetricCards />
 
       {/* Pending CVR Verification Card */}
       {hasPendingCVR && (

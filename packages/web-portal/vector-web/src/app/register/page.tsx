@@ -63,11 +63,14 @@ export default function RegisterPage() {
     // TODO: Implement actual registration logic
     console.log('Registering as:', selectedRole, formData);
     
+    // Store user role in localStorage
+    localStorage.setItem('userRole', selectedRole!);
+    
     // Redirect based on role
     if (selectedRole === 'student') {
       window.location.href = '/student/dashboard';
     } else {
-      window.location.href = '/admin/dashboard';
+      window.location.href = '/registrar/dashboard';
     }
   };
 
