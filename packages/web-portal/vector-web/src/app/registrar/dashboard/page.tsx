@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
+import { ethers } from 'ethers'; // ✅ Import Ethers
+import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain'; // ✅ Import Blockchain Config
 
 interface PDFUploadState {
   files: File[];
@@ -12,6 +14,7 @@ interface MintingProgress {
   progress: number;
   status: 'minting' | 'complete' | 'error';
   message: string;
+  txHash?: string; // ✅ Added to show Transaction Hash
 }
 
 export default function RegistrarDashboard() {
@@ -34,6 +37,39 @@ export default function RegistrarDashboard() {
     issuanceDate: '',
     metadata: '',
   });
+
+  // ⚡⚡⚡ HELPER: Safe Contract Connection ⚡⚡⚡
+  const getContract = async () => {
+    if (typeof window === 'undefined') return null;
+
+    // 1. Safe access to Ethereum provider
+    const { ethereum } = window as any;
+    if (!ethereum) {
+      alert("MetaMask is not installed!");
+      throw new Error("No crypto wallet found");
+    }
+
+    // 👇👇👇 CHANGE THIS LINE 👇👇👇
+    // We add "any" to allow the network to switch (e.g. from Mainnet to Localhost) without crashing
+    const provider = new ethers.BrowserProvider(ethereum, "any"); 
+    
+    const signer = await provider.getSigner();
+
+    // 2. Check Network (Allow Hardhat Localhost)
+    const network = await provider.getNetwork();
+    if (network.chainId !== 31337n && network.chainId !== 1337n) {
+      try {
+        await ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x7A69' }], // 31337
+        });
+      } catch (error) {
+        alert("Please switch MetaMask to Localhost 8545");
+      }
+    }
+
+    return new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -76,81 +112,122 @@ export default function RegistrarDashboard() {
     setSingleCredential(prev => ({ ...prev, [name]: value }));
   };
 
+  // ⚡ REAL BATCH MINTING LOGIC
   const handleBatchMint = async () => {
     if (pdfUpload.files.length === 0) {
       alert('Please upload at least one PDF file');
       return;
     }
 
-    setMintingProgress({
-      isOpen: true,
-      progress: 0,
-      status: 'minting',
-      message: 'Processing PDF files...',
-    });
+    try {
+      setMintingProgress({
+        isOpen: true,
+        progress: 10,
+        status: 'minting',
+        message: 'Analyzing PDF files...',
+      });
 
-    const progressSteps = [
-      { progress: 20, message: 'Extracting student information from PDFs...' },
-      { progress: 40, message: 'Uploading metadata to IPFS...' },
-      { progress: 60, message: 'Preparing blockchain transactions...' },
-      { progress: 80, message: 'Batch minting ERC-1155 tokens...' },
-      { progress: 100, message: 'Transactions will be broadcast to Polygon Amoy Testnet' },
-    ];
+      const contract = await getContract();
+      if (!contract) return;
 
-    for (const step of progressSteps) {
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      setMintingProgress(prev => ({
-        ...prev,
-        progress: step.progress,
-        message: step.message,
-      }));
+      setMintingProgress(prev => ({ ...prev, progress: 30, message: 'Preparing batch transaction...' }));
+
+      // Demo: Minting to the connected wallet for demonstration
+      const { ethereum } = window as any;
+      const provider = new ethers.BrowserProvider(ethereum);
+      const signer = await provider.getSigner();
+      const signerAddress = await signer.getAddress();
+
+      const students: string[] = [];
+      const skillIds: number[] = [];
+      const amounts: number[] = [];
+
+      // Create entries for each file
+      for (let i = 0; i < pdfUpload.files.length; i++) {
+        students.push(signerAddress); 
+        skillIds.push(2); // Defaulting to Python (ID 2) for demo
+        amounts.push(1);
+      }
+
+      setMintingProgress(prev => ({ ...prev, progress: 50, message: 'Please sign in MetaMask...' }));
+
+      // Call Contract
+      const tx = await contract.batchMintSkills(students, skillIds, amounts);
+      
+      setMintingProgress(prev => ({ ...prev, progress: 75, message: 'Mining transaction...' }));
+      
+      await tx.wait(); // Wait for confirmation
+
+      setMintingProgress({
+        isOpen: true,
+        progress: 100,
+        status: 'complete',
+        message: 'Batch Minting Successful!',
+        txHash: tx.hash
+      });
+
+    } catch (error: any) {
+      console.error(error);
+      setMintingProgress({
+        isOpen: true,
+        progress: 0,
+        status: 'error',
+        message: error.reason || error.message || 'Transaction failed',
+      });
     }
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setMintingProgress(prev => ({
-      ...prev,
-      status: 'complete',
-    }));
-
-    console.log('Batch minting from PDF files:', pdfUpload.files);
   };
 
+  // ⚡ REAL SINGLE MINTING LOGIC
   const handleMintToken = async () => {
     if (!singleCredential.walletAddress || !singleCredential.courseCode || !singleCredential.issuanceDate) {
       alert('Please fill in all required fields');
       return;
     }
 
-    setMintingProgress({
-      isOpen: true,
-      progress: 0,
-      status: 'minting',
-      message: 'Initializing transaction...',
-    });
+    try {
+      setMintingProgress({
+        isOpen: true,
+        progress: 10,
+        status: 'minting',
+        message: 'Connecting to wallet...',
+      });
 
-    const progressSteps = [
-      { progress: 25, message: 'Uploading metadata to IPFS...' },
-      { progress: 50, message: 'Preparing blockchain transaction...' },
-      { progress: 75, message: 'Minting ERC-1155 token...' },
-      { progress: 100, message: 'Transaction will be broadcast to Polygon Amoy Testnet' },
-    ];
+      const contract = await getContract();
+      if (!contract) throw new Error("Contract connection failed");
 
-    for (const step of progressSteps) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setMintingProgress(prev => ({
-        ...prev,
-        progress: step.progress,
-        message: step.message,
-      }));
+      // Get Skill ID from mapping
+      const skillId = SKILL_MAP[singleCredential.credentialType] || 1;
+
+      setMintingProgress(prev => ({ ...prev, progress: 40, message: 'Please sign transaction...' }));
+
+      // Call Contract
+      const tx = await contract.mintSkill(
+        singleCredential.walletAddress,
+        skillId,
+        1
+      );
+
+      setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Waiting for confirmation...' }));
+
+      await tx.wait();
+
+      setMintingProgress({
+        isOpen: true,
+        progress: 100,
+        status: 'complete',
+        message: 'Credential successfully issued on-chain!',
+        txHash: tx.hash
+      });
+
+    } catch (error: any) {
+      console.error(error);
+      setMintingProgress({
+        isOpen: true,
+        progress: 0,
+        status: 'error',
+        message: error.reason || error.message || "Minting failed",
+      });
     }
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setMintingProgress(prev => ({
-      ...prev,
-      status: 'complete',
-    }));
-
-    console.log('Minting token with data:', singleCredential);
   };
 
   const closeMintingModal = () => {
@@ -161,6 +238,7 @@ export default function RegistrarDashboard() {
       message: '',
     });
     if (mintingProgress.status === 'complete') {
+      // Reset form on success
       setSingleCredential({
         walletAddress: '',
         credentialType: 'Machine Learning',
@@ -168,6 +246,7 @@ export default function RegistrarDashboard() {
         issuanceDate: '',
         metadata: '',
       });
+      setPdfUpload({ files: [], dragActive: false });
     }
   };
 
@@ -246,7 +325,7 @@ export default function RegistrarDashboard() {
           </div>
         </div>
 
-        {/* Single Credential Form - Only show if no PDF files uploaded */}
+        {/* Single Credential Form */}
         {pdfUpload.files.length === 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Or Issue Single Credential</h2>
@@ -280,13 +359,11 @@ export default function RegistrarDashboard() {
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900 font-medium"
               >
-                <option value="Machine Learning">Machine Learning</option>
-                <option value="Web Development">Web Development</option>
-                <option value="Data Science">Data Science</option>
-                <option value="Cybersecurity">Cybersecurity</option>
-                <option value="Cloud Computing">Cloud Computing</option>
-                <option value="Database Management">Database Management</option>
-                <option value="Mobile Development">Mobile Development</option>
+                <option value="Web Development">Web Development (React)</option>
+                <option value="Python Programming">Python Programming</option>
+                <option value="Solidity Smart Contracts">Solidity Smart Contracts</option>
+                <option value="Node.js Backend Development">Node.js Backend</option>
+                <option value="AI/ML Fundamentals">AI/ML Fundamentals</option>
               </select>
             </div>
 
@@ -375,6 +452,10 @@ export default function RegistrarDashboard() {
                     <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
+                  ) : mintingProgress.status === 'error' ? (
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   ) : (
                     <svg className="w-8 h-8 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -382,7 +463,7 @@ export default function RegistrarDashboard() {
                   )}
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  {mintingProgress.status === 'complete' ? 'Minting Complete!' : 'Minting Progress'}
+                  {mintingProgress.status === 'complete' ? 'Minting Complete!' : mintingProgress.status === 'error' ? 'Minting Failed' : 'Minting Progress'}
                 </h2>
               </div>
 
@@ -394,7 +475,7 @@ export default function RegistrarDashboard() {
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-purple-600 to-purple-700 transition-all duration-500 ease-out"
+                    className={`h-full transition-all duration-500 ease-out ${mintingProgress.status === 'error' ? 'bg-red-500' : 'bg-gradient-to-r from-purple-600 to-purple-700'}`}
                     style={{ width: `${mintingProgress.progress}%` }}
                   ></div>
                 </div>
@@ -405,11 +486,16 @@ export default function RegistrarDashboard() {
                 <svg className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="text-sm text-gray-700 font-medium">{mintingProgress.message}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-gray-700 font-medium break-all">{mintingProgress.message}</p>
+                  {mintingProgress.txHash && (
+                    <p className="text-xs text-purple-600 mt-1 truncate">Tx: {mintingProgress.txHash}</p>
+                  )}
+                </div>
               </div>
 
-              {/* Close Button (only show when complete) */}
-              {mintingProgress.status === 'complete' && (
+              {/* Close Button (only show when complete or error) */}
+              {(mintingProgress.status === 'complete' || mintingProgress.status === 'error') && (
                 <button
                   onClick={closeMintingModal}
                   className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"

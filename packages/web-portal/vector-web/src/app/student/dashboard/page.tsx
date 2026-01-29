@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import CredentialCard from '@/components/dashboard/CredentialCard';
 import RecentActivity from '@/components/dashboard/RecentActivity';
+import { ethers } from 'ethers';
+import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 
 interface AIAnalysisData {
   skillHealth: {
@@ -29,9 +31,19 @@ interface AIAnalysisData {
 }
 
 interface UserProfile {
+  id: string; // Needed for update
   full_name: string;
   student_id: string;
   role: string;
+  wallet_address?: string;
+}
+
+interface BlockchainCredential {
+  category: string;
+  title: string;
+  issueDate: string;
+  marketRelevance: number;
+  verified: boolean;
 }
 
 export default function StudentDashboard() {
@@ -40,6 +52,88 @@ export default function StudentDashboard() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [aiData, setAiData] = useState<AIAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [blockchainCredentials, setBlockchainCredentials] = useState<BlockchainCredential[]>([]);
+  const [isWalletConnecting, setIsWalletConnecting] = useState(false);
+
+  // ⚡ Helper: Fetch Blockchain Data
+  const fetchBlockchainCredentials = async (walletAddress: string) => {
+    // Only proceed if ethereum object exists
+    if (typeof window === 'undefined' || !(window as any).ethereum || !walletAddress) return;
+
+    try {
+      // Use "any" to prevent network change errors
+      const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
+      
+      // We check network just to be safe, but we don't block reading
+      const network = await provider.getNetwork();
+      if (network.chainId !== 31337n && network.chainId !== 1337n) {
+        console.warn("Wrong network for reading credentials. Switch to Localhost.");
+        // Optional: Could prompt switch here
+      }
+
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
+      const foundCredentials: BlockchainCredential[] = [];
+
+      for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
+        if (typeof skillId !== 'number') continue; 
+        
+        try {
+          const balance = await contract.balanceOf(walletAddress, skillId);
+          if (balance > 0n) {
+            foundCredentials.push({
+              category: 'Blockchain Verified',
+              title: skillName,
+              issueDate: 'Verified On-Chain',
+              marketRelevance: 95,
+              verified: true,
+            });
+          }
+        } catch (readError) {
+          console.error(`Failed to read balance for ${skillName}`, readError);
+        }
+      }
+      setBlockchainCredentials(foundCredentials);
+    } catch (error) {
+      console.error("Error fetching blockchain credentials:", error);
+    }
+  };
+
+  // ⚡ Helper: Connect Wallet & Save to DB
+  const connectWallet = async () => {
+    if (typeof window === 'undefined' || !(window as any).ethereum) {
+      alert("Please install MetaMask to connect your wallet.");
+      return;
+    }
+
+    setIsWalletConnecting(true);
+    try {
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      // Request access
+      const accounts = await provider.send("eth_requestAccounts", []);
+      const address = accounts[0];
+
+      // Save to Supabase
+      if (user?.id) {
+        const { error } = await supabase
+          .from('users')
+          .update({ wallet_address: address })
+          .eq('id', user.id);
+
+        if (error) throw error;
+        
+        // Update Local State
+        setUser(prev => prev ? ({ ...prev, wallet_address: address }) : null);
+        
+        // Fetch Credentials immediately
+        await fetchBlockchainCredentials(address);
+      }
+    } catch (error: any) {
+      console.error("Wallet connection failed:", error);
+      alert("Failed to connect wallet: " + error.message);
+    } finally {
+      setIsWalletConnecting(false);
+    }
+  };
 
   useEffect(() => {
     const initDashboard = async () => {
@@ -54,23 +148,30 @@ export default function StudentDashboard() {
         // 1. Try to fetch profile
         let { data: profile } = await supabase
           .from('users')
-          .select('full_name, student_id, role')
+          .select('id, full_name, student_id, role, wallet_address') // Requested ID for updates
           .eq('id', session.user.id)
           .maybeSingle();
 
-        // 2. 🛡️ SAFE FALLBACK: If DB read fails, use Virtual Profile
+        // 2. Safe Fallback
         if (!profile) {
           console.warn("⚠️ Using Virtual Profile Fallback.");
           profile = {
-            full_name: session.user.email?.split('@')[0] || "Ace Denulan", 
-            student_id: "03-2026-2861",
-            role: "student"
+            id: session.user.id,
+            full_name: session.user.email?.split('@')[0] || "Student", 
+            student_id: "03-2026-PENDING",
+            role: "student",
+            wallet_address: "" 
           };
         }
 
         setUser(profile);
 
-        // 3. Load AI Data
+        // 3. Fetch Blockchain Credentials
+        if (profile.wallet_address && !profile.wallet_address.includes("pending")) {
+           await fetchBlockchainCredentials(profile.wallet_address);
+        }
+
+        // 4. Load AI Data
         const res = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -107,18 +208,20 @@ export default function StudentDashboard() {
     .sort((a, b) => b.relevanceScore - a.relevanceScore)
     .slice(0, 2) || [];
 
-  const displayCredentials = aiData?.credentials?.map(cred => {
+  const dbCredentials = aiData?.credentials?.map(cred => {
     const analysis = aiData.skillHealth.find(
       s => s.skillName.toLowerCase() === cred.skill_name.toLowerCase()
     );
     return {
-      category: 'Verified Credential',
+      category: 'Database Credential',
       title: cred.skill_name,
       issueDate: new Date(cred.issued_at).toLocaleDateString(),
       marketRelevance: analysis ? analysis.healthScore : 50,
       verified: true,
     };
   }) || [];
+
+  const allCredentials = [...blockchainCredentials, ...dbCredentials];
 
   return (
     <DashboardLayout>
@@ -131,7 +234,33 @@ export default function StudentDashboard() {
             Overview of your credentials and market standing
           </p>
         </div>
-        {loading && <span className="text-sm text-purple-600 animate-pulse bg-purple-50 px-3 py-1 rounded-full">⚡ Analyzing market trends...</span>}
+        
+        {/* Wallet Connection Status */}
+        <div className="flex items-center gap-3">
+          {loading ? (
+             <span className="text-sm text-purple-600 animate-pulse bg-purple-50 px-3 py-1 rounded-full">⚡ Loading...</span>
+          ) : user?.wallet_address && !user.wallet_address.includes("pending") ? (
+             <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
+               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+               Wallet Connected: {user.wallet_address.slice(0,6)}...{user.wallet_address.slice(-4)}
+             </span>
+          ) : (
+             <button 
+               onClick={connectWallet}
+               disabled={isWalletConnecting}
+               className="flex items-center gap-2 text-sm bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all shadow-sm"
+             >
+               {isWalletConnecting ? (
+                 <>Connecting...</>
+               ) : (
+                 <>
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                   Connect Wallet
+                 </>
+               )}
+             </button>
+          )}
+        </div>
       </div>
 
       {hasPendingCVR && (
@@ -151,6 +280,7 @@ export default function StudentDashboard() {
         </div>
       )}
 
+      {/* Insight Section */}
       {!loading && aiData && decayingSkill && (
         <div className={`border rounded-xl p-4 mb-6 md:mb-8 transition-all duration-500 ${
           decayingSkill.trend === 'growing' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
@@ -191,6 +321,7 @@ export default function StudentDashboard() {
         </div>
       )}
 
+      {/* Verified Micro-Credentials Section */}
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
           <h2 className="text-lg md:text-xl font-semibold text-gray-900">Verified Credentials</h2>
@@ -198,14 +329,22 @@ export default function StudentDashboard() {
             View All <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           </button>
         </div>
+        
+        {/* Credentials Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {displayCredentials.length > 0 ? (
-            displayCredentials.map((credential, index) => (
+          {allCredentials.length > 0 ? (
+            allCredentials.map((credential, index) => (
               <CredentialCard key={index} {...credential} />
             ))
           ) : (
-            <div className="col-span-1 md:col-span-2 p-8 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
-              <p className="text-gray-500">No verified credentials found yet.</p>
+            <div className="col-span-1 md:col-span-2 p-8 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 flex flex-col items-center justify-center gap-4">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              </div>
+              <div>
+                <p className="text-gray-600 font-medium">No verified credentials found.</p>
+                <p className="text-gray-400 text-sm mt-1">Connect your wallet to see blockchain credentials.</p>
+              </div>
             </div>
           )}
         </div>
