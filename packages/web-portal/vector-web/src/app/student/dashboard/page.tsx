@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import CredentialCard from '@/components/dashboard/CredentialCard';
 import RecentActivity from '@/components/dashboard/RecentActivity';
-import MetricCards from '@/components/dashboard/MetricCards';
 
 interface AIAnalysisData {
   skillHealth: {
@@ -135,12 +134,11 @@ export default function StudentDashboard() {
         {loading && <span className="text-sm text-purple-600 animate-pulse bg-purple-50 px-3 py-1 rounded-full">⚡ Analyzing market trends...</span>}
       </div>
 
-      {/* Metric Cards */}
-      <MetricCards />
-
-      {/* Pending CVR Verification Card */}
-      {hasPendingCVR && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 md:mb-8">
+      {/* Content renders here... */}
+      {!loading && aiData && decayingSkill && (
+        <div className={`border rounded-xl p-4 mb-6 md:mb-8 transition-all duration-500 ${
+          decayingSkill.trend === 'growing' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
+        }`}>
           <div className="flex items-start gap-3">
             <div className={`mt-0.5 ${decayingSkill.trend === 'growing' ? 'text-green-500' : 'text-orange-500'}`}>
               {decayingSkill.trend === 'growing' ? (

@@ -4,11 +4,50 @@ import ConnectWalletModal from '@/components/shared/ConnectWalletModal';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import RegistrarLoginModal from '@/components/shared/RegistrarLoginModal';
 
 export default function LoginPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isRegistrarModalOpen, setIsRegistrarModalOpen] = useState(false);
+  const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false); // For Wallet
+  
+  // NEW: Email Login State
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // Check role to redirect correctly
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (userData?.role === 'registrar') {
+        router.push('/dashboard/registrar');
+      } else {
+        router.push('/student/dashboard');
+      }
+      
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="min-h-screen w-full bg-gray-50 flex items-center justify-center p-4 md:p-6 relative">
@@ -88,7 +127,7 @@ export default function LoginPage() {
             </p>
 
             <button
-              onClick={() => setIsRegistrarModalOpen(true)}
+              onClick={() => setIsEmailModalOpen(true)}
               className="w-full py-4 px-6 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2"
               aria-label="Login with Email for Registrar Access"
             >
@@ -111,11 +150,61 @@ export default function LoginPage() {
         onClose={() => setIsModalOpen(false)} 
       />
 
-      {/* Registrar Login Modal */}
-      <RegistrarLoginModal
-        isOpen={isRegistrarModalOpen}
-        onClose={() => setIsRegistrarModalOpen(false)}
-      />
+      {/* NEW: Email Login Modal */}
+      {isEmailModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity">
+          <div className="bg-white rounded-2xl w-full max-w-md p-8 relative shadow-2xl">
+            <button 
+              onClick={() => setIsEmailModalOpen(false)} 
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Sign In</h2>
+            
+            {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
+            
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input 
+                  type="email" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none" 
+                  placeholder="Enter email" 
+                  required 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input 
+                  type="password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none" 
+                  placeholder="Enter password" 
+                  required 
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 flex justify-center items-center"
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+            
+            <div className="mt-4 text-center">
+              <Link href="/register" className="text-sm text-purple-600 hover:underline">
+                Create an account
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
