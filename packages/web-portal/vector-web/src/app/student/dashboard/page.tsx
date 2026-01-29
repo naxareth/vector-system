@@ -58,19 +58,19 @@ export default function StudentDashboard() {
           .eq('id', session.user.id)
           .maybeSingle();
 
-        // 2. 🛡️ SAFE FALLBACK: If DB read fails, use Session Data (Don't crash!)
+        // 2. 🛡️ SAFE FALLBACK: If DB read fails, use Virtual Profile
         if (!profile) {
-          console.warn("⚠️ DB Read failed/blocked. Using Virtual Profile.");
+          console.warn("⚠️ Using Virtual Profile Fallback.");
           profile = {
-            full_name: session.user.email?.split('@')[0] || "Ace Denulan", // Fallback Name
-            student_id: "03-2026-2861", // Your known ID
+            full_name: session.user.email?.split('@')[0] || "Ace Denulan", 
+            student_id: "03-2026-2861",
             role: "student"
           };
         }
 
         setUser(profile);
 
-        // 3. Load AI Data (Using the ID we definitely have now)
+        // 3. Load AI Data
         const res = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -134,7 +134,23 @@ export default function StudentDashboard() {
         {loading && <span className="text-sm text-purple-600 animate-pulse bg-purple-50 px-3 py-1 rounded-full">⚡ Analyzing market trends...</span>}
       </div>
 
-      {/* Content renders here... */}
+      {hasPendingCVR && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 md:mb-8 animate-fade-in">
+           <div className="flex items-start gap-3">
+            <div className="text-blue-500 mt-0.5">
+              <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900 mb-1">Pending Credential Verification</h3>
+              <p className="text-blue-700 text-sm">Your CVR is currently being verified by the registrar.</p>
+            </div>
+            <button onClick={handleClosePendingCard} className="text-blue-400 hover:text-blue-600">×</button>
+          </div>
+        </div>
+      )}
+
       {!loading && aiData && decayingSkill && (
         <div className={`border rounded-xl p-4 mb-6 md:mb-8 transition-all duration-500 ${
           decayingSkill.trend === 'growing' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
@@ -175,7 +191,6 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* Verified Micro-Credentials Section */}
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
           <h2 className="text-lg md:text-xl font-semibold text-gray-900">Verified Credentials</h2>

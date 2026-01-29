@@ -13,7 +13,7 @@ interface Message {
 export default function CoachPage() {
   const router = useRouter();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [studentId, setStudentId] = useState<string>('03-2023-001'); // Default fallback
+  const [studentId, setStudentId] = useState<string>('03-2023-001');
   
   // ⚡ CHAT STATE
   const [messages, setMessages] = useState<Message[]>([
@@ -23,7 +23,7 @@ export default function CoachPage() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // 1. Fetch User (With Fallback)
+  // 1. Fetch User Logic
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -32,20 +32,17 @@ export default function CoachPage() {
         return;
       }
 
-      // Try fetch
       const { data: profile } = await supabase
         .from('users')
         .select('full_name, student_id')
         .eq('id', session.user.id)
         .maybeSingle();
 
-      // Determine Name & ID
-      const name = profile?.full_name?.split(' ')[0] || session.user.email?.split('@')[0] || "Student";
-      const id = profile?.student_id || "03-2026-2861"; // Fallback to your ID
+      const name = profile?.full_name?.split(' ')[0] || "Student";
+      const id = profile?.student_id || "03-2026-2861"; 
 
       setStudentId(id);
       
-      // Update greeting
       setMessages(prev => {
         const newMsgs = [...prev];
         newMsgs[0] = { 
@@ -64,19 +61,10 @@ export default function CoachPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Quick Action Chips
-  const quickPrompts = [
-    "📉 How do I fix the PHP drop?",
-    "💼 What jobs fit my profile?",
-    "📝 Draft a cover letter",
-    "🚀 Suggest a learning path"
-  ];
-
   const handleSend = async (textOverride?: string) => {
     const textToSend = textOverride || input;
     if (!textToSend.trim()) return;
 
-    // Add User Message
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: textToSend }]);
     setLoading(true);
@@ -85,22 +73,26 @@ export default function CoachPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          studentId: studentId, 
-          message: textToSend 
-        })
+        body: JSON.stringify({ studentId, message: textToSend })
       });
       const data = await res.json();
-      
       setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'ai', text: "I'm having trouble connecting to the server. Please try again." }]);
+      setMessages(prev => [...prev, { role: 'ai', text: "I'm having trouble connecting to the server." }]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Chart Data (Static Visuals)
+  // Quick Action Chips
+  const quickPrompts = [
+    "📉 Fix PHP drop",
+    "💼 Job matches",
+    "📝 Draft cover letter",
+    "🚀 Learning path"
+  ];
+
+  // Static Visual Data
   const trendData = [
     { month: 'Jan', value: 35 }, { month: 'Feb', value: 42 }, { month: 'Mar', value: 48 },
     { month: 'Apr', value: 52 }, { month: 'May', value: 51 }, { month: 'Jun', value: 58 },
@@ -235,7 +227,6 @@ export default function CoachPage() {
         <div className="lg:col-span-1">
           <div className="sticky top-6 h-[calc(100vh-theme(spacing.32))] min-h-[500px] flex flex-col">
             <div className="bg-white rounded-xl border border-gray-200 shadow-lg flex flex-col h-full overflow-hidden ring-1 ring-black/5">
-              
               <div className="p-4 bg-gradient-to-r from-purple-700 to-purple-600 text-white flex items-center gap-3 shadow-md z-10">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/30">
@@ -292,11 +283,9 @@ export default function CoachPage() {
                   </button>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
-
       </div>
       
       <ExportCVRModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} />

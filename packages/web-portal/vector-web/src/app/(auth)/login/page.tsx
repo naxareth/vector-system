@@ -1,15 +1,17 @@
 'use client';
 import { useState } from 'react';
 import ConnectWalletModal from '@/components/shared/ConnectWalletModal';
+import RegistrarLoginModal from '@/components/shared/RegistrarLoginModal';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [isModalOpen, setIsModalOpen] = useState(false); // For Wallet
+  const [isModalOpen, setIsModalOpen] = useState(false); // Student Wallet Modal
+  const [isRegistrarModalOpen, setIsRegistrarModalOpen] = useState(false); // Registrar Modal
   
-  // NEW: Email Login State
+  // NEW: Student Email Login State
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,11 +24,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
       // Check role to redirect correctly
@@ -34,14 +32,13 @@ export default function LoginPage() {
         .from('users')
         .select('role')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
 
       if (userData?.role === 'registrar') {
         router.push('/dashboard/registrar');
       } else {
         router.push('/student/dashboard');
       }
-      
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
     } finally {
@@ -127,7 +124,7 @@ export default function LoginPage() {
             </p>
 
             <button
-              onClick={() => setIsEmailModalOpen(true)}
+              onClick={() => setIsRegistrarModalOpen(true)}
               className="w-full py-4 px-6 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2"
               aria-label="Login with Email for Registrar Access"
             >
@@ -150,7 +147,13 @@ export default function LoginPage() {
         onClose={() => setIsModalOpen(false)} 
       />
 
-      {/* NEW: Email Login Modal */}
+      {/* Registrar Login Modal */}
+      <RegistrarLoginModal
+        isOpen={isRegistrarModalOpen}
+        onClose={() => setIsRegistrarModalOpen(false)}
+      />
+
+      {/* NEW: Student Email Login Modal */}
       {isEmailModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity">
           <div className="bg-white rounded-2xl w-full max-w-md p-8 relative shadow-2xl">
@@ -161,7 +164,7 @@ export default function LoginPage() {
                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Sign In</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Student Sign In</h2>
             
             {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
             

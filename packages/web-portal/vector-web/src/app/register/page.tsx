@@ -79,8 +79,7 @@ export default function RegisterPage() {
       if (authError) throw authError;
       if (!authData.user) throw new Error("No user created");
 
-      // 2. Create Profile in Public Table
-      // Note: 'email' field removed from insert to match your DB schema
+      // 2. Create Profile in Public Table (No Email Column)
       const placeholderWallet = `0x_pending_${authData.user.id.substring(0, 8)}`;
       const generatedStudentId = `03-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -188,6 +187,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center px-6 py-12">
       <div className="max-w-md w-full">
+        {/* Header */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
@@ -201,6 +201,7 @@ export default function RegisterPage() {
           <p className="text-gray-600">Fill in your details to get started</p>
         </div>
 
+        {/* Form */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
           
           {errors.form && (
@@ -210,6 +211,7 @@ export default function RegisterPage() {
             </div>
           )}
 
+          {/* Role Badge */}
           <div className="flex items-center gap-2 mb-6">
             <div className={`px-3 py-1 rounded-full text-sm font-medium ${
               selectedRole === 'student' 
@@ -227,6 +229,7 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* First Name */}
             <div>
               <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                 First Name
@@ -247,6 +250,7 @@ export default function RegisterPage() {
               )}
             </div>
 
+            {/* Last Name */}
             <div>
               <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
                 Last Name
@@ -267,6 +271,7 @@ export default function RegisterPage() {
               )}
             </div>
 
+            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
@@ -287,6 +292,7 @@ export default function RegisterPage() {
               )}
             </div>
 
+            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Password
@@ -307,6 +313,7 @@ export default function RegisterPage() {
               )}
             </div>
 
+            {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
                 Confirm Password
@@ -327,6 +334,7 @@ export default function RegisterPage() {
               )}
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
@@ -351,6 +359,7 @@ export default function RegisterPage() {
             </button>
           </form>
 
+          {/* Terms */}
           <p className="text-xs text-gray-500 text-center mt-6">
             By creating an account, you agree to our{' '}
             <a href="#" className="text-purple-600 hover:text-purple-700">Terms of Service</a>
@@ -359,6 +368,7 @@ export default function RegisterPage() {
           </p>
         </div>
 
+        {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-gray-600">
             Already have an account?{' '}
