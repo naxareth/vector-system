@@ -36,7 +36,7 @@ export default function SkillsPage() {
   return (
     <DashboardLayout>
       {/* Page Header */}
-      <div className="mb-4 md:mb-6">
+      <div className="mb-4 -mt-10">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Skills</h1>
         <p className="text-sm md:text-base text-gray-500">Track and manage your verified skills</p>
       </div>

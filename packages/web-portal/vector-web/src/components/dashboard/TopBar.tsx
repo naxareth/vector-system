@@ -2,15 +2,26 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function TopBar() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [userName, setUserName] = useState('Student');
+  const [userRole, setUserRole] = useState('student');
   const router = useRouter();
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+
+  // Helper function to capitalize first letter of each word
+  const capitalizeWords = (text: string) => {
+    return text
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
 
   let theme: 'light' | 'dark' = 'light';
   let toggleTheme = () => {};
@@ -25,6 +36,29 @@ export default function TopBar() {
 
   useEffect(() => {
     setMounted(true);
+
+    // Fetch user data from Supabase
+    const fetchUserData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('full_name, role')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (profile) {
+          // Capitalize first letter of each word
+          const capitalizedName = profile.full_name 
+            ? capitalizeWords(profile.full_name)
+            : 'Student';
+          setUserName(capitalizedName);
+          setUserRole(profile.role || 'student');
+        }
+      }
+    };
+
+    fetchUserData();
   }, []);
 
   const notifications = [
@@ -178,11 +212,13 @@ export default function TopBar() {
             className="flex items-center gap-3 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <span className="text-purple-600 font-semibold text-lg">J</span>
+              <span className="text-purple-600 font-semibold text-lg">
+                {userName.charAt(0).toUpperCase()}
+              </span>
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-semibold text-gray-900">Juan Dela Cruz</p>
-              <p className="text-xs text-gray-500">student</p>
+              <p className="text-sm font-semibold text-gray-900">{userName}</p>
+              <p className="text-xs text-gray-500">{userRole}</p>
             </div>
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -191,7 +227,7 @@ export default function TopBar() {
 
           {/* Profile Dropdown Menu */}
           {isProfileMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
               <button
                 onClick={handleViewProfile}
                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"

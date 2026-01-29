@@ -93,7 +93,7 @@ export default function CVRPage() {
   return (
     <DashboardLayout>
       {/* Page Header */}
-      <div className="mb-4 md:mb-6">
+      <div className="mb-4 -mt-10">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
           {isGenerated ? 'Credential Verified Resume (CVR)' : 'Generate CVR'}
         </h1>
@@ -105,8 +105,8 @@ export default function CVRPage() {
       </div>
 
       {!isGenerated ? (
-      <form onSubmit={handleGenerateCVR} className="max-w-4xl">
-        <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 space-y-6">
+      <form onSubmit={handleGenerateCVR}>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 space-y-6">
           {/* Personal Details Section */}
           <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal Details</h2>
@@ -120,7 +120,7 @@ export default function CVRPage() {
                   required
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                   placeholder="John Doe"
                 />
               </div>
@@ -133,7 +133,7 @@ export default function CVRPage() {
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                   placeholder="Full-Stack Developer"
                 />
               </div>
@@ -146,7 +146,7 @@ export default function CVRPage() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                   placeholder="john@example.com"
                 />
               </div>
@@ -158,7 +158,7 @@ export default function CVRPage() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                   placeholder="+63 912 345 6789"
                 />
               </div>
@@ -170,7 +170,7 @@ export default function CVRPage() {
                   type="url"
                   value={formData.portfolio}
                   onChange={(e) => setFormData({ ...formData, portfolio: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                   placeholder="https://portfolio.com"
                 />
               </div>
@@ -182,7 +182,7 @@ export default function CVRPage() {
                   value={formData.summary}
                   onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                   placeholder="Brief professional summary..."
                 />
               </div>
@@ -222,7 +222,7 @@ export default function CVRPage() {
                   value={customSkill}
                   onChange={(e) => setCustomSkill(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCustomSkill())}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                   placeholder="Enter skill name"
                 />
                 <button
@@ -312,7 +312,7 @@ export default function CVRPage() {
       ) : (
         /* Generated CVR Display */
         <div className="w-full">
-      <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 space-y-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 space-y-6">
             {/* Header Section */}
             <div className="text-center border-b border-gray-200 pb-6">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">{generatedData.fullName}</h2>
