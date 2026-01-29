@@ -9,9 +9,9 @@ import Link from 'next/link';
 export default function LoginPage() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false); // Student Wallet Modal
-  const [isRegistrarModalOpen, setIsRegistrarModalOpen] = useState(false); // Registrar Modal
+  const [isRegistrarModalOpen, setIsRegistrarModalOpen] = useState(false); // Legacy Modal (Unused for auth now)
   
-  // NEW: Student Email Login State
+  // Shared Email Login State
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,7 +35,8 @@ export default function LoginPage() {
         .maybeSingle();
 
       if (userData?.role === 'registrar') {
-        router.push('/dashboard/registrar');
+        // ✅ FIXED: Correct path for registrar dashboard
+        router.push('/registrar/dashboard');
       } else {
         router.push('/student/dashboard');
       }
@@ -96,7 +97,7 @@ export default function LoginPage() {
               </svg>
             </button>
             
-            {/* Added: Link for Student Email Login */}
+            {/* Student Email Login Trigger */}
             <button 
               onClick={() => setIsEmailModalOpen(true)} 
               className="mt-4 text-sm text-purple-600 hover:text-purple-800 font-medium underline"
@@ -124,7 +125,7 @@ export default function LoginPage() {
             </p>
 
             <button
-              onClick={() => setIsRegistrarModalOpen(true)}
+              onClick={() => setIsEmailModalOpen(true)} /* ✅ Use Unified Modal for Real Auth */
               className="w-full py-4 px-6 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2"
               aria-label="Login with Email for Registrar Access"
             >
@@ -133,7 +134,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Footer / Trust Indicators */}
+        {/* Footer */}
         <div className="mt-12 text-center">
           <p className="text-sm text-gray-400 font-medium">
             Secured by Blockchain Technology • 256-bit Encryption
@@ -147,13 +148,13 @@ export default function LoginPage() {
         onClose={() => setIsModalOpen(false)} 
       />
 
-      {/* Registrar Login Modal */}
+      {/* Registrar Login Modal (Kept for compatibility, but unused for main flow now) */}
       <RegistrarLoginModal
         isOpen={isRegistrarModalOpen}
         onClose={() => setIsRegistrarModalOpen(false)}
       />
 
-      {/* NEW: Student Email Login Modal */}
+      {/* Unified Email Login Modal */}
       {isEmailModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity">
           <div className="bg-white rounded-2xl w-full max-w-md p-8 relative shadow-2xl">
@@ -164,7 +165,8 @@ export default function LoginPage() {
                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Student Sign In</h2>
+            {/* ✅ Generic Title for both roles */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Sign In</h2>
             
             {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
             

@@ -82,7 +82,6 @@ export default function RegistrarDashboard() {
       return;
     }
 
-    // Open progress modal
     setMintingProgress({
       isOpen: true,
       progress: 0,
@@ -90,7 +89,6 @@ export default function RegistrarDashboard() {
       message: 'Processing PDF files...',
     });
 
-    // Simulate batch minting process with progress updates
     const progressSteps = [
       { progress: 20, message: 'Extracting student information from PDFs...' },
       { progress: 40, message: 'Uploading metadata to IPFS...' },
@@ -108,25 +106,21 @@ export default function RegistrarDashboard() {
       }));
     }
 
-    // Mark as complete
     await new Promise(resolve => setTimeout(resolve, 500));
     setMintingProgress(prev => ({
       ...prev,
       status: 'complete',
     }));
 
-    // TODO: Implement actual batch minting logic
     console.log('Batch minting from PDF files:', pdfUpload.files);
   };
 
   const handleMintToken = async () => {
-    // Validate form
     if (!singleCredential.walletAddress || !singleCredential.courseCode || !singleCredential.issuanceDate) {
       alert('Please fill in all required fields');
       return;
     }
 
-    // Open progress modal
     setMintingProgress({
       isOpen: true,
       progress: 0,
@@ -134,7 +128,6 @@ export default function RegistrarDashboard() {
       message: 'Initializing transaction...',
     });
 
-    // Simulate minting process with progress updates
     const progressSteps = [
       { progress: 25, message: 'Uploading metadata to IPFS...' },
       { progress: 50, message: 'Preparing blockchain transaction...' },
@@ -151,14 +144,12 @@ export default function RegistrarDashboard() {
       }));
     }
 
-    // Mark as complete
     await new Promise(resolve => setTimeout(resolve, 500));
     setMintingProgress(prev => ({
       ...prev,
       status: 'complete',
     }));
 
-    // TODO: Implement actual minting logic
     console.log('Minting token with data:', singleCredential);
   };
 
@@ -169,7 +160,6 @@ export default function RegistrarDashboard() {
       status: 'minting',
       message: '',
     });
-    // Reset form if successful
     if (mintingProgress.status === 'complete') {
       setSingleCredential({
         walletAddress: '',

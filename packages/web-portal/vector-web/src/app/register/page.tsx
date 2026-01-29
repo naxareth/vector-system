@@ -97,7 +97,7 @@ export default function RegisterPage() {
 
       // 3. Success -> Redirect
       if (selectedRole === 'registrar') {
-        router.push('/dashboard/registrar');
+        router.push('/registrar/dashboard');
       } else {
         router.push('/student/dashboard');
       }
