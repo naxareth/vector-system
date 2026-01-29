@@ -60,54 +60,21 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
-    setLoading(true);
+    if (!validateForm()) {
+      return;
+    }
 
-    try {
-      // 1. Create User in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: `${formData.firstName} ${formData.lastName}`,
-            role: selectedRole,
-          }
-        }
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("No user created");
-
-      // 2. Create Profile in Public Table
-      // Note: 'email' field removed from insert to match your DB schema
-      const placeholderWallet = `0x_pending_${authData.user.id.substring(0, 8)}`;
-      const generatedStudentId = `03-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      const { error: dbError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          student_id: generatedStudentId,
-          full_name: `${formData.firstName} ${formData.lastName}`,
-          role: selectedRole,
-          wallet_address: placeholderWallet
-        });
-
-      if (dbError) throw dbError;
-
-      // 3. Success -> Redirect
-      if (selectedRole === 'registrar') {
-        router.push('/dashboard/registrar');
-      } else {
-        router.push('/student/dashboard');
-      }
-
-    } catch (err: any) {
-      console.error('Registration Error:', err);
-      setErrors({ form: err.message || 'Registration failed. Please try again.' });
-    } finally {
-      setLoading(false);
+    // TODO: Implement actual registration logic
+    console.log('Registering as:', selectedRole, formData);
+    
+    // Store user role in localStorage
+    localStorage.setItem('userRole', selectedRole!);
+    
+    // Redirect based on role
+    if (selectedRole === 'student') {
+      window.location.href = '/student/dashboard';
+    } else {
+      window.location.href = '/registrar/dashboard';
     }
   };
 
