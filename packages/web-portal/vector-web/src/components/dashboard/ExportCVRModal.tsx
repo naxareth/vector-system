@@ -1,5 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface ExportCVRModalProps {
   isOpen: boolean;
@@ -9,113 +11,285 @@ interface ExportCVRModalProps {
 export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps) {
   const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'json'>('pdf');
   const [includeVerification, setIncludeVerification] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [cvrData, setCvrData] = useState<any>(null);
+  
+  // This ref points to the invisible A4 resume div
+  const printRef = useRef<HTMLDivElement>(null);
+
+  // 1. Load Data on Open
+  useEffect(() => {
+    if (isOpen) {
+      const stored = localStorage.getItem('sampleCVRData');
+      if (stored) setCvrData(JSON.parse(stored));
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleExport = () => {
-    // Export logic here
-    console.log(`Exporting as ${selectedFormat} with verification: ${includeVerification}`);
-    onClose();
+  // 2. The Export Logic
+  const handleExport = async () => {
+    setIsExporting(true);
+    
+    // Allow slight delay for UI update
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    try {
+      if (selectedFormat === 'json') {
+        // --- JSON EXPORT ---
+        const dataStr = JSON.stringify(cvrData, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `CVR_${cvrData.fullName.replace(/\s+/g, '_')}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // --- PDF EXPORT ---
+        if (!printRef.current) return;
+
+        // Capture the hidden div
+        const canvas = await html2canvas(printRef.current, {
+          scale: 2, // High resolution for crisp text
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff', // Force white background
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`CVR_${cvrData.fullName.replace(/\s+/g, '_')}.pdf`);
+      }
+      
+      onClose();
+    } catch (error) {
+      console.error("Export failed", error);
+      alert("Failed to export. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // ✅ SAFE COLORS (Hex codes to prevent 'lab()' errors)
+  const colors = {
+    white: '#ffffff',
+    black: '#111827',     // gray-900
+    gray: '#4b5563',      // gray-600
+    lightGray: '#f9fafb', // gray-50
+    border: '#e5e7eb',    // gray-200
+    purple: '#9333ea',    // purple-600
+    purpleLight: '#f3e8ff', // purple-100
+    greenText: '#15803d',   // green-700
+    greenBg: '#dcfce7',     // green-100
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Export CVR</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="space-y-4 mb-6">
-          {/* Format Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Export Format
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setSelectedFormat('pdf')}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  selectedFormat === 'pdf'
-                    ? 'border-purple-600 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-                <span className="text-sm font-medium">PDF</span>
-              </button>
-              <button
-                onClick={() => setSelectedFormat('json')}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  selectedFormat === 'json'
-                    ? 'border-purple-600 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                </svg>
-                <span className="text-sm font-medium">JSON</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Options */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includeVerification}
-                onChange={(e) => setIncludeVerification(e.target.checked)}
-                className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-              />
-              <span className="text-sm text-gray-700">Include blockchain verification details</span>
-            </label>
-          </div>
-
-          {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex gap-2">
-              <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+    <>
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl animate-fade-in-up">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Export Verified Resume</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-              <p className="text-xs text-blue-800">
-                Your CVR includes all verified credentials with blockchain proof of authenticity.
-              </p>
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="space-y-4 mb-6">
+            {/* Format Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Export Format
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setSelectedFormat('pdf')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    selectedFormat === 'pdf'
+                      ? 'border-purple-600 bg-purple-50 text-purple-700'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm font-medium">PDF Document</span>
+                </button>
+                <button
+                  onClick={() => setSelectedFormat('json')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    selectedFormat === 'json'
+                      ? 'border-purple-600 bg-purple-50 text-purple-700'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                  <span className="text-sm font-medium">JSON Data</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Options */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeVerification}
+                  onChange={(e) => setIncludeVerification(e.target.checked)}
+                  className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                />
+                <span className="text-sm text-gray-700">Include blockchain verification details</span>
+              </label>
+            </div>
+
+            {/* Info Box */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex gap-2">
+                <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <p className="text-xs text-blue-800">
+                  {selectedFormat === 'pdf' 
+                    ? 'The PDF will include a cryptographic footer linked to the Polygon blockchain.' 
+                    : 'The JSON file contains raw data suitable for verifier applications.'}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleExport}
-            className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Export
-          </button>
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              disabled={isExporting}
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+            >
+              {isExporting ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export {selectedFormat.toUpperCase()}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* ------------------------------------------------------------
+        THE "GHOST" TEMPLATE 
+        Rendered off-screen for html2canvas to capture.
+        CRITICAL FIX: We use inline STYLES with HEX CODES instead of 
+        Tailwind color classes to prevent 'lab()' errors.
+        ------------------------------------------------------------
+      */}
+      {cvrData && (
+        <div style={{ position: 'absolute', top: -9999, left: -9999 }}>
+          <div 
+            ref={printRef} 
+            style={{ width: '210mm', minHeight: '297mm', backgroundColor: colors.white, color: colors.gray, padding: '48px' }}
+          >
+            {/* Resume Header */}
+            <div style={{ borderBottom: `2px solid ${colors.purple}`, paddingBottom: '24px', marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h1 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.black, textTransform: 'uppercase', marginBottom: '8px', lineHeight: '1' }}>
+                  {cvrData.fullName}
+                </h1>
+                <p style={{ fontSize: '20px', color: colors.purple, fontWeight: '500' }}>
+                  {cvrData.title}
+                </p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ display: 'inline-block', padding: '8px', backgroundColor: colors.white, border: `1px solid ${colors.border}`, borderRadius: '8px' }}>
+                  <div style={{ width: '64px', height: '64px', backgroundColor: colors.black, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.white, fontSize: '8px', textAlign: 'center', lineHeight: '1.2' }}>
+                    VECTOR<br/>SECURE
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Resume Contact */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', fontSize: '14px', color: colors.gray, marginBottom: '32px', fontWeight: '500' }}>
+              <span>📧 {cvrData.email}</span>
+              {cvrData.phone && <span>📱 {cvrData.phone}</span>}
+              {cvrData.portfolio && <span>🌐 {cvrData.portfolio}</span>}
+            </div>
+
+            {/* Resume Summary */}
+            {cvrData.summary && (
+              <div style={{ marginBottom: '32px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+                  Professional Summary
+                </h3>
+                <p style={{ color: colors.black, lineHeight: '1.6' }}>{cvrData.summary}</p>
+              </div>
+            )}
+
+            {/* Resume Skills */}
+            <div style={{ marginBottom: '32px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>
+                Competencies
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {cvrData.skills && cvrData.skills.map((skill: any, i: number) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: colors.lightGray, borderRadius: '4px', border: `1px solid ${colors.border}` }}>
+                    <span style={{ fontWeight: '600', color: colors.black }}>{skill.name}</span>
+                    {skill.verified && (
+                      <span style={{ fontSize: '10px', backgroundColor: colors.greenBg, color: colors.greenText, padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Blockchain Footer (Conditional) */}
+            {includeVerification && (
+              <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ width: '40px', height: '40px', backgroundColor: colors.purpleLight, borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.purple }}>
+                  {/* Simple SVG icon directly embedded */}
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <div style={{ fontSize: '12px', color: colors.gray }}>
+                  <p style={{ fontWeight: 'bold', color: colors.black, margin: 0 }}>Cryptographically Secured Document</p>
+                  <p style={{ margin: 0 }}>Generated by VECTOR Platform • Immutable Record on Polygon Amoy Testnet</p>
+                  <p style={{ fontFamily: 'monospace', fontSize: '10px', marginTop: '4px', color: '#9ca3af', margin: 0 }}>ID: {Date.now()}-{cvrData.fullName?.substring(0,3).toUpperCase()}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

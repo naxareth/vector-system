@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     if (!text) return NextResponse.json({ status: 'error', message: 'Empty request' }, { status: 400 });
     
     const body = JSON.parse(text);
-    const { studentId, resumeText } = body;
+    const { studentId, resumeText, skillsOverride } = body; // ✅ Added skillsOverride
 
     if (!studentId) {
       return NextResponse.json({ status: 'error', message: 'Student ID required' }, { status: 400 });
@@ -19,8 +19,8 @@ export async function POST(req: Request) {
     const student = await prisma.users.findUnique({
       where: { student_id: studentId },
       include: {
-        verified_credentials: true, // DB Field 1
-        self_reported_skills: true  // DB Field 2
+        verified_credentials: true,
+        self_reported_skills: true
       }
     });
 
@@ -34,40 +34,42 @@ export async function POST(req: Request) {
     });
 
     // ============================================================
-    // 🛠️ Transform DB Data -> AI Data
-    // We combine Verified Credentials + Self-Reported Skills into one list
+    // 🛠️ DATA MERGE STRATEGY
+    // If 'skillsOverride' is provided (from Client-Side Blockchain Read), use it.
+    // Otherwise, fall back to what is currently in the Database.
     // ============================================================
     
-    // Extract skill names from verified credentials
-    const verifiedNames = student.verified_credentials.map(c => c.skill_name);
-    
-    // Extract skill names from self-reported skills
-    const selfReportedNames = student.self_reported_skills.map(s => s.skill_name);
+    let allSkills: string[] = [];
 
-    // Combine them into a single array for the AI
-    const allSkills = [...verifiedNames, ...selfReportedNames];
+    if (skillsOverride && Array.isArray(skillsOverride) && skillsOverride.length > 0) {
+      console.log("⚡ Using Live Blockchain Skills for Analysis:", skillsOverride);
+      allSkills = skillsOverride;
+    } else {
+      const verifiedNames = student.verified_credentials.map(c => c.skill_name);
+      const selfReportedNames = student.self_reported_skills.map(s => s.skill_name);
+      allSkills = [...verifiedNames, ...selfReportedNames];
+    }
 
     // Create a clean object that matches what the AI expects
     const aiInput = {
       id: student.student_id || "unknown",
       name: student.full_name || "Student",
-      skills: allSkills, // <--- The AI Engine is looking for THIS
+      skills: allSkills, 
       credentials: student.verified_credentials
     };
 
-    // 4. Call AI Engine with the CLEAN object
+    // 4. Call AI Engine
     const analysisResult = await analyzeStudentProfile({
       studentData: aiInput, 
       marketData: marketHistory,
       resumeText: resumeText || "" 
     });
 
-    // 5. Return Intelligence + RAW CREDENTIALS
+    // 5. Return Intelligence
     return NextResponse.json({
       status: 'success',
       data: {
         ...analysisResult,
-        // ✅ CRITICAL ADDITION: Pass the raw DB credentials to the frontend
         credentials: student.verified_credentials 
       }
     });

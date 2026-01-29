@@ -30,7 +30,10 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Dark mode utilities */
+/* -------------------------------------------------------------------------- */
+/* 🌙 EXISTING DARK MODE UTILITIES                                            */
+/* These handle the general page look (Sidebar, Main Content, etc.)           */
+/* -------------------------------------------------------------------------- */
 .dark .bg-white {
   background-color: #1a1a1a;
 }
@@ -75,7 +78,45 @@ body {
   color: #ededed;
 }
 
-/* Modal animations */
+/* -------------------------------------------------------------------------- */
+/* 🛡️ NUCLEAR READABILITY FIX (FINAL)                                         */
+/* These rules use explicit hex codes to force specific elements to look      */
+/* like "Light Mode" (White BG, Dark Text) even when Dark Mode is active.     */
+/* -------------------------------------------------------------------------- */
+
+/* 1. Force Inputs, Textareas, and Selects to be White with Dark Text */
+input, 
+textarea, 
+select {
+  background-color: #ffffff !important;
+  color: #111827 !important; /* Hardcoded Dark Gray (gray-900) */
+  border: 1px solid #d1d5db !important; /* Force Gray Border */
+}
+
+/* 2. Fix Placeholder Text Visibility */
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important; /* Hardcoded Gray-400 */
+  opacity: 1 !important;
+}
+
+/* 3. Force Dark Text on Colored Cards (Alerts, Badges) */
+/* This prevents white text from appearing on light colored backgrounds */
+[class*="bg-orange-"], 
+[class*="bg-blue-"], 
+[class*="bg-green-"], 
+[class*="bg-purple-"] {
+  color: #111827 !important; /* Force Dark Text */
+}
+
+/* 4. Specific Fix for Badges/Spans inside those cards */
+span[class*="bg-"] {
+  color: #111827 !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✨ ANIMATIONS                                                              */
+/* -------------------------------------------------------------------------- */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -90,5 +131,3 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
 }
-
-

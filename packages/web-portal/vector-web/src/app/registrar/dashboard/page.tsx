@@ -1,12 +1,17 @@
 'use client';
 import { useState } from 'react';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
-import { ethers } from 'ethers'; // ✅ Import Ethers
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain'; // ✅ Import Blockchain Config
+import { ethers } from 'ethers';
+import { supabase } from '@/lib/supabaseClient';
+import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 
-interface PDFUploadState {
-  files: File[];
+interface FileUploadState {
+  file: File | null;
   dragActive: boolean;
+  parsedData?: {
+    count: number;
+    preview: string[];
+  };
 }
 
 interface MintingProgress {
@@ -14,12 +19,12 @@ interface MintingProgress {
   progress: number;
   status: 'minting' | 'complete' | 'error';
   message: string;
-  txHash?: string; // ✅ Added to show Transaction Hash
+  txHash?: string;
 }
 
 export default function RegistrarDashboard() {
-  const [pdfUpload, setPdfUpload] = useState<PDFUploadState>({
-    files: [],
+  const [csvUpload, setCsvUpload] = useState<FileUploadState>({
+    file: null,
     dragActive: false,
   });
 
@@ -32,79 +37,74 @@ export default function RegistrarDashboard() {
 
   const [singleCredential, setSingleCredential] = useState({
     walletAddress: '',
-    credentialType: 'Machine Learning',
+    credentialType: 'React Development',
     courseCode: '',
     issuanceDate: '',
     metadata: '',
   });
 
-  // ⚡⚡⚡ HELPER: Safe Contract Connection ⚡⚡⚡
+  // ⚡ HELPER: Safe Contract Connection
   const getContract = async () => {
     if (typeof window === 'undefined') return null;
-
-    // 1. Safe access to Ethereum provider
     const { ethereum } = window as any;
     if (!ethereum) {
       alert("MetaMask is not installed!");
       throw new Error("No crypto wallet found");
     }
-
-    // 👇👇👇 CHANGE THIS LINE 👇👇👇
-    // We add "any" to allow the network to switch (e.g. from Mainnet to Localhost) without crashing
     const provider = new ethers.BrowserProvider(ethereum, "any"); 
-    
     const signer = await provider.getSigner();
-
-    // 2. Check Network (Allow Hardhat Localhost)
-    const network = await provider.getNetwork();
-    if (network.chainId !== 31337n && network.chainId !== 1337n) {
-      try {
-        await ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x7A69' }], // 31337
-        });
-      } catch (error) {
-        alert("Please switch MetaMask to Localhost 8545");
-      }
-    }
-
     return new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
   };
 
+  // --- CSV Handling Logic ---
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === 'dragenter' || e.type === 'dragover') {
-      setPdfUpload(prev => ({ ...prev, dragActive: true }));
+      setCsvUpload(prev => ({ ...prev, dragActive: true }));
     } else if (e.type === 'dragleave') {
-      setPdfUpload(prev => ({ ...prev, dragActive: false }));
+      setCsvUpload(prev => ({ ...prev, dragActive: false }));
     }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setPdfUpload(prev => ({ ...prev, dragActive: false }));
-
+    setCsvUpload(prev => ({ ...prev, dragActive: false }));
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-        setPdfUpload(prev => ({ ...prev, files: [...prev.files, file] }));
-      }
+      processFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setPdfUpload(prev => ({ ...prev, files: [...prev.files, e.target.files![0]] }));
+      processFile(e.target.files[0]);
     }
   };
 
-  const removeFile = (index: number) => {
-    setPdfUpload(prev => ({
-      ...prev,
-      files: prev.files.filter((_, i) => i !== index)
-    }));
+  const processFile = (file: File) => {
+    if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split('\n').filter(line => line.trim() !== '');
+        setCsvUpload({
+          file: file,
+          dragActive: false,
+          parsedData: {
+            count: lines.length,
+            preview: lines.slice(0, 3)
+          }
+        });
+      };
+      reader.readAsText(file);
+    } else {
+      alert("Please upload a valid .csv file");
+    }
+  };
+
+  const removeFile = () => {
+    setCsvUpload({ file: null, dragActive: false });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -112,57 +112,114 @@ export default function RegistrarDashboard() {
     setSingleCredential(prev => ({ ...prev, [name]: value }));
   };
 
-  // ⚡ REAL BATCH MINTING LOGIC
+  // ⚡ BATCH MINTING LOGIC (CSV)
   const handleBatchMint = async () => {
-    if (pdfUpload.files.length === 0) {
-      alert('Please upload at least one PDF file');
-      return;
-    }
+    if (!csvUpload.file) return;
 
     try {
       setMintingProgress({
         isOpen: true,
         progress: 10,
         status: 'minting',
-        message: 'Analyzing PDF files...',
+        message: 'Reading CSV file...',
       });
 
-      const contract = await getContract();
-      if (!contract) return;
-
-      setMintingProgress(prev => ({ ...prev, progress: 30, message: 'Preparing batch transaction...' }));
-
-      // Demo: Minting to the connected wallet for demonstration
-      const { ethereum } = window as any;
-      const provider = new ethers.BrowserProvider(ethereum);
-      const signer = await provider.getSigner();
-      const signerAddress = await signer.getAddress();
+      const text = await csvUpload.file.text();
+      const lines = text.split('\n');
 
       const students: string[] = [];
       const skillIds: number[] = [];
       const amounts: number[] = [];
+      // To track skill names for ledger logging
+      const batchLogMeta: { wallet: string, skillName: string, skillId: number }[] = []; 
 
-      // Create entries for each file
-      for (let i = 0; i < pdfUpload.files.length; i++) {
-        students.push(signerAddress); 
-        skillIds.push(2); // Defaulting to Python (ID 2) for demo
-        amounts.push(1);
+      setMintingProgress(prev => ({ ...prev, progress: 20, message: 'Parsing data...' }));
+
+      lines.forEach((line) => {
+        const parts = line.split(',');
+        if (parts.length < 2) return;
+
+        const wallet = parts[0].trim();
+        const skillInput = parts[1].trim();
+
+        if (!ethers.isAddress(wallet)) return;
+
+        let resolvedId = 0;
+        let resolvedName = skillInput;
+
+        // Try to map input to ID
+        if (SKILL_MAP[skillInput]) {
+          resolvedId = SKILL_MAP[skillInput];
+        } else if (!isNaN(Number(skillInput))) {
+          resolvedId = Number(skillInput);
+          // Reverse lookup name for DB (optional, simplified here)
+          resolvedName = Object.keys(SKILL_MAP).find(key => SKILL_MAP[key] === resolvedId) || "Skill #" + resolvedId;
+        }
+
+        if (resolvedId > 0) {
+          students.push(wallet);
+          skillIds.push(resolvedId);
+          amounts.push(1);
+          batchLogMeta.push({ wallet, skillName: resolvedName, skillId: resolvedId });
+        }
+      });
+
+      if (students.length === 0) {
+        throw new Error("No valid rows found in CSV. Format: wallet_address, skill_name");
       }
 
-      setMintingProgress(prev => ({ ...prev, progress: 50, message: 'Please sign in MetaMask...' }));
+      const contract = await getContract();
+      if (!contract) return;
 
-      // Call Contract
+      setMintingProgress(prev => ({ 
+        ...prev, 
+        progress: 50, 
+        message: `Minting ${students.length} credentials... Sign in MetaMask.` 
+      }));
+
+      // 1. Blockchain Transaction
       const tx = await contract.batchMintSkills(students, skillIds, amounts);
       
-      setMintingProgress(prev => ({ ...prev, progress: 75, message: 'Mining transaction...' }));
+      setMintingProgress(prev => ({ ...prev, progress: 75, message: 'Transaction pending...' }));
+      await tx.wait();
+
+      // 2. 🔔 LOGGING & NOTIFICATIONS
+      setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Updating ledger...' }));
       
-      await tx.wait(); // Wait for confirmation
+      // We loop through to update DB
+      for (const meta of batchLogMeta) {
+        const { data: user } = await supabase
+          .from('users')
+          .select('id')
+          .eq('wallet_address', meta.wallet)
+          .single();
+
+        if (user) {
+          // A. Insert into Audit Ledger (Fixes "No Records Found")
+          await supabase.from('verified_credentials').insert({
+            user_id: user.id,
+            skill_name: meta.skillName,
+            token_id: meta.skillId.toString(),
+            transaction_hash: tx.hash,
+            issuer_did: 'Vector Registrar',
+            issued_at: new Date().toISOString()
+          });
+
+          // B. Send Notification
+          await supabase.from('notifications').insert({
+            user_id: user.id,
+            title: 'New Credential Received',
+            message: `Registrar has issued your Verified Credential for: ${meta.skillName}`,
+            type: 'success'
+          });
+        }
+      }
 
       setMintingProgress({
         isOpen: true,
         progress: 100,
         status: 'complete',
-        message: 'Batch Minting Successful!',
+        message: `Successfully issued and logged ${students.length} credentials!`,
         txHash: tx.hash
       });
 
@@ -177,7 +234,7 @@ export default function RegistrarDashboard() {
     }
   };
 
-  // ⚡ REAL SINGLE MINTING LOGIC
+  // ⚡ SINGLE MINTING LOGIC
   const handleMintToken = async () => {
     if (!singleCredential.walletAddress || !singleCredential.courseCode || !singleCredential.issuanceDate) {
       alert('Please fill in all required fields');
@@ -195,12 +252,11 @@ export default function RegistrarDashboard() {
       const contract = await getContract();
       if (!contract) throw new Error("Contract connection failed");
 
-      // Get Skill ID from mapping
       const skillId = SKILL_MAP[singleCredential.credentialType] || 1;
 
       setMintingProgress(prev => ({ ...prev, progress: 40, message: 'Please sign transaction...' }));
 
-      // Call Contract
+      // 1. Blockchain Mint
       const tx = await contract.mintSkill(
         singleCredential.walletAddress,
         skillId,
@@ -208,14 +264,46 @@ export default function RegistrarDashboard() {
       );
 
       setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Waiting for confirmation...' }));
-
       await tx.wait();
+
+      // 2. 🔔 LOGGING & NOTIFICATIONS
+      setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Updating ledger...' }));
+
+      // Find the user who owns this wallet
+      const { data: studentUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('wallet_address', singleCredential.walletAddress) 
+        .single();
+
+      if (studentUser) {
+        // A. Insert into Audit Ledger (Fixes "No Records Found")
+        await supabase.from('verified_credentials').insert({
+          user_id: studentUser.id,
+          skill_name: singleCredential.credentialType,
+          token_id: skillId.toString(),
+          transaction_hash: tx.hash,
+          issuer_did: 'Vector Registrar',
+          issued_at: new Date().toISOString()
+        });
+
+        // B. Send Notification
+        await supabase.from('notifications').insert({
+          user_id: studentUser.id,
+          title: 'Credential Verified!',
+          message: `You have received a verified credential for: ${singleCredential.credentialType}`,
+          type: 'success',
+          is_read: false
+        });
+      } else {
+        console.warn("Wallet not linked to any user in DB. Ledger entry skipped.");
+      }
 
       setMintingProgress({
         isOpen: true,
         progress: 100,
         status: 'complete',
-        message: 'Credential successfully issued on-chain!',
+        message: 'Credential successfully issued and logged!',
         txHash: tx.hash
       });
 
@@ -231,94 +319,87 @@ export default function RegistrarDashboard() {
   };
 
   const closeMintingModal = () => {
-    setMintingProgress({
-      isOpen: false,
-      progress: 0,
-      status: 'minting',
-      message: '',
-    });
+    setMintingProgress({ isOpen: false, progress: 0, status: 'minting', message: '' });
     if (mintingProgress.status === 'complete') {
-      // Reset form on success
       setSingleCredential({
         walletAddress: '',
-        credentialType: 'Machine Learning',
+        credentialType: 'React Development',
         courseCode: '',
         issuanceDate: '',
         metadata: '',
       });
-      setPdfUpload({ files: [], dragActive: false });
+      setCsvUpload({ file: null, dragActive: false });
     }
   };
 
   return (
     <RegistrarLayout>
       <div className="max-w-6xl mx-auto">
-        {/* Page Header */}
         <div className="mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Batch Issue Micro-Credentials</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Issue Credentials</h1>
         </div>
 
-        {/* PDF Upload Section */}
-        <div className="bg-white rounded-2xl shadow-sm border-2 border-dashed border-gray-300 p-6 md:p-12 mb-6 md:mb-8 text-center">
+        {/* CSV Upload Section */}
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-dashed border-gray-300 p-6 md:p-10 mb-8 text-center transition-all">
           <div
-            className={`${pdfUpload.dragActive ? 'bg-purple-50' : ''} transition-colors`}
+            className={`${csvUpload.dragActive ? 'bg-green-50' : ''} h-full w-full rounded-xl transition-colors`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
           >
             <div className="flex flex-col items-center">
-              <div className="w-16 h-16 md:w-24 md:h-24 mb-4 md:mb-6">
-                <svg className="w-full h-full text-red-400" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
-                  <path d="M14 2v6h6M12 18v-6m-3 3l3-3 3 3" stroke="white" strokeWidth="2" fill="none" />
-                </svg>
-              </div>
-              
-              <h3 className="text-lg md:text-xl font-semibold text-gray-700 mb-2">Upload PDF File</h3>
-              <p className="text-sm md:text-base text-gray-600 mb-2 md:mb-3 font-medium">Drag and drop or click to upload</p>
-              <p className="text-xs md:text-sm text-gray-600 mb-2 font-medium">
-                Format: Last Name, First Name, Middle Name
-              </p>
-              <p className="text-xs text-gray-500 max-w-xl mb-4 md:mb-6 leading-relaxed px-4">
-                Document must include: Student full name, professional title, email address, phone number, portfolio website (optional), professional summary, and skills
-              </p>
-
-              <input
-                type="file"
-                id="pdf-upload"
-                accept=".pdf,application/pdf"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <label
-                htmlFor="pdf-upload"
-                className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 cursor-pointer transition-colors"
-              >
-                {pdfUpload.files.length > 0 ? 'Add More Files' : 'Choose File'}
-              </label>
-
-              {pdfUpload.files.length > 0 && (
-                <div className="mt-6 w-full max-w-md space-y-3">
-                  {pdfUpload.files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-sm text-gray-700 font-medium">{file.name}</span>
+              {!csvUpload.file ? (
+                <>
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l5.414 5.414a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-1">Batch Upload (CSV)</h3>
+                  <p className="text-sm text-gray-500 mb-4">Drag & drop your student list here</p>
+                  <p className="text-xs text-gray-400 mb-6 bg-gray-50 px-3 py-1 rounded border border-gray-200 font-mono">
+                    Format: wallet_address, skill_name
+                  </p>
+                  
+                  <input type="file" id="csv-upload" accept=".csv,text/csv" onChange={handleFileChange} className="hidden" />
+                  <label htmlFor="csv-upload" className="px-6 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 cursor-pointer transition-colors shadow-sm">
+                    Select CSV File
+                  </label>
+                </>
+              ) : (
+                <div className="w-full max-w-md">
+                  <div className="flex items-center justify-between bg-green-50 px-4 py-3 rounded-lg border border-green-200 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white p-1.5 rounded-md">
+                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                       </div>
-                      <button
-                        onClick={() => removeFile(index)}
-                        className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                        title="Remove file"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-gray-800 truncate max-w-[200px]">{csvUpload.file.name}</p>
+                        <p className="text-xs text-green-700">{csvUpload.parsedData?.count} rows detected</p>
+                      </div>
                     </div>
-                  ))}
+                    <button onClick={removeFile} className="text-gray-400 hover:text-red-500 transition-colors">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+                  
+                  {/* Preview */}
+                  <div className="text-left text-xs bg-gray-50 p-3 rounded border mb-4 font-mono text-gray-500">
+                    <p className="font-bold mb-1 text-gray-400 uppercase">Preview:</p>
+                    {csvUpload.parsedData?.preview.map((line, i) => (
+                      <div key={i} className="truncate">{line}</div>
+                    ))}
+                    {csvUpload.parsedData?.count! > 3 && <div>...</div>}
+                  </div>
+
+                  <button 
+                    onClick={handleBatchMint}
+                    className="w-full py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    Process Batch Mint
+                  </button>
                 </div>
               )}
             </div>
@@ -326,180 +407,85 @@ export default function RegistrarDashboard() {
         </div>
 
         {/* Single Credential Form */}
-        {pdfUpload.files.length === 0 && (
+        {!csvUpload.file && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Or Issue Single Credential</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <span className="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-sm">1</span>
+              Issue Single Credential
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Student Wallet Address */}
-            <div>
-              <label htmlFor="walletAddress" className="block text-sm font-medium text-gray-700 mb-2">
-                Student Wallet Address
-              </label>
-              <input
-                type="text"
-                id="walletAddress"
-                name="walletAddress"
-                value={singleCredential.walletAddress}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900 font-medium"
-                placeholder="0x..."
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Student Wallet Address</label>
+                <input type="text" name="walletAddress" value={singleCredential.walletAddress} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="0x..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Credential Type</label>
+                <select name="credentialType" value={singleCredential.credentialType} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white">
+                  {Object.keys(SKILL_MAP).map(skill => (
+                    <option key={skill} value={skill}>{skill}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Course Code</label>
+                <input type="text" name="courseCode" value={singleCredential.courseCode} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="CS401" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Issuance Date</label>
+                <input type="date" name="issuanceDate" value={singleCredential.issuanceDate} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
+              </div>
             </div>
 
-            {/* Credential Type */}
-            <div>
-              <label htmlFor="credentialType" className="block text-sm font-medium text-gray-700 mb-2">
-                Credential Type
-              </label>
-              <select
-                id="credentialType"
-                name="credentialType"
-                value={singleCredential.credentialType}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900 font-medium"
-              >
-                <option value="Web Development">Web Development (React)</option>
-                <option value="Python Programming">Python Programming</option>
-                <option value="Solidity Smart Contracts">Solidity Smart Contracts</option>
-                <option value="Node.js Backend Development">Node.js Backend</option>
-                <option value="AI/ML Fundamentals">AI/ML Fundamentals</option>
-              </select>
-            </div>
-
-            {/* Course Code */}
-            <div>
-              <label htmlFor="courseCode" className="block text-sm font-medium text-gray-700 mb-2">
-                Course Code
-              </label>
-              <input
-                type="text"
-                id="courseCode"
-                name="courseCode"
-                value={singleCredential.courseCode}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 font-medium placeholder:text-gray-400"
-                placeholder="CS401"
-              />
-            </div>
-
-            {/* Issuance Date */}
-            <div>
-              <label htmlFor="issuanceDate" className="block text-sm font-medium text-gray-700 mb-2">
-                Issuance Date
-              </label>
-              <input
-                type="date"
-                id="issuanceDate"
-                name="issuanceDate"
-                value={singleCredential.issuanceDate}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 font-medium"
-              />
-            </div>
+            <button onClick={handleMintToken} className="w-full py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              Mint Single Token
+            </button>
           </div>
-
-          {/* Metadata */}
-          <div className="mb-6">
-            <label htmlFor="metadata" className="block text-sm font-medium text-gray-700 mb-2">
-              Metadata (IPFS)
-            </label>
-            <textarea
-              id="metadata"
-              name="metadata"
-              value={singleCredential.metadata}
-              onChange={handleInputChange}
-              rows={6}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 font-medium placeholder:text-gray-400"
-              placeholder='{"instructor": "Dr. Smith", "grade": "A", "project_links": [...]}'
-            />
-          </div>
-
-          {/* Mint Button */}
-          <button
-            onClick={handleMintToken}
-            className="w-full py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold rounded-xl hover:shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all flex items-center justify-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Mint ERC-1155 Token
-          </button>
-          </div>
-        )}
-
-        {/* Mint Button for PDF Upload */}
-        {pdfUpload.files.length > 0 && (
-          <button
-            onClick={handleBatchMint}
-            className="w-full py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold rounded-xl hover:shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all flex items-center justify-center gap-2 mb-8"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Batch Mint ERC-1155 Tokens
-          </button>
         )}
 
         {/* Minting Progress Modal */}
         {mintingProgress.isOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
-              {/* Header */}
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-fade-in-up">
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-purple-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${mintingProgress.status === 'error' ? 'bg-red-100 text-red-600' : 'bg-purple-100 text-purple-600'}`}>
                   {mintingProgress.status === 'complete' ? (
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                   ) : mintingProgress.status === 'error' ? (
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                   ) : (
-                    <svg className="w-8 h-8 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
+                    <svg className="w-8 h-8 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                   )}
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  {mintingProgress.status === 'complete' ? 'Minting Complete!' : mintingProgress.status === 'error' ? 'Minting Failed' : 'Minting Progress'}
+                  {mintingProgress.status === 'complete' ? 'Success!' : mintingProgress.status === 'error' ? 'Failed' : 'Processing'}
                 </h2>
               </div>
 
-              {/* Progress Bar */}
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Progress</span>
+                  <span className="text-sm font-medium text-gray-700">Status</span>
                   <span className="text-sm font-bold text-purple-600">{mintingProgress.progress}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-500 ease-out ${mintingProgress.status === 'error' ? 'bg-red-500' : 'bg-gradient-to-r from-purple-600 to-purple-700'}`}
-                    style={{ width: `${mintingProgress.progress}%` }}
-                  ></div>
+                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                  <div className={`h-full transition-all duration-500 ease-out ${mintingProgress.status === 'error' ? 'bg-red-500' : 'bg-purple-600'}`} style={{ width: `${mintingProgress.progress}%` }}></div>
                 </div>
               </div>
 
-              {/* Status Message */}
-              <div className="flex items-start gap-3 mb-6 p-4 bg-gray-50 rounded-lg">
-                <svg className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="flex items-start gap-3 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-gray-700 font-medium break-all">{mintingProgress.message}</p>
                   {mintingProgress.txHash && (
-                    <p className="text-xs text-purple-600 mt-1 truncate">Tx: {mintingProgress.txHash}</p>
+                    <a href={`https://amoy.polygonscan.com/tx/${mintingProgress.txHash}`} target="_blank" rel="noreferrer" className="text-xs text-purple-600 mt-1 truncate hover:underline block">
+                      View TX: {mintingProgress.txHash.slice(0, 20)}...
+                    </a>
                   )}
                 </div>
               </div>
 
-              {/* Close Button (only show when complete or error) */}
               {(mintingProgress.status === 'complete' || mintingProgress.status === 'error') && (
-                <button
-                  onClick={closeMintingModal}
-                  className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
-                >
+                <button onClick={closeMintingModal} className="w-full py-3 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition-all">
                   Close
                 </button>
               )}

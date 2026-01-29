@@ -1,10 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient'; 
+import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import CredentialCard from '@/components/dashboard/CredentialCard';
-import RecentActivity from '@/components/dashboard/RecentActivity';
+import RecentActivity, { ActivityItem } from '@/components/dashboard/RecentActivity';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 
@@ -22,16 +22,11 @@ interface AIAnalysisData {
     reason: string;
     courseCode: string;
   }[];
-  credentials: {
-    id: string;
-    skill_name: string;
-    issued_at: string;
-    token_id: string;
-  }[];
+  credentials: any[];
 }
 
 interface UserProfile {
-  id: string; // Needed for update
+  id: string;
   full_name: string;
   student_id: string;
   role: string;
@@ -53,52 +48,115 @@ export default function StudentDashboard() {
   const [aiData, setAiData] = useState<AIAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
   const [blockchainCredentials, setBlockchainCredentials] = useState<BlockchainCredential[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]); // ⚡ Dynamic Activities State
   const [isWalletConnecting, setIsWalletConnecting] = useState(false);
 
-  // ⚡ Helper: Fetch Blockchain Data
-  const fetchBlockchainCredentials = async (walletAddress: string) => {
-    // Only proceed if ethereum object exists
-    if (typeof window === 'undefined' || !(window as any).ethereum || !walletAddress) return;
+  // ⚡ 1. THE PIPELINE: Read Blockchain -> Deduplicate -> Send to AI
+  const refreshPipeline = async (walletAddress: string, studentId: string) => {
+    if (!walletAddress) return;
 
     try {
-      // Use "any" to prevent network change errors
+      // A. Read Blockchain
       const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
       
-      // We check network just to be safe, but we don't block reading
-      const network = await provider.getNetwork();
-      if (network.chainId !== 31337n && network.chainId !== 1337n) {
-        console.warn("Wrong network for reading credentials. Switch to Localhost.");
-        // Optional: Could prompt switch here
+      const foundSkills: string[] = [];
+      const verifiedCreds: BlockchainCredential[] = [];
+      const processedIds = new Set<number>();
+
+      // ⚡ Dynamic Activity Builder
+      const newActivities: ActivityItem[] = [];
+
+      // 1. Add Wallet Event
+      newActivities.push({
+        id: 'wallet-conn',
+        type: 'info',
+        title: 'Wallet Connected',
+        description: `Active: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`,
+        time: 'Just now'
+      });
+
+      // 2. Add CVR Event if exists in localStorage
+      if (typeof window !== 'undefined' && localStorage.getItem('sampleCVRData')) {
+        newActivities.push({
+          id: 'cvr-gen',
+          type: 'badge',
+          title: 'CVR Generated',
+          description: 'You created a new verified resume',
+          time: 'Recent'
+        });
       }
 
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
-      const foundCredentials: BlockchainCredential[] = [];
+      // 3. Add Pending Event if exists
+      if (typeof window !== 'undefined' && localStorage.getItem('pendingCVR')) {
+        setHasPendingCVR(true);
+        newActivities.push({
+          id: 'cvr-pending',
+          type: 'warning',
+          title: 'Verification Pending',
+          description: 'Awaiting registrar approval',
+          time: 'Ongoing'
+        });
+      }
 
       for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
-        if (typeof skillId !== 'number') continue; 
-        
+        if (typeof skillId !== 'number') continue;
+        if (processedIds.has(skillId)) continue;
+
         try {
           const balance = await contract.balanceOf(walletAddress, skillId);
           if (balance > 0n) {
-            foundCredentials.push({
-              category: 'Blockchain Verified',
+            processedIds.add(skillId);
+            foundSkills.push(skillName);
+
+            verifiedCreds.push({
               title: skillName,
+              category: 'Blockchain Verified',
               issueDate: 'Verified On-Chain',
-              marketRelevance: 95,
+              marketRelevance: 85,
               verified: true,
+            });
+
+            // 4. Add Credential Activity Event
+            newActivities.push({
+              id: `cred-${skillId}`,
+              type: 'success',
+              title: 'Skill Verified',
+              description: `${skillName} confirmed on Polygon`,
+              time: 'On-Chain'
             });
           }
         } catch (readError) {
-          console.error(`Failed to read balance for ${skillName}`, readError);
+          console.error(`Error reading ${skillName}:`, readError);
         }
       }
-      setBlockchainCredentials(foundCredentials);
+
+      setBlockchainCredentials(verifiedCreds);
+      setActivities(newActivities); // ⚡ Set the dynamic activities
+
+      // B. Feed AI (The Handoff)
+      console.log("Sending to AI:", foundSkills);
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          studentId: studentId, 
+          resumeText: "",
+          skillsOverride: foundSkills 
+        })
+      });
+      
+      const json = await res.json();
+      if (json.status === 'success') {
+        setAiData(json.data);
+      }
+
     } catch (error) {
-      console.error("Error fetching blockchain credentials:", error);
+      console.error("Pipeline Error:", error);
     }
   };
 
-  // ⚡ Helper: Connect Wallet & Save to DB
+  // ⚡ 2. THE BINDING
   const connectWallet = async () => {
     if (typeof window === 'undefined' || !(window as any).ethereum) {
       alert("Please install MetaMask to connect your wallet.");
@@ -108,11 +166,11 @@ export default function StudentDashboard() {
     setIsWalletConnecting(true);
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
-      // Request access
       const accounts = await provider.send("eth_requestAccounts", []);
       const address = accounts[0];
 
-      // Save to Supabase
+      setUser(prev => prev ? ({ ...prev, wallet_address: address }) : null);
+
       if (user?.id) {
         const { error } = await supabase
           .from('users')
@@ -120,12 +178,8 @@ export default function StudentDashboard() {
           .eq('id', user.id);
 
         if (error) throw error;
-        
-        // Update Local State
-        setUser(prev => prev ? ({ ...prev, wallet_address: address }) : null);
-        
-        // Fetch Credentials immediately
-        await fetchBlockchainCredentials(address);
+        console.log("✅ Wallet Linked to DB");
+        await refreshPipeline(address, user.student_id);
       }
     } catch (error: any) {
       console.error("Wallet connection failed:", error);
@@ -135,59 +189,39 @@ export default function StudentDashboard() {
     }
   };
 
+  // ⚡ 3. INITIALIZATION
   useEffect(() => {
     const initDashboard = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
         if (!session) {
           router.push('/login');
           return;
         }
 
-        // 1. Try to fetch profile
-        let { data: profile } = await supabase
+        const { data: profile } = await supabase
           .from('users')
-          .select('id, full_name, student_id, role, wallet_address') // Requested ID for updates
+          .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        // 2. Safe Fallback
-        if (!profile) {
-          console.warn("⚠️ Using Virtual Profile Fallback.");
-          profile = {
-            id: session.user.id,
-            full_name: session.user.email?.split('@')[0] || "Student", 
-            student_id: "03-2026-PENDING",
-            role: "student",
-            wallet_address: "" 
-          };
+        if (profile) {
+          setUser(profile);
+          if (profile.wallet_address) {
+            await refreshPipeline(profile.wallet_address, profile.student_id);
+          } else {
+            // Default activity if no wallet
+            setActivities([{
+              id: 'init',
+              type: 'info',
+              title: 'Welcome to Vector',
+              description: 'Connect wallet to sync verified skills',
+              time: 'Now'
+            }]);
+          }
         }
-
-        setUser(profile);
-
-        // 3. Fetch Blockchain Credentials
-        if (profile.wallet_address && !profile.wallet_address.includes("pending")) {
-           await fetchBlockchainCredentials(profile.wallet_address);
-        }
-
-        // 4. Load AI Data
-        const res = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            studentId: profile.student_id, 
-            resumeText: "" 
-          })
-        });
-        
-        const json = await res.json();
-        if (json.status === 'success') {
-          setAiData(json.data);
-        }
-
       } catch (error) {
-        console.error("Dashboard Error:", error);
+        console.error("Init Error:", error);
       } finally {
         setLoading(false);
       }
@@ -221,7 +255,11 @@ export default function StudentDashboard() {
     };
   }) || [];
 
-  const allCredentials = [...blockchainCredentials, ...dbCredentials];
+  const uniqueDbCredentials = dbCredentials.filter(dbCred => 
+    !blockchainCredentials.some(chainCred => chainCred.title === dbCred.title)
+  );
+
+  const allCredentials = [...blockchainCredentials, ...uniqueDbCredentials];
 
   return (
     <DashboardLayout>
@@ -235,20 +273,19 @@ export default function StudentDashboard() {
           </p>
         </div>
         
-        {/* Wallet Connection Status */}
         <div className="flex items-center gap-3">
           {loading ? (
              <span className="text-sm text-purple-600 animate-pulse bg-purple-50 px-3 py-1 rounded-full">⚡ Loading...</span>
-          ) : user?.wallet_address && !user.wallet_address.includes("pending") ? (
-             <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
+          ) : user?.wallet_address ? (
+             <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200 shadow-sm">
                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-               Wallet Connected: {user.wallet_address.slice(0,6)}...{user.wallet_address.slice(-4)}
+               Wallet: {user.wallet_address.slice(0,6)}...{user.wallet_address.slice(-4)}
              </span>
           ) : (
              <button 
                onClick={connectWallet}
                disabled={isWalletConnecting}
-               className="flex items-center gap-2 text-sm bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all shadow-sm"
+               className="flex items-center gap-2 text-sm bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-gray-800 transition-all shadow-md active:scale-95"
              >
                {isWalletConnecting ? (
                  <>Connecting...</>
@@ -282,7 +319,7 @@ export default function StudentDashboard() {
 
       {/* Insight Section */}
       {!loading && aiData && decayingSkill && (
-        <div className={`border rounded-xl p-4 mb-6 md:mb-8 transition-all duration-500 ${
+        <div className={`border rounded-xl p-4 mb-6 md:mb-8 transition-all duration-500 shadow-sm ${
           decayingSkill.trend === 'growing' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
         }`}>
           <div className="flex items-start gap-3">
@@ -306,7 +343,7 @@ export default function StudentDashboard() {
               </p>
               
               {recommendedCourses.length > 0 && (
-                <div className="mt-3 bg-white/50 rounded-lg p-3">
+                <div className="mt-3 bg-white/60 rounded-lg p-3 border border-white/50">
                   <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">AI Recommendation:</p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">{recommendedCourses[0].courseName}</span>
@@ -325,7 +362,7 @@ export default function StudentDashboard() {
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
           <h2 className="text-lg md:text-xl font-semibold text-gray-900">Verified Credentials</h2>
-          <button onClick={() => router.push('/student/skills')} className="text-purple-600 hover:text-purple-700 font-medium text-sm flex items-center gap-1">
+          <button onClick={() => router.push('/student/skills')} className="text-purple-600 hover:text-purple-700 font-medium text-sm flex items-center gap-1 transition-colors">
             View All <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           </button>
         </div>
@@ -337,20 +374,25 @@ export default function StudentDashboard() {
               <CredentialCard key={index} {...credential} />
             ))
           ) : (
-            <div className="col-span-1 md:col-span-2 p-8 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 flex flex-col items-center justify-center gap-4">
+            <div className="col-span-1 md:col-span-2 p-12 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 flex flex-col items-center justify-center gap-4">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
               </div>
               <div>
                 <p className="text-gray-600 font-medium">No verified credentials found.</p>
-                <p className="text-gray-400 text-sm mt-1">Connect your wallet to see blockchain credentials.</p>
+                {!user?.wallet_address && (
+                  <p className="text-purple-600 text-sm mt-1 font-medium cursor-pointer" onClick={connectWallet}>
+                    Connect your wallet to scan for skills.
+                  </p>
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      <RecentActivity />
+      {/* ⚡ Dynamic Recent Activity */}
+      <RecentActivity activities={activities} />
     </DashboardLayout>
   );
 }

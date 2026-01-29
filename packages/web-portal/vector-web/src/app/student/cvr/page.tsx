@@ -1,17 +1,35 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+import { ethers } from 'ethers';
+import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import CVRSuccessModal from '@/components/dashboard/CVRSuccessModal';
 
+// Type for our dynamic skills
+interface SkillItem {
+  id: string;
+  name: string;
+  verified: boolean;
+}
+
 export default function CVRPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  
+  // Dynamic Data States
+  const [availableSkills, setAvailableSkills] = useState<SkillItem[]>([]);
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [customSkill, setCustomSkill] = useState('');
+  
   const [isGenerated, setIsGenerated] = useState(false);
   const [generatedData, setGeneratedData] = useState<any>(null);
+  
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -21,16 +39,93 @@ export default function CVRPage() {
     summary: '',
   });
 
-  // Available verified skills
-  const availableSkills = [
-    { id: '1', name: 'Advanced SQL Querying' },
-    { id: '2', name: 'React Application Development' },
-    { id: '3', name: 'Data Structures & Algorithms' },
-    { id: '4', name: 'Java OOP' },
-  ];
+  // ⚡⚡⚡ 1. FETCH REAL DATA ⚡⚡⚡
+  useEffect(() => {
+    const initPage = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.push('/login');
+          return;
+        }
+
+        // A. Fetch User & Profile Data
+        const { data: userRecord } = await supabase
+          .from('users')
+          .select('full_name, wallet_address')
+          .eq('id', session.user.id)
+          .single();
+
+        const { data: profileRecord } = await supabase
+          .from('profiles')
+          .select('phone, major, bio, linkedin_url') // Assuming 'major' is used as Title
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        // B. Populate Form
+        setFormData(prev => ({
+          ...prev,
+          fullName: userRecord?.full_name || '',
+          email: session.user.email || '',
+          phone: profileRecord?.phone || '',
+          title: profileRecord?.major || '',
+          summary: profileRecord?.bio || '',
+          portfolio: profileRecord?.linkedin_url || ''
+        }));
+
+        // C. Fetch Blockchain Skills
+        if (userRecord?.wallet_address) {
+          await fetchVerifiedSkills(userRecord.wallet_address);
+        } else {
+          // If no wallet, just show empty list (or could add default unverified list)
+          setAvailableSkills([]); 
+        }
+
+      } catch (error) {
+        console.error("CVR Data Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initPage();
+  }, [router]);
+
+  // Helper: Check Blockchain for Skills
+  const fetchVerifiedSkills = async (walletAddress: string) => {
+    try {
+      // Connect to blockchain
+      const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
+      
+      const foundSkills: SkillItem[] = [];
+
+      for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
+        if (typeof skillId !== 'number') continue;
+
+        try {
+          const balance = await contract.balanceOf(walletAddress, skillId);
+          if (balance > 0n) {
+            foundSkills.push({
+              id: `chain-${skillId}`,
+              name: skillName,
+              verified: true // Mark as verified
+            });
+          }
+        } catch (e) { /* Ignore read errors */ }
+      }
+      
+      setAvailableSkills(foundSkills);
+      // Auto-select verified skills
+      setSelectedSkillIds(foundSkills.map(s => s.id));
+
+    } catch (error) {
+      console.error("Blockchain Scan Failed:", error);
+    }
+  };
 
   const handleSkillToggle = (skillId: string) => {
-    setSelectedSkills(prev =>
+    setSelectedSkillIds(prev =>
       prev.includes(skillId)
         ? prev.filter(id => id !== skillId)
         : [...prev, skillId]
@@ -39,7 +134,11 @@ export default function CVRPage() {
 
   const handleAddCustomSkill = () => {
     if (customSkill.trim()) {
-      setSelectedSkills(prev => [...prev, `custom-${customSkill}`]);
+      const newId = `custom-${Date.now()}`;
+      // Add to available list as unverified
+      setAvailableSkills(prev => [...prev, { id: newId, name: customSkill, verified: false }]);
+      // Auto-select it
+      setSelectedSkillIds(prev => [...prev, newId]);
       setCustomSkill('');
     }
   };
@@ -47,42 +146,29 @@ export default function CVRPage() {
   const handleGenerateCVR = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Store CVR data as sample
+    // Filter the full skill objects based on selection
+    const finalSkills = availableSkills.filter(s => selectedSkillIds.includes(s.id));
+
     const cvrData = {
       ...formData,
       template: selectedTemplate,
-      skills: selectedSkills,
+      skills: finalSkills, // Pass the full objects (name + verified status)
       generatedAt: new Date().toISOString(),
     };
     
-    // Save to localStorage as sample
     localStorage.setItem('sampleCVRData', JSON.stringify(cvrData));
-    console.log('CVR Sample Saved:', cvrData);
-    
-    // Set pending CVR flag in localStorage
     localStorage.setItem('pendingCVR', 'true');
     
-    // Update state to show generated CVR
     setGeneratedData(cvrData);
     setIsGenerated(true);
-    
-    // Show success modal
     setIsSuccessModalOpen(true);
   };
 
   const handleCreateNew = () => {
     setIsGenerated(false);
     setGeneratedData(null);
-    setFormData({
-      fullName: '',
-      email: '',
-      phone: '',
-      portfolio: '',
-      title: '',
-      summary: '',
-    });
-    setSelectedSkills([]);
-    setSelectedTemplate('professional');
+    // Reset selected skills to only verified ones (optional preference)
+    setSelectedSkillIds(availableSkills.filter(s => s.verified).map(s => s.id));
   };
 
   const handleDownload = () => {
@@ -104,12 +190,16 @@ export default function CVRPage() {
         </p>
       </div>
 
-      {!isGenerated ? (
+      {loading ? (
+        <div className="p-12 text-center text-gray-500 animate-pulse bg-white rounded-xl border border-gray-200">
+          Syncing Profile & Blockchain Data...
+        </div>
+      ) : !isGenerated ? (
       <form onSubmit={handleGenerateCVR} className="max-w-4xl">
         <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 space-y-6">
           {/* Personal Details Section */}
           <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal Details</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -146,8 +236,8 @@ export default function CVRPage() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="john@example.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-50"
+                  // readOnly // Uncomment if you want to lock email to account email
                 />
               </div>
               <div>
@@ -195,27 +285,38 @@ export default function CVRPage() {
             
             {/* Verified Skills */}
             <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-3">Your Verified Skills</p>
-              <div className="space-y-2">
-                {availableSkills.map((skill) => (
-                  <label key={skill.id} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedSkills.includes(skill.id)}
-                      onChange={() => handleSkillToggle(skill.id)}
-                      className="mr-3 w-4 h-4 text-purple-600"
-                    />
-                    <div className="flex-1">
-                      <span className="font-medium text-gray-900">{skill.name}</span>
-                    </div>
-                  </label>
-                ))}
-              </div>
+              <p className="text-sm text-gray-600 mb-3 flex items-center gap-2">
+                Your Verified Skills
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Blockchain Synced</span>
+              </p>
+              {availableSkills.filter(s => s.verified).length > 0 ? (
+                <div className="space-y-2">
+                  {availableSkills.filter(s => s.verified).map((skill) => (
+                    <label key={skill.id} className="flex items-center p-3 border border-green-200 bg-green-50/30 rounded-lg hover:bg-green-50 cursor-pointer transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={selectedSkillIds.includes(skill.id)}
+                        onChange={() => handleSkillToggle(skill.id)}
+                        className="mr-3 w-4 h-4 text-green-600 focus:ring-green-500"
+                      />
+                      <div className="flex-1 flex justify-between items-center">
+                        <span className="font-medium text-gray-900">{skill.name}</span>
+                        {/* Subtle verified badge inline */}
+                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 italic p-3 border border-dashed border-gray-200 rounded-lg">
+                  No verified skills found in wallet. Mint some tokens to see them here!
+                </div>
+              )}
             </div>
 
-            {/* Add Custom Skill */}
+            {/* Custom Skills (Previously "Add Custom Skill") */}
             <div>
-              <p className="text-sm text-gray-600 mb-3">Add Custom Skill</p>
+              <p className="text-sm text-gray-600 mb-3">Add Custom Skills</p>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -233,22 +334,24 @@ export default function CVRPage() {
                   Add
                 </button>
               </div>
-              {selectedSkills.filter(s => s.startsWith('custom-')).length > 0 && (
+              {/* Display Custom Skills */}
+              {availableSkills.filter(s => !s.verified).length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {selectedSkills
-                    .filter(s => s.startsWith('custom-'))
-                    .map((skill, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                        {skill.replace('custom-', '')}
-                        <button
-                          type="button"
-                          onClick={() => setSelectedSkills(prev => prev.filter(s => s !== skill))}
-                          className="text-gray-500 hover:text-gray-700"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
+                  {availableSkills
+                    .filter(s => !s.verified)
+                    .map((skill) => (
+                      <span key={skill.id} className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm border transition-all ${
+                        selectedSkillIds.includes(skill.id) 
+                          ? 'bg-purple-50 border-purple-200 text-purple-700' 
+                          : 'bg-gray-50 border-gray-200 text-gray-500'
+                      }`}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedSkillIds.includes(skill.id)}
+                          onChange={() => handleSkillToggle(skill.id)}
+                          className="mr-1 w-3 h-3 text-purple-600 rounded-sm cursor-pointer"
+                        />
+                        {skill.name}
                       </span>
                     ))}
                 </div>
@@ -299,7 +402,7 @@ export default function CVRPage() {
           <div>
             <button
               type="submit"
-              className="w-full md:w-auto px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+              className="w-full md:w-auto px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -353,18 +456,16 @@ export default function CVRPage() {
               </div>
             )}
 
-            {/* Verified Skills Section */}
+            {/* Skills Section */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Skills</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {generatedData.skills.map((skillId: string, index: number) => {
-                  const verifiedSkill = availableSkills.find(s => s.id === skillId);
-                  const isVerified = !!verifiedSkill;
-                  const skillName = verifiedSkill?.name || skillId.replace('custom-', '');
-                  
+                {generatedData.skills.map((skill: SkillItem, index: number) => {
                   return (
-                    <div key={index} className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                      {isVerified ? (
+                    <div key={index} className={`flex items-center gap-2 p-3 border rounded-lg ${
+                      skill.verified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
+                    }`}>
+                      {skill.verified ? (
                         <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
@@ -373,9 +474,9 @@ export default function CVRPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       )}
-                      <span className="font-medium text-gray-900">{skillName}</span>
-                      {isVerified && (
-                        <span className="ml-auto text-xs text-green-600 font-medium">Verified</span>
+                      <span className="font-medium text-gray-900">{skill.name}</span>
+                      {skill.verified && (
+                        <span className="ml-auto text-xs text-green-600 font-medium bg-white border border-green-200 px-2 py-0.5 rounded">Verified</span>
                       )}
                     </div>
                   );
@@ -384,127 +485,55 @@ export default function CVRPage() {
             </div>
 
             {/* Blockchain Verification Details */}
-            <div className="pt-6 border-t border-gray-200 bg-gradient-to-br from-purple-50 to-blue-50 -mx-6 md:-mx-8 px-6 md:px-8 py-6 rounded-lg">
-              <div className="flex items-start justify-between gap-6">
-                <div className="flex-1 space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <h3 className="text-lg font-semibold text-gray-900">Blockchain Verification</h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-600 font-medium mb-1">Issuer</p>
-                      <p className="text-gray-900 font-semibold">University of the Philippines</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600 font-medium mb-1">Issue Date</p>
-                      <p className="text-gray-900 font-semibold">January 15, 2024</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600 font-medium mb-1">Token Standard</p>
-                      <p className="text-gray-900 font-semibold font-mono">ERC-1155</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600 font-medium mb-1">Token ID</p>
-                      <p className="text-gray-900 font-semibold font-mono">r4592</p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <p className="text-gray-600 font-medium mb-1">Blockchain TX</p>
-                      <p className="text-gray-900 font-mono text-xs break-all">
-                        0x8a7f2c3e9b1a5d4f6c8e2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4
-                      </p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <p className="text-gray-600 font-medium mb-1">IPFS Metadata</p>
-                      <p className="text-gray-900 font-mono text-xs break-all">
-                        QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* QR Code */}
-                <div className="flex-shrink-0">
-                  <div className="bg-white p-3 rounded-lg shadow-md">
-                    <div className="w-32 h-32 bg-gray-900 relative flex items-center justify-center">
-                      {/* Simple QR code representation */}
-                      <svg viewBox="0 0 100 100" className="w-full h-full">
-                        <rect width="100" height="100" fill="white"/>
-                        
-                        {/* Corner markers */}
-                        <rect x="5" y="5" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
-                        <rect x="10" y="10" width="15" height="15" fill="black"/>
-                        
-                        <rect x="70" y="5" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
-                        <rect x="75" y="10" width="15" height="15" fill="black"/>
-                        
-                        <rect x="5" y="70" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
-                        <rect x="10" y="75" width="15" height="15" fill="black"/>
-                        
-                        {/* Data pattern */}
-                        <rect x="40" y="15" width="5" height="5" fill="black"/>
-                        <rect x="50" y="15" width="5" height="5" fill="black"/>
-                        <rect x="60" y="15" width="5" height="5" fill="black"/>
-                        <rect x="35" y="25" width="5" height="5" fill="black"/>
-                        <rect x="45" y="25" width="5" height="5" fill="black"/>
-                        <rect x="55" y="25" width="5" height="5" fill="black"/>
-                        <rect x="65" y="25" width="5" height="5" fill="black"/>
-                        
-                        <rect x="40" y="35" width="5" height="5" fill="black"/>
-                        <rect x="50" y="35" width="5" height="5" fill="black"/>
-                        <rect x="60" y="35" width="5" height="5" fill="black"/>
-                        <rect x="70" y="35" width="5" height="5" fill="black"/>
-                        <rect x="80" y="35" width="5" height="5" fill="black"/>
-                        
-                        <rect x="35" y="45" width="5" height="5" fill="black"/>
-                        <rect x="45" y="45" width="5" height="5" fill="black"/>
-                        <rect x="55" y="45" width="5" height="5" fill="black"/>
-                        <rect x="65" y="45" width="5" height="5" fill="black"/>
-                        <rect x="75" y="45" width="5" height="5" fill="black"/>
-                        <rect x="85" y="45" width="5" height="5" fill="black"/>
-                        
-                        <rect x="40" y="55" width="5" height="5" fill="black"/>
-                        <rect x="50" y="55" width="5" height="5" fill="black"/>
-                        <rect x="60" y="55" width="5" height="5" fill="black"/>
-                        <rect x="70" y="55" width="5" height="5" fill="black"/>
-                        <rect x="80" y="55" width="5" height="5" fill="black"/>
-                        <rect x="90" y="55" width="5" height="5" fill="black"/>
-                        
-                        <rect x="35" y="65" width="5" height="5" fill="black"/>
-                        <rect x="45" y="65" width="5" height="5" fill="black"/>
-                        <rect x="55" y="65" width="5" height="5" fill="black"/>
-                        <rect x="65" y="65" width="5" height="5" fill="black"/>
-                        <rect x="75" y="65" width="5" height="5" fill="black"/>
-                        
-                        <rect x="40" y="75" width="5" height="5" fill="black"/>
-                        <rect x="50" y="75" width="5" height="5" fill="black"/>
-                        <rect x="60" y="75" width="5" height="5" fill="black"/>
-                        <rect x="70" y="75" width="5" height="5" fill="black"/>
-                        <rect x="80" y="75" width="5" height="5" fill="black"/>
-                        
-                        <rect x="35" y="85" width="5" height="5" fill="black"/>
-                        <rect x="45" y="85" width="5" height="5" fill="black"/>
-                        <rect x="55" y="85" width="5" height="5" fill="black"/>
-                        <rect x="65" y="85" width="5" height="5" fill="black"/>
-                        <rect x="75" y="85" width="5" height="5" fill="black"/>
-                        <rect x="85" y="85" width="5" height="5" fill="black"/>
+            {/* Only show this block if at least one skill is verified */}
+            {generatedData.skills.some((s: SkillItem) => s.verified) && (
+              <div className="pt-6 border-t border-gray-200 bg-gradient-to-br from-purple-50 to-blue-50 -mx-6 md:-mx-8 px-6 md:px-8 py-6 rounded-lg mt-6">
+                <div className="flex items-start justify-between gap-6">
+                  <div className="flex-1 space-y-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
+                      <h3 className="text-lg font-semibold text-gray-900">Blockchain Verification</h3>
                     </div>
-                    <p className="text-xs text-center text-gray-600 mt-2 font-medium">Scan to Verify</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-600 font-medium mb-1">Issuer</p>
+                        <p className="text-gray-900 font-semibold">Vector University</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 font-medium mb-1">Issue Date</p>
+                        <p className="text-gray-900 font-semibold">{new Date().toLocaleDateString()}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-gray-600 font-medium mb-1">Contract Address</p>
+                        <p className="text-gray-900 font-mono text-xs break-all">{CONTRACT_ADDRESS}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* QR Code */}
+                  <div className="flex-shrink-0">
+                    <div className="bg-white p-3 rounded-lg shadow-md">
+                      <div className="w-32 h-32 bg-gray-900 relative flex items-center justify-center">
+                        <svg viewBox="0 0 100 100" className="w-full h-full">
+                          <rect width="100" height="100" fill="white"/>
+                          <rect x="5" y="5" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
+                          <rect x="10" y="10" width="15" height="15" fill="black"/>
+                          <rect x="70" y="5" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
+                          <rect x="75" y="10" width="15" height="15" fill="black"/>
+                          <rect x="5" y="70" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
+                          <rect x="10" y="75" width="15" height="15" fill="black"/>
+                          <rect x="40" y="40" width="20" height="20" fill="black"/>
+                        </svg>
+                      </div>
+                      <p className="text-xs text-center text-gray-600 mt-2 font-medium">Scan to Verify</p>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <div className="mt-4 flex items-center gap-2 text-sm text-gray-700 bg-white/50 px-4 py-2 rounded-lg">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                <span className="font-medium">This credential is verified and stored on Polygon Amoy Testnet blockchain</span>
-              </div>
-            </div>
+            )}
 
             {/* Template & Generated Date */}
             <div className="pt-4">
@@ -555,9 +584,9 @@ export default function CVRPage() {
       />
 
       {/* Export CVR Modal */}
-      <ExportCVRModal 
-        isOpen={isExportModalOpen} 
-        onClose={() => setIsExportModalOpen(false)} 
+      <ExportCVRModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
       />
     </DashboardLayout>
   );

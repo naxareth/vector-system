@@ -3243,7 +3243,7 @@ export default function StudentDashboard() {
       <div className="mb-4 md:mb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user?.full_name || 'Student'}! 👋
+            Welcome back, {user?.full_name || 'Student'}!
           </h1>
           <p className="text-sm md:text-base text-gray-500">
             Overview of your credentials and market standing

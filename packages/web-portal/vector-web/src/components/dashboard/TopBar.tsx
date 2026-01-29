@@ -2,19 +2,32 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient'; // ✅ Import Supabase
+import { supabase } from '@/lib/supabaseClient';
 
 interface UserProfile {
+  id: string; // Added ID for fetching notifications
   full_name: string;
   role: string;
   email?: string;
+}
+
+interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+  is_read: boolean;
+  type: 'info' | 'success' | 'warning' | 'alert';
 }
 
 export default function TopBar() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
-  const [user, setUser] = useState<UserProfile | null>(null); // ✅ User State
+  
+  // Data State
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   
   const router = useRouter();
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -35,30 +48,74 @@ export default function TopBar() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
-        // Fetch profile details
         const { data: profile } = await supabase
           .from('users')
           .select('full_name, role')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        setUser({
+        const userData = {
+          id: session.user.id,
           full_name: profile?.full_name || session.user.email?.split('@')[0] || 'User',
           role: profile?.role || 'student',
           email: session.user.email
-        });
+        };
+        
+        setUser(userData);
+        fetchNotifications(userData.id);
       }
     };
     getUser();
   }, []);
 
-  const notifications = [
-    { id: 1, title: 'New Course Recommendation', message: 'Advanced Kotlin course added', time: '5 min ago', unread: true },
-    { id: 2, title: 'Skill Badge Earned', message: 'You earned the Python Mastery badge!', time: '2 hours ago', unread: true },
-  ];
+  // ✅ 2. Fetch Notifications Logic
+  const fetchNotifications = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10); // Get last 10
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+    if (data) setNotifications(data);
+  };
 
+  // ✅ 3. Mark all as read when opening dropdown
+  const handleOpenNotifications = async () => {
+    const wasOpen = isNotificationsOpen;
+    setIsNotificationsOpen(!wasOpen);
+
+    if (!wasOpen && user && notifications.some(n => !n.is_read)) {
+      // Optimistic UI update
+      const updated = notifications.map(n => ({ ...n, is_read: true }));
+      setNotifications(updated);
+
+      // DB Update
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+    }
+  };
+
+  // Helper: Time Ago (Simple version)
+  const timeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+  };
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  // Close dropdowns on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
@@ -78,7 +135,7 @@ export default function TopBar() {
   };
 
   const confirmLogout = async () => {
-    await supabase.auth.signOut(); // ✅ Real Signout
+    await supabase.auth.signOut();
     setIsLogoutDialogOpen(false);
     router.push('/login');
   };
@@ -88,7 +145,6 @@ export default function TopBar() {
     router.push('/student/profile');
   };
 
-  // Helper for Initials
   const getInitials = (name: string) => {
     return name ? name.charAt(0).toUpperCase() : 'U';
   };
@@ -108,35 +164,50 @@ export default function TopBar() {
 
         {/* Notifications */}
         <div className="relative" ref={notificationsRef}>
-          <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
+          <button onClick={handleOpenNotifications} className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
             <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-            {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
+            {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
           </button>
 
           {isNotificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 max-h-96 overflow-y-auto z-50">
-              <div className="px-4 py-2 border-b border-gray-200">
+            <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 max-h-96 overflow-y-auto z-50 animate-fade-in-up">
+              <div className="px-4 py-2 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="font-semibold text-gray-900">Notifications</h3>
+                {unreadCount > 0 && <span className="text-xs text-purple-600 font-medium">{unreadCount} New</span>}
               </div>
+              
               <div className="divide-y divide-gray-100">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${notification.unread ? 'bg-purple-50' : ''}`}>
-                    <div className="flex items-start gap-3">
-                      {notification.unread && <span className="w-2 h-2 bg-purple-600 rounded-full mt-2 flex-shrink-0"></span>}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{notification.title}</p>
-                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
-                        <p className="text-xs text-gray-400 mt-1">{notification.time}</p>
+                {notifications.length > 0 ? (
+                  notifications.map((notification) => (
+                    <div key={notification.id} className={`px-4 py-3 hover:bg-gray-50 transition-colors ${!notification.is_read ? 'bg-purple-50/50' : ''}`}>
+                      <div className="flex items-start gap-3">
+                        {/* Dynamic Icon based on Type */}
+                        <div className="mt-1 flex-shrink-0">
+                          {notification.type === 'success' && <div className="w-2 h-2 bg-green-500 rounded-full" />}
+                          {notification.type === 'warning' && <div className="w-2 h-2 bg-orange-500 rounded-full" />}
+                          {notification.type === 'info' && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
+                          {!notification.is_read && <div className="w-2 h-2 bg-purple-600 rounded-full absolute" />} 
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{notification.title}</p>
+                          <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
+                          <p className="text-xs text-gray-400 mt-1">{timeAgo(notification.created_at)}</p>
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-6 text-center text-gray-500 text-sm">
+                    No notifications yet.
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
         </div>
 
-        {/* ✅ Dynamic Profile Section */}
+        {/* Profile Section */}
         <div className="relative" ref={profileMenuRef}>
           <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="flex items-center gap-3 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors">
             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
@@ -169,13 +240,13 @@ export default function TopBar() {
 
     {/* Logout Modal */}
     {isLogoutDialogOpen && (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl animate-fade-in-up">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
           <p className="text-sm text-gray-600 mb-4">Are you sure you want to log out?</p>
           <div className="flex gap-3">
-            <button onClick={() => setIsLogoutDialogOpen(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
-            <button onClick={confirmLogout} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">Logout</button>
+            <button onClick={() => setIsLogoutDialogOpen(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+            <button onClick={confirmLogout} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">Logout</button>
           </div>
         </div>
       </div>
