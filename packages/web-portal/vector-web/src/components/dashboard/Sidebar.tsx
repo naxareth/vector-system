@@ -132,6 +132,8 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Bottom Illustration */}
     </div>
     </>
   );

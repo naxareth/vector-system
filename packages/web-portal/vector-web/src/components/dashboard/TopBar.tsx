@@ -33,6 +33,14 @@ export default function TopBar() {
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
+  // Helper function to capitalize first letter of each word
+  const capitalizeWords = (text: string) => {
+    return text
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   // Theme Logic
   let theme: 'light' | 'dark' = 'light';
   let toggleTheme = () => {};
@@ -56,7 +64,7 @@ export default function TopBar() {
 
         const userData = {
           id: session.user.id,
-          full_name: profile?.full_name || session.user.email?.split('@')[0] || 'User',
+          full_name: profile?.full_name ? capitalizeWords(profile.full_name) : (session.user.email?.split('@')[0] || 'User'),
           role: profile?.role || 'student',
           email: session.user.email
         };
