@@ -105,7 +105,7 @@ export default function CVRPage() {
 
         try {
           const balance = await contract.balanceOf(walletAddress, skillId);
-          if (balance > 0n) {
+          if (balance > 0) {
             foundSkills.push({
               id: `chain-${skillId}`,
               name: skillName,

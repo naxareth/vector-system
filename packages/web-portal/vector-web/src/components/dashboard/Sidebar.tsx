@@ -59,7 +59,7 @@ export default function Sidebar() {
       ),
     },
     {
-      name: 'CVR',
+      name: 'Resume',
       href: '/student/cvr',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,16 +97,16 @@ export default function Sidebar() {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col z-40 transition-transform duration-300 lg:translate-x-0 ${
+      <div className={`fixed left-0 top-0 h-screen w-64 bg-purple-900 border-r border-purple-800 flex flex-col z-40 transition-transform duration-300 lg:translate-x-0 ${
         isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
       {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-purple-800">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">V</span>
+          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+            <span className="text-purple-900 font-bold text-sm">V</span>
           </div>
-          <span className="text-xl font-bold text-gray-900">VECTOR</span>
+          <span className="text-xl font-bold text-white">VECTOR</span>
         </div>
       </div>
 
@@ -120,11 +120,11 @@ export default function Sidebar() {
               href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 isActive
-                  ? 'bg-purple-50 text-purple-600'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-purple-50 !text-purple-900 shadow-sm'
+                  : '!text-purple-200 hover:bg-purple-800/50 !hover:text-white'
               }`}
             >
-              <span className={isActive ? 'text-purple-600' : 'text-gray-400'}>
+              <span className={isActive ? '!text-purple-900' : '!text-purple-300'}>
                 {item.icon}
               </span>
               <span className="font-medium">{item.name}</span>
