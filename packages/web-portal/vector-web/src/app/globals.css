@@ -30,52 +30,107 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Dark mode utilities */
+/* -------------------------------------------------------------------------- */
+/* 🌙 EXISTING DARK MODE UTILITIES                                            */
+/* These handle the general page look (Sidebar, Main Content, etc.)           */
+/* -------------------------------------------------------------------------- */
+.dark body {
+  background-color: #0F0F13; /* Main Deep Dark Background */
+}
+
 .dark .bg-white {
-  background-color: #1a1a1a;
+  background-color: #1F1F2B; /* Card Background (Dark Blue-Gray)  */
+  border-color: #2D2D3F;     /* Subtle Card Border */
 }
 
 .dark .bg-gray-50 {
-  background-color: #262626;
+  background-color: #0F0F13; /* Main Content Background */
 }
 
+/* Text Colors */
 .dark .text-gray-900 {
-  color: #ededed;
+  color: #FFFFFF; /* High Contrast White */
 }
 
 .dark .text-gray-700 {
-  color: #d4d4d4;
+  color: #B0B0C4; /* Soft Gray-Blue Text */
 }
 
 .dark .text-gray-600 {
-  color: #a3a3a3;
+  color: #9A9AB0; /* Muted Text */
 }
 
 .dark .text-gray-500 {
-  color: #737373;
+  color: #737385; /* De-emphasized Text */
 }
 
 .dark .text-gray-400 {
-  color: #525252;
+  color: #636375; /* Hint Text */
 }
 
+/* Borders */
 .dark .border-gray-200 {
-  border-color: #404040;
+  border-color: #2D2D3F; /* Dark Border */
 }
 
 .dark .border-gray-300 {
-  border-color: #525252;
+  border-color: #3E3E52; /* Slightly Lighter Border */
 }
 
+/* Hover States */
 .dark .hover\:bg-gray-50:hover {
-  background-color: #262626;
+  background-color: #262636;
 }
 
 .dark .hover\:text-gray-900:hover {
-  color: #ededed;
+  color: #FFFFFF;
 }
 
-/* Modal animations */
+/* Gradients */
+.dark .bg-gradient-to-l.from-purple-400.to-purple-600 {
+  /* Keep the purple gradient or make it slightly darker if needed, 
+     but the screenshot shows vivid accents */
+}
+
+/* -------------------------------------------------------------------------- */
+/* 🛡️ NUCLEAR READABILITY FIX (FINAL)                                         */
+/* These rules use explicit hex codes to force specific elements to look      */
+/* like "Light Mode" (White BG, Dark Text) even when Dark Mode is active.     */
+/* -------------------------------------------------------------------------- */
+
+/* 1. Force Inputs, Textareas, and Selects to be White with Dark Text */
+input, 
+textarea, 
+select {
+  background-color: #ffffff !important;
+  color: #111827 !important; /* Hardcoded Dark Gray (gray-900) */
+  border: 1px solid #d1d5db !important; /* Force Gray Border */
+}
+
+/* 2. Fix Placeholder Text Visibility */
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important; /* Hardcoded Gray-400 */
+  opacity: 1 !important;
+}
+
+/* 3. Force Dark Text on Colored Cards (Alerts, Badges) */
+/* This prevents white text from appearing on light colored backgrounds */
+[class*="bg-orange-"], 
+[class*="bg-blue-"], 
+[class*="bg-green-"], 
+[class*="bg-purple-"] {
+  color: #111827 !important; /* Force Dark Text */
+}
+
+/* 4. Specific Fix for Badges/Spans inside those cards */
+span[class*="bg-"] {
+  color: #111827 !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✨ ANIMATIONS                                                              */
+/* -------------------------------------------------------------------------- */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -90,5 +145,3 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
 }
-
-

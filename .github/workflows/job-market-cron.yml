@@ -1,0 +1,36 @@
+name: Daily Job Market Tracker
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every day
+    - cron: '0 0 * * *'
+  # Allows you to run it manually from GitHub tab for testing
+  workflow_dispatch:
+
+jobs:
+  update-market-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        # Navigate to the specific package folder if using monorepo
+        working-directory: ./packages/ai-engine
+        run: npm install
+
+      - name: Run Daily Update Script
+        working-directory: ./packages/ai-engine
+        run: npm run daily-update
+        env:
+          # GitHub Secrets (We will set these next)
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          JOB_MARKET_API_URL: "https://jsearch.p.rapidapi.com/search"

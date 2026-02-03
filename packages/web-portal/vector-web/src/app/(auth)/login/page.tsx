@@ -1,101 +1,125 @@
 'use client';
 import { useState } from 'react';
-import ConnectWalletModal from '@/components/shared/ConnectWalletModal';
+import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      // 1. Authenticate with Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      if (!data.user) throw new Error("No user found");
+
+      // 2. Fetch User Profile & Role (Strict Check)
+      // We use .single() to force an error if the profile is missing (Ghost User)
+      const { data: userData, error: fetchError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (fetchError || !userData) {
+        console.error("👻 Ghost User Detected:", fetchError);
+        // Security: Sign them out if their DB profile is broken/missing
+        await supabase.auth.signOut();
+        throw new Error("Profile data not found. Please register again.");
+      }
+
+      // 3. Redirect based on Role
+      if (userData.role === 'registrar') {
+        router.push('/registrar/dashboard');
+      } else {
+        router.push('/student/dashboard');
+      }
+    } catch (err: any) {
+      console.error("Login Error:", err);
+      setError(err.message || 'Failed to sign in');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <main className="min-h-screen w-full bg-gray-50 flex items-center justify-center p-4 md:p-6">
-      <div className="max-w-5xl w-full mx-auto">
-        {/* Header Section */}
-        <div className="text-center mb-10 md:mb-14 space-y-3">
-          <div className="inline-flex items-center justify-center p-3 bg-white rounded-xl shadow-sm mb-4">
-            <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
+    <main className="min-h-screen w-full bg-gray-50 flex items-center justify-center p-4 md:p-6 relative">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-100 p-8 relative">
+        
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 rounded-xl mb-4 text-purple-600 shadow-sm">
+             <span className="font-bold text-xl">V</span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
-            Welcome to VECTOR
-          </h1>
-          <p className="text-lg text-gray-600 max-w-xl mx-auto font-medium">
-            The secure blockchain-based micro-credential platform for verified
-            academic achievements.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Welcome Back</h1>
+          <p className="text-gray-500 mt-2 text-sm">Sign in to access VECTOR</p>
         </div>
 
-        {/* Split Options Container */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
-          {/* Option A: Student Access */}
-          <div className="group relative bg-white rounded-2xl p-8 md:p-10 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col items-center text-center h-full">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-            <div className="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <svg className="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-            </div>
-
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              Student Access
-            </h2>
-            <p className="text-gray-600 mb-8 flex-grow">
-              Connect your digital wallet to view, manage, and share your
-              verified credentials securely on the blockchain.
-            </p>
-
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg hover:translate-y-[-2px] active:translate-y-[0px] transition-all duration-200 flex items-center justify-center gap-2 group-hover:gap-3"
-              aria-label="Connect Wallet for Student Access"
-            >
-              Connect Wallet
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </button>
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start gap-3">
+            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            {error}
           </div>
+        )}
 
-          {/* Option B: Registrar Access */}
-          <div className="group relative bg-white rounded-2xl p-8 md:p-10 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col items-center text-center h-full">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gray-400 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <svg className="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              Registrar Access
-            </h2>
-            <p className="text-gray-600 mb-8 flex-grow">
-              Login with your institutional credentials to issue, revoke, and
-              manage student micro-credentials.
-            </p>
-
-            <button
-              className="w-full py-4 px-6 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2"
-              aria-label="Login with Email for Registrar Access"
-            >
-              Login with Email
-            </button>
+        {/* Form */}
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+            <input 
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" 
+              placeholder="name@university.edu" 
+              required 
+            />
           </div>
-        </div>
-
-        {/* Footer / Trust Indicators */}
-        <div className="mt-12 text-center">
-          <p className="text-sm text-gray-400 font-medium">
-            Secured by Blockchain Technology • 256-bit Encryption
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+            <input 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" 
+              placeholder="••••••••" 
+              required 
+            />
+          </div>
+          
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center shadow-md hover:shadow-lg transform active:scale-[0.98]"
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Signing In...
+              </>
+            ) : 'Sign In'}
+          </button>
+        </form>
+        
+        <div className="mt-8 text-center pt-6 border-t border-gray-100">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <Link href="/register" className="text-purple-600 font-semibold hover:text-purple-700 hover:underline">
+              Create an account
+            </Link>
           </p>
         </div>
       </div>
-
-      {/* Connect Wallet Modal */}
-      <ConnectWalletModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-      />
     </main>
   );
 }

@@ -11,17 +11,17 @@ export interface JobSearchResult {
 
 export async function fetchJobMarketData(
   skill: string,
-  location: string = 'PH',
-  days: number = 30
+  location: string = 'Philippines', 
 ): Promise<JobSearchResult[]> {
   try {
     const options = {
       method: 'GET',
       url: process.env.JOB_MARKET_API_URL,
       params: {
-        query: `${skill} developer`,
+        // 🚀 CHANGED: Removed "developer" to support all industries
+        query: `${skill} in ${location}`, 
         page: '1',
-        num_pages: '1',
+        num_pages: '20', 
         date_posted: 'month'
       },
       headers: {
@@ -30,17 +30,11 @@ export async function fetchJobMarketData(
       }
     };
     
+    console.log(`   Calling JSearch API for query: "${skill} in ${location}"...`);
     const response = await axios.request(options);
     return response.data.data || [];
   } catch (error) {
-    console.error(`Error fetching job data for ${skill}:`, error);
+    console.error(`   ⚠️ API Error for ${skill}:`, error);
     return [];
   }
-}
-
-export function countJobsBySkill(skill: string, results: JobSearchResult[]): number {
-  // Count jobs containing skill in title
-  return results.filter(job => 
-    job.job_title.toLowerCase().includes(skill.toLowerCase())
-  ).length;
 }

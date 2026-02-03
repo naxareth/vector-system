@@ -1,4 +1,6 @@
-interface ActivityItem {
+'use client';
+
+export interface ActivityItem {
   id: string;
   type: 'success' | 'warning' | 'info' | 'badge';
   title: string;
@@ -6,64 +8,39 @@ interface ActivityItem {
   time: string;
 }
 
-export default function RecentActivity() {
-  const activities: ActivityItem[] = [
-    {
-      id: '1',
-      type: 'success',
-      title: 'Advanced SQL Querying Verified',
-      description: 'Your skill was verified by TechAcademy NGCO',
-      time: '2 hrs ago',
-    },
-    {
-      id: '2',
-      type: 'warning',
-      title: 'Skill Decay Alert',
-      description: 'Java proficiency relevance dropped by 8%',
-      time: '1 day ago',
-    },
-    {
-      id: '3',
-      type: 'badge',
-      title: 'New Badge Earned',
-      description: 'Earned "Database Master" badge',
-      time: '3 days ago',
-    },
-    {
-      id: '4',
-      type: 'info',
-      title: 'Profile View',
-      description: 'TechStart Startups viewed your CVR',
-      time: '1 week ago',
-    },
-  ];
+interface RecentActivityProps {
+  activities: ActivityItem[];
+}
 
+export default function RecentActivity({ activities }: RecentActivityProps) {
+  
   const getActivityIcon = (type: string) => {
-    const baseClasses = 'w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm';
+    // Changed: Removed text-white, added specific text colors below for reduced opacity look
+    const baseClasses = 'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0';
     
     switch (type) {
-      case 'success':
+      case 'success': // Green (Verification)
         return (
-          <div className={`${baseClasses} bg-gradient-to-br from-green-400 to-green-600`}>
-            <span>G</span>
+          <div className={`${baseClasses} bg-green-100 text-green-600`}>
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
         );
-      case 'warning':
+      case 'warning': // Orange (Alerts)
         return (
-          <div className={`${baseClasses} bg-gradient-to-br from-orange-400 to-orange-600`}>
-            <span>!</span>
+          <div className={`${baseClasses} bg-orange-100 text-orange-600`}>
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
           </div>
         );
-      case 'badge':
+      case 'badge': // Purple (Achievements/CVR)
         return (
-          <div className={`${baseClasses} bg-gradient-to-br from-purple-400 to-purple-600`}>
-            <span>D</span>
+          <div className={`${baseClasses} bg-purple-100 text-purple-600`}>
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
           </div>
         );
-      case 'info':
+      case 'info': // Blue (System/Wallet)
         return (
-          <div className={`${baseClasses} bg-gradient-to-br from-blue-400 to-blue-600`}>
-            <span>S</span>
+          <div className={`${baseClasses} bg-blue-100 text-blue-600`}>
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
         );
       default:
@@ -76,16 +53,20 @@ export default function RecentActivity() {
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
       
       <div className="space-y-4">
-        {activities.map((activity) => (
-          <div key={activity.id} className="flex items-start gap-4">
-            {getActivityIcon(activity.type)}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-              <p className="text-sm text-gray-500">{activity.description}</p>
+        {activities.length > 0 ? (
+          activities.map((activity) => (
+            <div key={activity.id} className="flex items-start gap-4">
+              {getActivityIcon(activity.type)}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                <p className="text-sm text-gray-500 truncate">{activity.description}</p>
+              </div>
+              <span className="text-xs text-gray-400 whitespace-nowrap pt-1">{activity.time}</span>
             </div>
-            <span className="text-xs text-gray-400 whitespace-nowrap">{activity.time}</span>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p className="text-sm text-gray-400 text-center py-4">No recent activity detected.</p>
+        )}
       </div>
     </div>
   );
