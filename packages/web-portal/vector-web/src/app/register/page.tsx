@@ -3,13 +3,39 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { z } from 'zod';
 
-type Role = 'student' | 'registrar' | null;
+// OWASP Recommended Password Regex
+const passwordValidation = new RegExp(
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{12,}$/
+);
+
+// Zod Schema
+const registerSchema = z.object({
+  firstName: z.string().min(2, "First name too short").max(50),
+  lastName: z.string().min(2, "Last name too short").max(50),
+  email: z.string().email("Invalid email address"),
+  password: z.string().regex(passwordValidation, {
+    message: "Password must be 12+ chars, include uppercase, lowercase, number, and special char.",
+  }),
+  confirmPassword: z.string(),
+  isRegistrar: z.boolean(),
+  inviteCode: z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+}).refine((data) => {
+  if (data.isRegistrar && !data.inviteCode) return false;
+  return true;
+}, {
+  message: "Registrar Invite Code is required for this role",
+  path: ["inviteCode"],
+});
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState<Role>(null);
   const [loading, setLoading] = useState(false);
+  const [isRegistrarMode, setIsRegistrarMode] = useState(false);
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -17,6 +43,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    inviteCode: '', 
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -24,119 +51,99 @@ export default function RegisterPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    else if (!emailRegex.test(formData.email)) newErrors.email = 'Invalid email format';
-
-    if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
-
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (errors[name] || errors.form) setErrors(prev => ({ ...prev, [name]: '', form: '' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
     setLoading(true);
+    setErrors({});
+
+    // 1. Zod Validation (Safe Parse)
+    const validationResult = registerSchema.safeParse({
+      ...formData,
+      isRegistrar: isRegistrarMode
+    });
+
+    if (!validationResult.success) {
+      // HANDLE VALIDATION ERRORS
+      const fieldErrors: Record<string, string> = {};
+      
+      // FIX: Use '.issues' instead of '.errors' to avoid the "forEach of undefined" crash
+      validationResult.error.issues.forEach((issue) => {
+        if (issue.path[0]) {
+          fieldErrors[issue.path[0].toString()] = issue.message;
+        }
+      });
+      
+      setErrors(fieldErrors);
+      setLoading(false);
+      return; // 🛑 Stop execution here
+    }
+
+    const validData = validationResult.data;
 
     try {
-      // 1. Create User in Supabase Auth
+      // 2. Security Check (Server-Side)
+      if (isRegistrarMode) {
+        const res = await fetch('/api/verify-registrar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: validData.inviteCode }),
+        });
+
+        const verification = await res.json();
+
+        if (!res.ok || !verification.success) {
+          throw new Error(verification.message || "Invalid Registrar Invite Code.");
+        }
+      }
+
+      // 3. Create User in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
+        email: validData.email,
+        password: validData.password,
         options: {
           data: {
-            full_name: `${formData.firstName} ${formData.lastName}`,
-            role: selectedRole,
+            full_name: `${validData.firstName} ${validData.lastName}`,
+            role: isRegistrarMode ? 'registrar' : 'student',
           }
         }
       });
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error("No user created");
+      if (!authData.user) throw new Error("Account creation failed");
 
-      // 2. Create Profile in Public Table
-      // 🛑 CRITICAL CHANGE: We do NOT create a fake wallet address anymore.
-      // We pass NULL so the dashboard knows to prompt for connection.
+      // 4. Create Public Profile
       const generatedStudentId = `03-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
       const { error: dbError } = await supabase
         .from('users')
         .insert({
           id: authData.user.id,
-          student_id: generatedStudentId,
-          full_name: `${formData.firstName} ${formData.lastName}`,
-          role: selectedRole,
-          wallet_address: null // ✅ Correct: Start empty
+          student_id: isRegistrarMode ? null : generatedStudentId,
+          full_name: `${validData.firstName} ${validData.lastName}`,
+          role: isRegistrarMode ? 'registrar' : 'student',
+          wallet_address: null
         });
 
       if (dbError) throw dbError;
 
-      // 3. Success -> Redirect
-      if (selectedRole === 'registrar') {
+      // 5. Success -> Redirect
+      if (isRegistrarMode) {
         router.push('/registrar/dashboard');
       } else {
         router.push('/student/dashboard');
       }
 
     } catch (err: any) {
-      console.error('Registration Error:', err);
+      console.error("Registration Error:", err);
+      // Generic error handler for API/Auth issues
       setErrors({ form: err.message || 'Registration failed. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
-
-  if (!selectedRole) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center px-6 py-12">
-        <div className="max-w-4xl w-full">
-          <div className="text-center mb-12">
-            <Link href="/" className="inline-flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">V</span>
-              </div>
-              <span className="text-2xl font-bold text-gray-900">VECTOR</span>
-            </Link>
-            <h1 className="text-4xl font-bold text-gray-900 mb-3">Create Your Account</h1>
-            <p className="text-gray-600">Choose your role to get started</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <button onClick={() => setSelectedRole('student')} className="group bg-white p-8 rounded-2xl border-2 border-gray-200 hover:border-purple-600 hover:shadow-xl transition-all text-left">
-              <div className="w-16 h-16 bg-purple-100 rounded-xl flex items-center justify-center mb-6 group-hover:bg-purple-600 transition-colors">
-                <svg className="w-8 h-8 text-purple-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Student</h2>
-              <p className="text-gray-600 mb-4">Access your verified credentials, track skill proficiency, and get AI-powered career recommendations.</p>
-              <div className="flex items-center text-purple-600 font-medium">Continue as Student <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg></div>
-            </button>
-            <button onClick={() => setSelectedRole('registrar')} className="group bg-white p-8 rounded-2xl border-2 border-gray-200 hover:border-purple-600 hover:shadow-xl transition-all text-left">
-              <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mb-6 group-hover:bg-purple-600 transition-colors">
-                <svg className="w-8 h-8 text-blue-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Registrar</h2>
-              <p className="text-gray-600 mb-4">Issue and manage verified micro-credentials for students, track institutional analytics.</p>
-              <div className="flex items-center text-purple-600 font-medium">Continue as Registrar <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg></div>
-            </button>
-          </div>
-          <div className="text-center mt-8">
-            <p className="text-gray-600">Already have an account? <Link href="/login" className="text-purple-600 hover:text-purple-700 font-medium">Sign in</Link></p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center px-6 py-12">
@@ -148,9 +155,10 @@ export default function RegisterPage() {
             </div>
             <span className="text-2xl font-bold text-gray-900">VECTOR</span>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create {selectedRole === 'student' ? 'Student' : 'Registrar'} Account</h1>
-          <p className="text-gray-600">Fill in your details to get started</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
+          <p className="text-gray-600">Join the secure verification network</p>
         </div>
+
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
           {errors.form && (
             <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200 flex items-center gap-2">
@@ -158,41 +166,87 @@ export default function RegisterPage() {
               {errors.form}
             </div>
           )}
-          <div className="flex items-center gap-2 mb-6">
-            <div className={`px-3 py-1 rounded-full text-sm font-medium ${selectedRole === 'student' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{selectedRole === 'student' ? 'Student' : 'Registrar'}</div>
-            <button onClick={() => setSelectedRole(null)} className="text-sm text-gray-500 hover:text-gray-700 underline">Change role</button>
+
+          {/* Role Toggle Switch */}
+          <div className="flex justify-center mb-6">
+            <div className="bg-gray-100 p-1 rounded-lg flex text-sm font-medium">
+              <button 
+                type="button"
+                onClick={() => setIsRegistrarMode(false)}
+                className={`px-4 py-2 rounded-md transition-all ${!isRegistrarMode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                Student
+              </button>
+              <button 
+                type="button"
+                onClick={() => setIsRegistrarMode(true)}
+                className={`px-4 py-2 rounded-md transition-all ${isRegistrarMode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+              >
+                Registrar (Admin)
+              </button>
+            </div>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-              <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleInputChange} className={`w-full px-4 py-3 border ${errors.firstName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`} placeholder="John" />
-              {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">First Name</label>
+                <input type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.firstName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="John" />
+                {errors.firstName && <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Last Name</label>
+                <input type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.lastName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="Doe" />
+                {errors.lastName && <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>}
+              </div>
             </div>
+
             <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-              <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleInputChange} className={`w-full px-4 py-3 border ${errors.lastName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`} placeholder="Doe" />
-              {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>}
+              <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Email</label>
+              <input type="email" name="email" value={formData.email} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="student@university.edu" />
+              {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
             </div>
+
+            {/* Registrar Invite Code (Conditional) */}
+            {isRegistrarMode && (
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                <label className="block text-xs font-bold text-purple-800 uppercase mb-1">Admin Invite Code</label>
+                <input 
+                  type="password" // Hidden for security
+                  name="inviteCode" 
+                  value={formData.inviteCode} 
+                  onChange={handleInputChange} 
+                  className={`w-full px-3 py-2 border ${errors.inviteCode ? 'border-red-500' : 'border-purple-200'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} 
+                  placeholder="Enter admin code" 
+                />
+                <p className="text-xs text-purple-600 mt-1">Required for registrar access.</p>
+                {errors.inviteCode && <p className="mt-1 text-xs text-red-600">{errors.inviteCode}</p>}
+              </div>
+            )}
+
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-              <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} className={`w-full px-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`} placeholder="john.doe@university.edu" />
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+              <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Password</label>
+              <input type="password" name="password" value={formData.password} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="12+ chars, symbols, numbers" />
+              {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
             </div>
+
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-              <input type="password" id="password" name="password" value={formData.password} onChange={handleInputChange} className={`w-full px-4 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`} placeholder="••••••••" />
-              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+              <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Confirm Password</label>
+              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="••••••••" />
+              {errors.confirmPassword && <p className="mt-1 text-xs text-red-600">{errors.confirmPassword}</p>}
             </div>
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
-              <input type="password" id="confirmPassword" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} className={`w-full px-4 py-3 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`} placeholder="••••••••" />
-              {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
-            </div>
-            <button type="submit" disabled={loading} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-              {loading ? 'Creating Account...' : 'Create Account'}
+
+            <button type="submit" disabled={loading} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-4">
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  Initializing...
+                </>
+              ) : 'Create Account'}
             </button>
           </form>
-          <p className="text-xs text-gray-500 text-center mt-6">By creating an account, you agree to our <a href="#" className="text-purple-600 hover:text-purple-700">Terms of Service</a> and <a href="#" className="text-purple-600 hover:text-purple-700">Privacy Policy</a></p>
+          
+          <p className="text-xs text-gray-500 text-center mt-6">By creating an account, you agree to our Terms and Privacy Policy.</p>
         </div>
         <div className="text-center mt-6">
           <p className="text-gray-600">Already have an account? <Link href="/login" className="text-purple-600 hover:text-purple-700 font-medium">Sign in</Link></p>

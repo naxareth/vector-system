@@ -20,54 +20,33 @@ interface SkillMetric {
   growthRate: number;
 }
 
+interface MarketPoint {
+  date: string;
+  [skill: string]: string | number;
+}
+
 export default function CoachPage() {
   const router = useRouter();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [studentId, setStudentId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false); // UI State from vector-front
+  const [chatOpen, setChatOpen] = useState(false);
   
-  // ⚡ DEFAULT CHART DATA (Prevents "No Graph" error)
-  const defaultHistory = [
-    { month: 'Jan', value: 20 }, { month: 'Feb', value: 25 }, { month: 'Mar', value: 30 },
-    { month: 'Apr', value: 28 }, { month: 'May', value: 35 }, { month: 'Jun', value: 40 },
-    { month: 'Jul', value: 45 }, { month: 'Aug', value: 50 }, { month: 'Sep', value: 55 },
-    { month: 'Oct', value: 52 }, { month: 'Nov', value: 58 }, { month: 'Dec', value: 65 },
-  ];
-
   const [metrics, setMetrics] = useState({
-    portfolioScore: 65, // Default start
+    portfolioScore: 0,
     marketAlignment: 'Analyzing...',
     projectedGrowth: 0
   });
   const [skillsList, setSkillsList] = useState<SkillMetric[]>([]);
-  const [trendHistory, setTrendHistory] = useState(defaultHistory);
+  const [realHistory, setRealHistory] = useState<MarketPoint[]>([]);
+  const [selectedSkillView, setSelectedSkillView] = useState<string>('All');
   
   const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', text: "👋 Hi! I'm connecting to the blockchain to analyze your career data..." }
   ]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Helper: Generate synthetic history (Client-Side Only)
-  const generateHistory = (score: number, trend: string) => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const history = [];
-    let currentVal = score;
-    
-    for (let i = 11; i >= 0; i--) {
-      // Ensure value stays between 10 and 100
-      const safeVal = Math.max(10, Math.min(100, Math.round(currentVal)));
-      history.unshift({ month: months[i], value: safeVal });
-      
-      // Calculate previous month based on trend
-      if (trend === 'growing') currentVal -= (Math.random() * 5 + 1);
-      else if (trend === 'declining') currentVal += (Math.random() * 5 + 1);
-      else currentVal += (Math.random() * 4 - 2); 
-    }
-    return history;
-  };
 
   useEffect(() => {
     const initPage = async () => {
@@ -88,97 +67,95 @@ export default function CoachPage() {
       setStudentId(profile.student_id);
       const firstName = profile.full_name?.split(' ')[0] || 'Student';
 
-      if (!profile.wallet_address) {
-        setMessages([{ role: 'ai', text: `Hi ${firstName}, please connect your wallet on the Dashboard so I can analyze your skills!` }]);
-        setLoading(false);
-        return;
+      // 1. Try to fetch wallet skills, but DON'T stop if empty
+      const foundSkills: string[] = [];
+      
+      if (profile.wallet_address) {
+        try {
+          const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
+          const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
+          
+          const processedIds = new Set<number>();
+          for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
+            if (typeof skillId !== 'number' || processedIds.has(skillId)) continue;
+            try {
+              const balance = await contract.balanceOf(profile.wallet_address, skillId);
+              if (balance > 0n) {
+                processedIds.add(skillId);
+                foundSkills.push(skillName);
+              }
+            } catch (e) { console.error(e); }
+          }
+        } catch (error) {
+          console.warn("Wallet read failed, proceeding with default view.");
+        }
       }
 
-      try {
-        const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
+      // 2. Fetch Analysis regardless of wallet status (API handles fallback)
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          studentId: profile.student_id, 
+          resumeText: "",
+          skillsOverride: foundSkills // Empty array triggers "Global View" in API
+        })
+      });
+
+      const json = await res.json();
+      
+      if (json.status === 'success') {
+        const aiData = json.data;
         
-        const foundSkills: string[] = [];
-        const processedIds = new Set<number>();
-
-        for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
-          if (typeof skillId !== 'number' || processedIds.has(skillId)) continue;
-          try {
-            const balance = await contract.balanceOf(profile.wallet_address, skillId);
-            if (balance > 0n) {
-              processedIds.add(skillId);
-              foundSkills.push(skillName);
-            }
-          } catch (e) { console.error(e); }
-        }
-
-        if (foundSkills.length === 0) {
-          setMessages([{ role: 'ai', text: `Hi ${firstName}, I don't see any verified credentials yet. The chart currently shows the **Market Average** for a beginner developer.` }]);
-          setLoading(false);
-          // Keep default history so the graph shows *something*
-          return;
-        }
-
-        const res = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            studentId: profile.student_id, 
-            resumeText: "",
-            skillsOverride: foundSkills 
-          })
+        let totalScore = 0;
+        let overallTrendValue = 0;
+        
+        const processedSkills = aiData.skillHealth.map((s: any) => {
+          totalScore += s.healthScore;
+          if (s.trend === 'growing') overallTrendValue += 1;
+          if (s.trend === 'declining') overallTrendValue -= 1;
+          
+          return {
+            name: s.skillName,
+            category: 'Tech',
+            score: s.healthScore,
+            trend: s.trend,
+            growthRate: s.trend === 'growing' ? 0.15 : s.trend === 'declining' ? -0.10 : 0.02
+          };
         });
 
-        const json = await res.json();
+        const avgScore = Math.round(totalScore / processedSkills.length) || 50;
+        const alignment = avgScore > 75 ? 'Very High' : avgScore > 50 ? 'Moderate' : 'Needs Work';
+        const growth = overallTrendValue > 0 ? '+12%' : overallTrendValue < 0 ? '-5%' : '+2%';
+
+        setMetrics({
+          portfolioScore: avgScore,
+          marketAlignment: alignment,
+          projectedGrowth: parseInt(growth)
+        });
+
+        setSkillsList(processedSkills);
         
-        if (json.status === 'success') {
-          const aiData = json.data;
-          
-          let totalScore = 0;
-          let overallTrendValue = 0;
-          
-          const processedSkills = aiData.skillHealth.map((s: any) => {
-            totalScore += s.healthScore;
-            if (s.trend === 'growing') overallTrendValue += 1;
-            if (s.trend === 'declining') overallTrendValue -= 1;
-            
-            return {
-              name: s.skillName,
-              category: 'Tech',
-              score: s.healthScore,
-              trend: s.trend,
-              growthRate: s.trend === 'growing' ? 0.15 : s.trend === 'declining' ? -0.10 : 0.02
-            };
-          });
-
-          const avgScore = Math.round(totalScore / processedSkills.length) || 50;
-          const alignment = avgScore > 75 ? 'Very High' : avgScore > 50 ? 'Moderate' : 'Needs Work';
-          const growth = overallTrendValue > 0 ? '+12%' : overallTrendValue < 0 ? '-5%' : '+2%';
-          const aggTrend = overallTrendValue > 0 ? 'growing' : overallTrendValue < 0 ? 'declining' : 'stable';
-
-          setMetrics({
-            portfolioScore: avgScore,
-            marketAlignment: alignment,
-            projectedGrowth: parseInt(growth)
-          });
-
-          setSkillsList(processedSkills);
-          // Update graph with REAL data
-          setTrendHistory(generateHistory(avgScore, aggTrend));
-
-          const topSkill = processedSkills.sort((a: any, b: any) => b.score - a.score)[0];
-          setMessages([{ 
-            role: 'ai', 
-            text: `👋 Hi ${firstName}! I've analyzed your ${foundSkills.length} verified credentials.\n\nYour **${topSkill?.name}** is looking strong (${topSkill?.score}/100).\n\nUse the chart to see your portfolio's relevance over time.`
-          }]);
+        if (json.data.history && json.data.history.length > 0) {
+          setRealHistory(json.data.history);
         }
 
-      } catch (error) {
-        console.error("Coach Load Error:", error);
-        setMessages([{ role: 'ai', text: "I encountered an error analyzing your data. Showing cached market data." }]);
-      } finally {
-        setLoading(false);
+        // Custom message if portfolio is empty
+        if (foundSkills.length === 0) {
+             setMessages([{ 
+                role: 'ai', 
+                text: `👋 Hi ${firstName}! You don't have any verified skills yet, so I've loaded the **Global Market Trends** for you to explore. Check out what's hot right now!`
+              }]);
+        } else {
+             const topSkill = processedSkills.sort((a: any, b: any) => b.score - a.score)[0];
+             setMessages([{ 
+                role: 'ai', 
+                text: `👋 Hi ${firstName}! I've analyzed your ${foundSkills.length} verified credentials. Your **${topSkill?.name}** is looking strong!`
+              }]);
+        }
       }
+      
+      setLoading(false);
     };
 
     initPage();
@@ -215,8 +192,89 @@ export default function CoachPage() {
     }
   };
 
+  // 🆕 Render SVG Graph
+  const renderTrendGraph = () => {
+    if (realHistory.length === 0) return null;
+
+    // 1. Determine Min/Max for scaling
+    const allValues = realHistory.flatMap(d => 
+      Object.keys(d).filter(k => k !== 'date').map(k => Number(d[k]))
+    );
+    // Add buffer to prevent flat lines if all values are same
+    const maxVal = allValues.length ? Math.max(...allValues) * 1.1 : 100;
+    const minVal = allValues.length ? Math.min(...allValues) * 0.9 : 0;
+    const range = (maxVal - minVal) || 1; // Prevent division by zero
+
+    const activeSkills = skillsList.map(s => s.name);
+    const colors = ['#9333ea', '#22c55e', '#ef4444', '#3b82f6', '#f59e0b']; // Purple, Green, Red, Blue, Orange
+
+    return (
+      <div className="relative h-64 w-full">
+        {/* Y-Axis Grid Lines */}
+        <div className="absolute inset-0 flex flex-col justify-between text-xs text-gray-300 pointer-events-none z-0">
+          <span>{Math.round(maxVal)} jobs</span>
+          <span className="border-b border-dashed border-gray-100 w-full"></span>
+          <span>{Math.round(minVal)} jobs</span>
+        </div>
+
+        {/* SVG Lines */}
+        <svg className="absolute inset-0 h-full w-full overflow-visible z-10" preserveAspectRatio="none">
+          {activeSkills.map((skill, index) => {
+            if (selectedSkillView !== 'All' && selectedSkillView !== skill) return null;
+
+            // Generate Polyline Points
+            const points = realHistory.map((point, i) => {
+              const x = (i / (realHistory.length - 1)) * 100;
+              const val = Number(point[skill] || 0);
+              // Normalize Y (High value = Low Y coordinate)
+              const y = 100 - ((val - minVal) / range) * 100;
+              return `${x},${y}`;
+            }).join(' ');
+
+            const color = colors[index % colors.length];
+
+            return (
+              <g key={skill}>
+                {/* The Line */}
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth="3"
+                  vectorEffect="non-scaling-stroke"
+                  className="drop-shadow-sm transition-all duration-500 ease-in-out"
+                />
+                {/* Dots at data points (only show on hover logic handled by CSS usually, keeping simple here) */}
+                {realHistory.map((point, i) => {
+                   const x = (i / (realHistory.length - 1)) * 100;
+                   const val = Number(point[skill] || 0);
+                   const y = 100 - ((val - minVal) / range) * 100;
+                   return (
+                     <circle 
+                       key={i} cx={`${x}%`} cy={`${y}%`} r="4" 
+                       fill="white" stroke={color} strokeWidth="2" 
+                       className="cursor-pointer hover:r-6 transition-all"
+                     >
+                       <title>{`${skill}: ${val} jobs on ${point.date}`}</title>
+                     </circle>
+                   );
+                })}
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* X-Axis Labels */}
+        <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] text-gray-400 mt-2">
+          {realHistory.length > 1 && realHistory.filter((_, i) => i === 0 || i === realHistory.length - 1 || i % Math.ceil(realHistory.length / 5) === 0).map((d, i) => (
+            <span key={i}>{d.date}</span>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const quickPrompts = ["📉 Improve score?", "💼 Job matches", "📝 Cover letter", "🚀 New skill"];
-  const maxValue = 100;
 
   return (
     <DashboardLayout>
@@ -255,29 +313,30 @@ export default function CoachPage() {
           {/* Skill Relevance Trends Chart */}
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Portfolio Relevance</h2>
-              <span className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">12 Months</span>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Market Demand Trends</h2>
+                <p className="text-xs text-gray-500">Real-time job posting volume from JSearch</p>
+              </div>
+              
+              {/* Skill Filter Toggle */}
+              <select 
+                value={selectedSkillView} 
+                onChange={(e) => setSelectedSkillView(e.target.value)}
+                className="text-xs border border-gray-300 rounded-lg px-2 py-1 bg-white text-gray-700 outline-none focus:ring-1 focus:ring-purple-500"
+              >
+                <option value="All">All Skills</option>
+                {skillsList.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+              </select>
             </div>
             
             {/* FORCE GRAPH RENDER */}
-            <div className="mb-8 overflow-x-auto">
-              <div className="flex items-end justify-between h-56 gap-2 min-w-[300px] px-2">
-                {trendHistory.map((data, index) => (
-                  <div key={index} className="flex-1 flex flex-col items-center gap-2 group">
-                    <div className="relative w-full flex items-end h-full">
-                        <div 
-                          className="w-full bg-purple-600 rounded-t hover:bg-purple-700 transition-all duration-500" 
-                          style={{ height: `${(data.value / maxValue) * 100}%` }}
-                        ></div>
-                        {/* Tooltip */}
-                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
-                          Score: {data.value}
-                        </div>
-                    </div>
-                    <span className="text-[10px] uppercase text-gray-400 font-bold">{data.month}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="mb-8 px-2">
+               {realHistory.length > 0 ? renderTrendGraph() : (
+                 <div className="flex flex-col items-center justify-center h-56 gap-4 text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                    <svg className="w-10 h-10 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                    <span className="text-sm font-medium">Gathering Data... Check back tomorrow!</span>
+                 </div>
+               )}
             </div>
 
             <div className="grid grid-cols-3 gap-4 border-t border-gray-100 pt-6">

@@ -3,11 +3,17 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { z } from 'zod';
+
+// Zod Schema for input validation
+const loginSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
+});
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -16,13 +22,33 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    try {
-      // 1. Authenticate with Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      if (!data.user) throw new Error("No user found");
+    // 1. Validation Phase (Safe Parse)
+    // Using safeParse prevents the "undefined" crash we saw earlier
+    const result = loginSchema.safeParse(formData);
 
-      // 2. Fetch User Profile & Role (Strict Check)
+    if (!result.success) {
+      // Just show the first error message for simplicity in login
+      setError(result.error.issues[0].message);
+      setLoading(false);
+      return;
+    }
+
+    const cleanData = result.data;
+
+    try {
+      // 2. Authenticate
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ 
+        email: cleanData.email.trim().toLowerCase(), // Sanitize email
+        password: cleanData.password 
+      });
+
+      // OWASP: Anti-Enumeration. 
+      // We throw a generic error if auth fails, so hackers can't guess valid emails.
+      if (authError || !data.user) {
+        throw new Error("Invalid email or password.");
+      }
+
+      // 3. Fetch User Profile & Role (Strict Check)
       // We use .single() to force an error if the profile is missing (Ghost User)
       const { data: userData, error: fetchError } = await supabase
         .from('users')
@@ -34,15 +60,16 @@ export default function LoginPage() {
         console.error("👻 Ghost User Detected:", fetchError);
         // Security: Sign them out if their DB profile is broken/missing
         await supabase.auth.signOut();
-        throw new Error("Profile data not found. Please register again.");
+        throw new Error("Account integrity error. Please contact support.");
       }
 
-      // 3. Redirect based on Role
+      // 4. Secure Redirect
       if (userData.role === 'registrar') {
         router.push('/registrar/dashboard');
       } else {
         router.push('/student/dashboard');
       }
+
     } catch (err: any) {
       console.error("Login Error:", err);
       setError(err.message || 'Failed to sign in');
@@ -78,19 +105,28 @@ export default function LoginPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
             <input 
               type="email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
+              value={formData.email} 
+              onChange={(e) => setFormData({...formData, email: e.target.value})} 
               className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" 
               placeholder="name@university.edu" 
               required 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-gray-700">Password</label>
+              {/* 👇 FORGOT PASSWORD LINK ADDED HERE 👇 */}
+              <Link 
+                href="/forgot-password" 
+                className="text-sm text-purple-600 hover:text-purple-700 font-semibold hover:underline transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input 
               type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
+              value={formData.password} 
+              onChange={(e) => setFormData({...formData, password: e.target.value})} 
               className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" 
               placeholder="••••••••" 
               required 
