@@ -29,8 +29,10 @@ jobs:
         working-directory: ./packages/ai-engine
         run: npm run daily-update
         env:
-          # GitHub Secrets (We will set these next)
+          # GitHub Secrets (Updated for Adzuna)
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
-          JOB_MARKET_API_URL: "https://jsearch.p.rapidapi.com/search"
+          # New Adzuna Secrets
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          ADZUNA_BASE_URL: "https://api.adzuna.com/v1/api/jobs"
