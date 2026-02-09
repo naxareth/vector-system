@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export async function fetchJobCount(skill: string, country: string = 'ph'): Promise<number> {
+export async function fetchJobCount(skill: string, country: string = 'us'): Promise<number> {
   try {
     // Adzuna Search Endpoint
     const response = await axios.get(`${process.env.ADZUNA_BASE_URL}/${country}/search/1`, {

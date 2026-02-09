@@ -30,7 +30,7 @@ async function runDailyUpdate() {
       console.log(`\n🔍 Checking Adzuna for: ${skill}...`);
       
       // 🚀 CHANGED: Fetch count directly
-      const liveCount = await fetchJobCount(skill, 'ph'); 
+      const liveCount = await fetchJobCount(skill, 'us'); 
 
       const { error } = await supabase
         .from('market_snapshots')
