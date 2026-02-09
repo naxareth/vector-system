@@ -130,7 +130,6 @@ export default function RegistrarDashboard() {
       const students: string[] = [];
       const skillIds: number[] = [];
       const amounts: number[] = [];
-      // To track skill names for ledger logging
       const batchLogMeta: { wallet: string, skillName: string, skillId: number }[] = []; 
 
       setMintingProgress(prev => ({ ...prev, progress: 20, message: 'Parsing data...' }));
@@ -147,12 +146,10 @@ export default function RegistrarDashboard() {
         let resolvedId = 0;
         let resolvedName = skillInput;
 
-        // Try to map input to ID
         if (SKILL_MAP[skillInput]) {
           resolvedId = SKILL_MAP[skillInput];
         } else if (!isNaN(Number(skillInput))) {
           resolvedId = Number(skillInput);
-          // Reverse lookup name for DB (optional, simplified here)
           resolvedName = Object.keys(SKILL_MAP).find(key => SKILL_MAP[key] === resolvedId) || "Skill #" + resolvedId;
         }
 
@@ -186,16 +183,18 @@ export default function RegistrarDashboard() {
       // 2. 🔔 LOGGING & NOTIFICATIONS
       setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Updating ledger...' }));
       
-      // We loop through to update DB
       for (const meta of batchLogMeta) {
-        const { data: user } = await supabase
+        // 🔍 DEBUG: Log what we are looking for
+        console.log(`Looking for user with wallet: ${meta.wallet.toLowerCase()}`);
+
+        const { data: user, error } = await supabase
           .from('users')
           .select('id')
-          .eq('wallet_address', meta.wallet)
+          .eq('wallet_address', meta.wallet.toLowerCase()) // ⚡ Force Lowercase
           .single();
 
         if (user) {
-          // A. Insert into Audit Ledger (Fixes "No Records Found")
+          console.log(`User found: ${user.id}. Inserting credential...`);
           await supabase.from('verified_credentials').insert({
             user_id: user.id,
             skill_name: meta.skillName,
@@ -205,13 +204,14 @@ export default function RegistrarDashboard() {
             issued_at: new Date().toISOString()
           });
 
-          // B. Send Notification
           await supabase.from('notifications').insert({
             user_id: user.id,
             title: 'New Credential Received',
             message: `Registrar has issued your Verified Credential for: ${meta.skillName}`,
             type: 'success'
           });
+        } else {
+            console.warn(`User not found for wallet: ${meta.wallet}. Credential minted on-chain but not logged to DB.`);
         }
       }
 
@@ -269,16 +269,21 @@ export default function RegistrarDashboard() {
       // 2. 🔔 LOGGING & NOTIFICATIONS
       setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Updating ledger...' }));
 
+      // 🔍 DEBUG: Log what we are looking for
+      const targetWallet = singleCredential.walletAddress.toLowerCase();
+      console.log(`Looking for user with wallet: ${targetWallet}`);
+
       // Find the user who owns this wallet
       const { data: studentUser } = await supabase
         .from('users')
         .select('id')
-        .eq('wallet_address', singleCredential.walletAddress) 
+        .eq('wallet_address', targetWallet) // ⚡ Force Lowercase
         .single();
 
       if (studentUser) {
-        // A. Insert into Audit Ledger (Fixes "No Records Found")
-        await supabase.from('verified_credentials').insert({
+        console.log(`User found: ${studentUser.id}. Inserting credential...`);
+        // A. Insert into Audit Ledger
+        const { error: insertError } = await supabase.from('verified_credentials').insert({
           user_id: studentUser.id,
           skill_name: singleCredential.credentialType,
           token_id: skillId.toString(),
@@ -286,6 +291,8 @@ export default function RegistrarDashboard() {
           issuer_did: 'Vector Registrar',
           issued_at: new Date().toISOString()
         });
+
+        if (insertError) console.error("Insert Error:", insertError);
 
         // B. Send Notification
         await supabase.from('notifications').insert({
@@ -296,7 +303,9 @@ export default function RegistrarDashboard() {
           is_read: false
         });
       } else {
-        console.warn("Wallet not linked to any user in DB. Ledger entry skipped.");
+        const msg = `Wallet ${targetWallet} not linked to any user in DB. The student must "Connect Wallet" on their dashboard first.`;
+        console.warn(msg);
+        alert(msg);
       }
 
       setMintingProgress({

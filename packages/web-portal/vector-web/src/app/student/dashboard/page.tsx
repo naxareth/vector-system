@@ -177,7 +177,8 @@ export default function StudentDashboard() {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const accounts = await provider.send("eth_requestAccounts", []);
-      const address = accounts[0];
+      // ⚡ FORCE LOWERCASE
+      const address = accounts[0].toLowerCase();
 
       setUser(prev => prev ? ({ ...prev, wallet_address: address }) : null);
 
@@ -533,7 +534,7 @@ export default function StudentDashboard() {
               ) : (
                 <div className="col-span-1 md:col-span-2 p-12 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 flex flex-col items-center justify-center gap-4">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                     <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                   </div>
                   <div>
                     <p className="text-gray-600 font-medium">No verified credentials found.</p>
@@ -589,24 +590,24 @@ export default function StudentDashboard() {
             <ul className="space-y-3 mb-6">
 
               <li className="flex items-center text-sm text-gray-600">
-                 {user?.wallet_address ? (
-                   <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                 ) : (
-                   <div className="w-4 h-4 border-2 border-gray-300 rounded-full mr-2"></div>
-                 )}
-                 Connect Wallet
-              </li>
-              <li className="flex items-center text-sm text-gray-600">
-                 {allCredentials.length > 0 || hasPendingCVR ? (
+                  {user?.wallet_address ? (
                     <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                 ) : (
-                   <div className="w-4 h-4 border-2 border-gray-300 rounded-full mr-2"></div>
-                 )}
-                 Upload Resume (CVR)
+                  ) : (
+                    <div className="w-4 h-4 border-2 border-gray-300 rounded-full mr-2"></div>
+                  )}
+                  Connect Wallet
               </li>
               <li className="flex items-center text-sm text-gray-600">
-                 <div className="w-4 h-4 border-2 border-gray-300 rounded-full mr-2"></div>
-                 Complete Profile Information
+                  {allCredentials.length > 0 || hasPendingCVR ? (
+                    <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  ) : (
+                    <div className="w-4 h-4 border-2 border-gray-300 rounded-full mr-2"></div>
+                  )}
+                  Upload Resume (CVR)
+              </li>
+              <li className="flex items-center text-sm text-gray-600">
+                  <div className="w-4 h-4 border-2 border-gray-300 rounded-full mr-2"></div>
+                  Complete Profile Information
               </li>
             </ul>
 
