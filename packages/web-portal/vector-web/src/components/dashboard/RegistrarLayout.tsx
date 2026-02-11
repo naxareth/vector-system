@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabaseClient';
+// 1. Import the Timeout Component
+import SessionTimeout from '../shared/SessionTimeout';
 
 interface RegistrarLayoutProps {
   children: React.ReactNode;
@@ -93,6 +95,10 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-gray-50 flex">
+        
+        {/* 2. Add the Timeout Logic Here */}
+        <SessionTimeout />
+
         {/* Sidebar */}
         <aside className={`
           fixed top-0 left-0 z-40 h-screen w-64 bg-white border-r border-gray-200
@@ -128,7 +134,6 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
                 Issue Credentials
               </Link>
               
-
               <Link
                 href="/registrar/students"
                 onClick={() => setSidebarOpen(false)}
