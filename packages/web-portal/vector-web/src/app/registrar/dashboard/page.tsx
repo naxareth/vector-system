@@ -355,120 +355,123 @@ export default function RegistrarDashboard() {
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Issue Credentials</h1>
         </div>
 
-        {/* CSV Upload Section */}
-        <div className="bg-white rounded-2xl shadow-sm border-2 border-dashed border-gray-300 p-6 md:p-10 mb-8 text-center transition-all">
-          <div
-            className={`${csvUpload.dragActive ? 'bg-green-50' : ''} h-full w-full rounded-xl transition-colors`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-          >
-            <div className="flex flex-col items-center">
-              {!csvUpload.file ? (
-                <>
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l5.414 5.414a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-700 mb-1">Batch Upload (CSV)</h3>
-                  <p className="text-sm text-gray-500 mb-4">Drag & drop your student list here</p>
-                  
-                  <input type="file" id="csv-upload" accept=".csv,text/csv" onChange={handleFileChange} className="hidden" />
-                  <label htmlFor="csv-upload" className="px-6 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 cursor-pointer transition-colors shadow-sm">
-                    Select CSV File
-                  </label>
-                </>
-              ) : (
-                <div className="w-full max-w-md">
-                  <div className="flex items-center justify-between bg-green-50 px-4 py-3 rounded-lg border border-green-200 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-white p-1.5 rounded-md">
-                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                      </div>
-                      <div className="text-left">
-                        <p className="text-sm font-semibold text-gray-800 truncate max-w-[200px]">{csvUpload.file.name}</p>
-                        <p className="text-xs text-green-700">{csvUpload.parsedData?.count} rows detected</p>
-                      </div>
+        {/* Added tour anchor ID */}
+        <div id="reg-tour-mint">
+          {/* CSV Upload Section */}
+          <div className="bg-white rounded-2xl shadow-sm border-2 border-dashed border-gray-300 p-6 md:p-10 mb-8 text-center transition-all">
+            <div
+              className={`${csvUpload.dragActive ? 'bg-green-50' : ''} h-full w-full rounded-xl transition-colors`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              <div className="flex flex-col items-center">
+                {!csvUpload.file ? (
+                  <>
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 011.414.586l5.414 5.414a1 1 0 01.586 1.414V19a2 2 0 01-2 2z" />
+                      </svg>
                     </div>
-                    <button onClick={removeFile} className="text-gray-400 hover:text-red-500 transition-colors">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    <h3 className="text-lg font-semibold text-gray-700 mb-1">Batch Upload (CSV)</h3>
+                    <p className="text-sm text-gray-500 mb-4">Drag & drop your student list here</p>
+                    
+                    <input type="file" id="csv-upload" accept=".csv,text/csv" onChange={handleFileChange} className="hidden" />
+                    <label htmlFor="csv-upload" className="px-6 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 cursor-pointer transition-colors shadow-sm">
+                      Select CSV File
+                    </label>
+                  </>
+                ) : (
+                  <div className="w-full max-w-md">
+                    <div className="flex items-center justify-between bg-green-50 px-4 py-3 rounded-lg border border-green-200 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-white p-1.5 rounded-md">
+                          <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-semibold text-gray-800 truncate max-w-[200px]">{csvUpload.file.name}</p>
+                          <p className="text-xs text-green-700">{csvUpload.parsedData?.count} rows detected</p>
+                        </div>
+                      </div>
+                      <button onClick={removeFile} className="text-gray-400 hover:text-red-500 transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                    
+                    <button 
+                      onClick={handleBatchMint}
+                      className="w-full py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      Process Batch Mint
                     </button>
                   </div>
-                  
-                  <button 
-                    onClick={handleBatchMint}
-                    className="w-full py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                  >
-                    Process Batch Mint
-                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Single Credential Form */}
+          {!csvUpload.file && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <span className="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-sm">1</span>
+                Issue Single Credential
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Student Wallet Address</label>
+                  <input type="text" name="walletAddress" value={singleCredential.walletAddress} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="0x..." />
                 </div>
-              )}
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Credential Type</label>
+                  <select name="credentialType" value={singleCredential.credentialType} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white">
+                    {Object.keys(SKILL_MAP).map(skill => (
+                      <option key={skill} value={skill}>{skill}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Course Code</label>
+                  <input type="text" name="courseCode" value={singleCredential.courseCode} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="e.g. ITE-314" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Certificate / Serial No. (Optional)</label>
+                  <input type="text" name="certificateNumber" value={singleCredential.certificateNumber} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="e.g. SN-2027-001" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Issuance Date</label>
+                  <input type="date" name="issuanceDate" value={singleCredential.issuanceDate} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex justify-between">
+                    <span>Confidential Registrar Notes</span>
+                    <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">🔒 Encrypted Storage</span>
+                  </label>
+                  <textarea 
+                    name="privateNotes" 
+                    value={singleCredential.privateNotes} 
+                    onChange={handleInputChange} 
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" 
+                    rows={3}
+                    placeholder="Internal remarks (e.g., 'Cleared with distinction'). This will be encrypted before saving."
+                  />
+                </div>
+              </div>
+
+              <button onClick={handleMintToken} className="w-full py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                Issue Credential
+              </button>
             </div>
-          </div>
+          )}
         </div>
-
-        {/* Single Credential Form */}
-        {!csvUpload.file && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <span className="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-sm">1</span>
-              Issue Single Credential
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Student Wallet Address</label>
-                <input type="text" name="walletAddress" value={singleCredential.walletAddress} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="0x..." />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Credential Type</label>
-                <select name="credentialType" value={singleCredential.credentialType} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white">
-                  {Object.keys(SKILL_MAP).map(skill => (
-                    <option key={skill} value={skill}>{skill}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Course Code</label>
-                <input type="text" name="courseCode" value={singleCredential.courseCode} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="e.g. ITE-314" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Certificate / Serial No. (Optional)</label>
-                <input type="text" name="certificateNumber" value={singleCredential.certificateNumber} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="e.g. SN-2027-001" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Issuance Date</label>
-                <input type="date" name="issuanceDate" value={singleCredential.issuanceDate} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex justify-between">
-                  <span>Confidential Registrar Notes</span>
-                  <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">🔒 Encrypted Storage</span>
-                </label>
-                <textarea 
-                  name="privateNotes" 
-                  value={singleCredential.privateNotes} 
-                  onChange={handleInputChange} 
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" 
-                  rows={3}
-                  placeholder="Internal remarks (e.g., 'Cleared with distinction'). This will be encrypted before saving."
-                />
-              </div>
-            </div>
-
-            <button onClick={handleMintToken} className="w-full py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-              Issue Credential
-            </button>
-          </div>
-        )}
 
         {/* Minting Progress Modal */}
         {mintingProgress.isOpen && (

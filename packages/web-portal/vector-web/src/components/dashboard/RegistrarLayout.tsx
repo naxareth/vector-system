@@ -6,6 +6,8 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabaseClient';
 // 1. Import the Timeout Component
 import SessionTimeout from '../shared/SessionTimeout';
+// 2. Import Registrar Tour
+import RegistrarTour from '../shared/RegistrarTour';
 
 interface RegistrarLayoutProps {
   children: React.ReactNode;
@@ -98,9 +100,14 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
         
         {/* 2. Add the Timeout Logic Here */}
         <SessionTimeout />
+        
+        {/* 3. Activate Tour Here */}
+        <RegistrarTour />
 
         {/* Sidebar */}
-        <aside className={`
+        <aside 
+          id="reg-tour-nav"
+          className={`
           fixed top-0 left-0 z-40 h-screen w-64 bg-white border-r border-gray-200
           transform transition-transform duration-200 ease-in-out
           lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -181,6 +188,9 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
         {/* Main Content */}
         <div className="flex-1 flex flex-col lg:ml-64">
           <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
+            {/* Invisible Anchor for Welcome Step */}
+            <div id="reg-tour-welcome" className="absolute top-0 left-0 w-full h-20 pointer-events-none" />
+            
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 rounded-lg hover:bg-gray-100">
@@ -193,7 +203,12 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
                   <span className="text-lg font-bold text-gray-900">VECTOR</span>
                 </div>
               </div>
+              
               <div className="flex items-center gap-4 ml-auto">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full border border-gray-200">
+                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                   <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Admin Portal</span>
+                </div>
                 <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
                 <span className="text-sm font-medium text-gray-500 hidden sm:block">
                   {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
