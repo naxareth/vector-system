@@ -244,27 +244,121 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
             {/* Resume Summary */}
             {cvrData.summary && (
-              <div style={{ marginBottom: '32px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
                   Professional Summary
                 </h3>
-                <p style={{ color: colors.black, lineHeight: '1.6' }}>{cvrData.summary}</p>
+                <p style={{ color: colors.black, lineHeight: '1.6', fontSize: '14px' }}>{cvrData.summary}</p>
+              </div>
+            )}
+
+            {/* Resume Education */}
+            {cvrData.education && cvrData.education.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
+                  Education
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {cvrData.education.map((edu: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <div>
+                            <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '15px' }}>{edu.degree}</div>
+                            <div style={{ color: colors.gray, fontSize: '14px' }}>{edu.school}, {edu.location}</div>
+                            {edu.honors && <div style={{ fontStyle: 'italic', fontSize: '13px', color: colors.gray }}>{edu.honors}</div>}
+                        </div>
+                        <div style={{ fontWeight: 'bold', color: colors.purple, fontSize: '14px' }}>{edu.year}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Resume Experience */}
+             {cvrData.experience && cvrData.experience.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
+                  Experience
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {cvrData.experience.map((exp: any, i: number) => (
+                    <div key={i}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '15px' }}>{exp.title}</div>
+                            <div style={{ fontWeight: 'bold', color: colors.purple, fontSize: '13px' }}>{exp.dates}</div>
+                        </div>
+                        <div style={{ fontStyle: 'italic', color: colors.gray, fontSize: '14px', marginBottom: '4px' }}>{exp.company}</div>
+                        <p style={{  color: colors.black, fontSize: '13px', lineHeight: '1.5', whiteSpace: 'pre-line' }}>{exp.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Resume Projects */}
+            {cvrData.projects && cvrData.projects.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
+                  Projects
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {cvrData.projects.map((proj: any, i: number) => (
+                    <div key={i} style={{ backgroundColor: colors.lightGray, padding: '12px', borderRadius: '4px', border: `1px solid ${colors.border}` }}>
+                        <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '14px', marginBottom: '2px' }}>{proj.title}</div>
+                        <div style={{ fontSize: '13px', color: colors.black, marginBottom: '4px' }}>{proj.description}</div>
+                        {proj.technologies && <div style={{ fontSize: '11px', fontFamily: 'monospace', color: colors.purple }}>Tech: {proj.technologies}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Resume Certifications */}
+             {cvrData.certifications && cvrData.certifications.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
+                  Certifications
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {cvrData.certifications.map((cert: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <span style={{ fontWeight: 'bold', color: colors.black, fontSize: '14px', marginRight: '8px' }}>{cert.name}</span>
+                            <span style={{ fontSize: '13px', color: colors.gray }}>- {cert.issuer}</span>
+                        </div>
+                        <div style={{ fontSize: '13px', color: colors.gray }}>{cert.date}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Resume Awards */}
+             {cvrData.awards && cvrData.awards.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
+                  Awards
+                </h3>
+                <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                  {cvrData.awards.map((award: any, i: number) => (
+                    <li key={i} style={{ fontSize: '14px', color: colors.black, marginBottom: '4px' }}>
+                       <strong>{award.title}</strong> - {award.description}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
             {/* Resume Skills */}
             <div style={{ marginBottom: '32px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>
-                Competencies
+              <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '16px' }}>
+                Competencies & Skills
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {cvrData.skills && cvrData.skills.map((skill: any, i: number) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: colors.lightGray, borderRadius: '4px', border: `1px solid ${colors.border}` }}>
-                    <span style={{ fontWeight: '600', color: colors.black }}>{skill.name}</span>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: skill.verified ? colors.greenBg : colors.lightGray, borderRadius: '16px', border: `1px solid ${skill.verified ? colors.greenText : colors.border}` }}>
+                    <span style={{ fontWeight: '600', fontSize: '12px', color: skill.verified ? colors.greenText : colors.black }}>{skill.name}</span>
                     {skill.verified && (
-                      <span style={{ fontSize: '10px', backgroundColor: colors.greenBg, color: colors.greenText, padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Verified
-                      </span>
+                      <span style={{ fontSize: '9px', fontWeight: 'bold' }}>✓</span>
                     )}
                   </div>
                 ))}
