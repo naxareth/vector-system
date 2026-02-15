@@ -48,10 +48,12 @@ export default function StudentDashboard() {
   const [aiData, setAiData] = useState<AIAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
   const [blockchainCredentials, setBlockchainCredentials] = useState<BlockchainCredential[]>([]);
-  const [activities, setActivities] = useState<ActivityItem[]>([]); // ⚡ Dynamic Activities State
+  const [activities, setActivities] = useState<ActivityItem[]>([]); 
   const [isWalletConnecting, setIsWalletConnecting] = useState(false);
+  
+  // 🆕 State for Tutorial Visibility
+  const [showTutorial, setShowTutorial] = useState(true);
 
-  // Helper function to capitalize first letter of each word
   const capitalizeWords = (text: string) => {
     return text
       .split(' ')
@@ -59,12 +61,10 @@ export default function StudentDashboard() {
       .join(' ');
   };
 
-  // ⚡ 1. THE PIPELINE: Read Blockchain -> Deduplicate -> Send to AI
   const refreshPipeline = async (walletAddress: string, studentId: string) => {
     if (!walletAddress) return;
 
     try {
-      // A. Read Blockchain
       const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
       const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
       
@@ -72,10 +72,8 @@ export default function StudentDashboard() {
       const verifiedCreds: BlockchainCredential[] = [];
       const processedIds = new Set<number>();
 
-      // ⚡ Dynamic Activity Builder
       const newActivities: ActivityItem[] = [];
 
-      // 1. Add Wallet Event
       newActivities.push({
         id: 'wallet-conn',
         type: 'info',
@@ -84,7 +82,6 @@ export default function StudentDashboard() {
         time: 'Just now'
       });
 
-      // 2. Add CVR Event if exists in localStorage
       if (typeof window !== 'undefined' && localStorage.getItem('sampleCVRData')) {
         newActivities.push({
           id: 'cvr-gen',
@@ -95,7 +92,6 @@ export default function StudentDashboard() {
         });
       }
 
-      // 3. Add Pending Event if exists
       if (typeof window !== 'undefined' && localStorage.getItem('pendingCVR')) {
         setHasPendingCVR(true);
         newActivities.push({
@@ -109,7 +105,6 @@ export default function StudentDashboard() {
 
       for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
         if (typeof skillId !== 'number') continue;
-        // Additional validation to ensure skillId is a positive integer
         if (!Number.isInteger(skillId) || skillId <= 0) continue;
         if (processedIds.has(skillId)) continue;
 
@@ -127,7 +122,6 @@ export default function StudentDashboard() {
               verified: true,
             });
 
-            // 4. Add Credential Activity Event
             newActivities.push({
               id: `cred-${skillId}`,
               type: 'success',
@@ -142,10 +136,9 @@ export default function StudentDashboard() {
       }
 
       setBlockchainCredentials(verifiedCreds);
-      setActivities(newActivities); // ⚡ Set the dynamic activities
+      setActivities(newActivities); 
 
       // B. Feed AI (The Handoff)
-      console.log("Sending to AI:", foundSkills);
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -166,10 +159,10 @@ export default function StudentDashboard() {
     }
   };
 
-  // ⚡ 2. THE BINDING
   const connectWallet = async () => {
     if (typeof window === 'undefined' || !(window as any).ethereum) {
-      alert("Please install MetaMask to connect your wallet.");
+      // 🆕 Redirect to MetaMask download if not found
+      window.open('https://metamask.io/download/', '_blank');
       return;
     }
 
@@ -177,7 +170,6 @@ export default function StudentDashboard() {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const accounts = await provider.send("eth_requestAccounts", []);
-      // ⚡ FORCE LOWERCASE
       const address = accounts[0].toLowerCase();
 
       setUser(prev => prev ? ({ ...prev, wallet_address: address }) : null);
@@ -195,7 +187,6 @@ export default function StudentDashboard() {
     } catch (error: any) {
       console.error("Wallet connection failed:", error);
       
-      // Handle "Already pending" error specifically
       if (
         error?.code === -32002 || 
         error?.info?.error?.code === -32002 ||
@@ -211,7 +202,6 @@ export default function StudentDashboard() {
     }
   };
 
-  // ⚡ 3. INITIALIZATION
   useEffect(() => {
     const initDashboard = async () => {
       try {
@@ -228,7 +218,6 @@ export default function StudentDashboard() {
           .maybeSingle();
 
         if (profile) {
-          // Capitalize Name for UI
           const capitalizedProfile = {
             ...profile,
             full_name: profile.full_name ? capitalizeWords(profile.full_name) : 'Student'
@@ -238,7 +227,6 @@ export default function StudentDashboard() {
           if (profile.wallet_address) {
             await refreshPipeline(profile.wallet_address, profile.student_id);
           } else {
-            // Default activity if no wallet
             setActivities([{
               id: 'init',
               type: 'info',
@@ -247,7 +235,6 @@ export default function StudentDashboard() {
               time: 'Now'
             }]);
             
-            // Still try to fetch AI data based on just profile/resume if wallet missing
             const res = await fetch('/api/analyze', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -358,6 +345,58 @@ export default function StudentDashboard() {
           )}
         </div>
       </div>
+
+      {/* 🆕 WALLET TUTORIAL SECTION (Only visible if no wallet connected) */}
+      {!loading && !user?.wallet_address && showTutorial && (
+        <div className="bg-white rounded-xl border border-blue-200 shadow-lg mb-8 overflow-hidden relative">
+          {/* Header */}
+          <div className="bg-blue-50 px-6 py-4 border-b border-blue-100 flex justify-between items-center">
+            <h3 className="font-bold text-blue-900 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              How to Connect Your Wallet
+            </h3>
+            <button onClick={() => setShowTutorial(false)} className="text-blue-400 hover:text-blue-700 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Step 1 */}
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-3 text-orange-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              </div>
+              <h4 className="font-bold text-gray-900 mb-1">1. Install MetaMask</h4>
+              <p className="text-sm text-gray-500 mb-3">Download the browser extension or mobile app.</p>
+              <a href="https://metamask.io/download/" target="_blank" className="text-xs text-blue-600 font-semibold hover:underline">Download Here &rarr;</a>
+            </div>
+
+            {/* Step 2 */}
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3 text-purple-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" /></svg>
+              </div>
+              <h4 className="font-bold text-gray-900 mb-1">2. Create Account</h4>
+              <p className="text-sm text-gray-500">Follow the setup instructions to create your digital wallet address.</p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3 text-green-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              </div>
+              <h4 className="font-bold text-gray-900 mb-1">3. Connect</h4>
+              <p className="text-sm text-gray-500 mb-3">Click the button in the dashboard header to link.</p>
+              <button 
+                onClick={connectWallet}
+                className="px-4 py-1.5 bg-gray-900 text-white text-xs rounded-full hover:bg-black transition-all"
+              >
+                Connect Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
