@@ -50,6 +50,7 @@ export default function StudentDashboard() {
   const [blockchainCredentials, setBlockchainCredentials] = useState<BlockchainCredential[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]); 
   const [isWalletConnecting, setIsWalletConnecting] = useState(false);
+  const [copiedWallet, setCopiedWallet] = useState(false);
   
   // 🆕 State for Tutorial Visibility
   const [showTutorial, setShowTutorial] = useState(true);
@@ -311,7 +312,26 @@ export default function StudentDashboard() {
               ) : user?.wallet_address ? (
                 <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  Wallet: {user.wallet_address.slice(0,6)}...{user.wallet_address.slice(-4)}
+                  <span className="font-medium">Wallet Address:</span>
+                  <span className="font-mono">{`${user.wallet_address.slice(0,6)}...${user.wallet_address.slice(-4)}`}</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!user?.wallet_address) return;
+                      try {
+                        await navigator.clipboard.writeText(user.wallet_address);
+                        setCopiedWallet(true);
+                        setTimeout(() => setCopiedWallet(false), 2000);
+                      } catch (e) {
+                        console.error('Copy failed', e);
+                      }
+                    }}
+                    className="p-1 rounded hover:bg-white/50 transition-colors text-gray-600"
+                    aria-label="Copy wallet address"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2" /><rect x="8" y="8" width="12" height="12" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} /></svg>
+                  </button>
+                  {copiedWallet && <span className="text-xs text-green-700 font-medium">Copied</span>}
                 </span>
               ) : (
                 <button 

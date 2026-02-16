@@ -173,30 +173,7 @@ export default function TopBar() {
 
           <div className="flex items-center gap-4">
             
-            {/* Wallet Section with Tour ID */}
-            <div id="tour-wallet" className="hidden md:flex items-center bg-gray-50 rounded-xl border border-gray-200 p-1 pr-4">
-              <div className="bg-white px-3 py-1.5 rounded-lg shadow-sm border border-gray-100 mr-3 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="text-xs font-bold text-gray-700">Polygon Amoy</span>
-              </div>
-
-              <Tooltip content={showWallet ? "Hide Wallet Address" : "Show Wallet Address"}>
-                <button 
-                  onClick={() => setShowWallet(!showWallet)}
-                  className="flex items-center gap-2 text-sm font-mono text-gray-600 hover:text-purple-600 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     {showWallet ? (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                     ) : (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                     )}
-                     {!showWallet && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />}
-                  </svg>
-                  {showWallet ? walletAddress : "•••• •••• •••• 9A21"}
-                </button>
-              </Tooltip>
-            </div>
+            {/* Wallet badge removed per privacy request */}
 
             {/* Notification Section with Tour ID */}
             <div id="tour-notifications" className="relative" ref={notificationsRef}>
@@ -284,7 +261,7 @@ export default function TopBar() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
             <p className="text-sm text-gray-600 mb-4">Are you sure you want to log out?</p>
             <div className="flex gap-3">
-              <button onClick={() => setIsLogoutDialogOpen(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+              <button onClick={() => setIsLogoutDialogOpen(false)} className="flex-1 !text-gray-900 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
               <button onClick={confirmLogout} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">Logout</button>
             </div>
           </div>
