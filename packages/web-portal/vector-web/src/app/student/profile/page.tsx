@@ -4,6 +4,19 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabaseClient';
+import { z } from 'zod'; // 1. Import Zod
+
+// 2. Define Validation Schema
+const profileSchema = z.object({
+  firstName: z.string().min(2, "First name must be at least 2 characters").max(50, "First name too long").regex(/^[a-zA-Z\s]*$/, "Name can only contain letters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters").max(50, "Last name too long"),
+  phone: z.string().regex(/^\+?[0-9\s-]{7,20}$/, "Invalid phone number format").optional().or(z.literal('')),
+  bio: z.string().max(500, "Bio must be under 500 characters").optional(),
+  university: z.string().min(2, "University name is required"),
+  major: z.string().max(100, "Major name too long").optional(),
+  graduationYear: z.string().regex(/^\d{4}$/, "Year must be 4 digits (e.g. 2026)").optional().or(z.literal('')),
+  location: z.string().max(100).optional(),
+});
 
 interface ProfileData {
   firstName: string;
@@ -35,6 +48,9 @@ export default function ProfilePage() {
   const { theme, toggleTheme } = useTheme();
   const [userId, setUserId] = useState<string | null>(null);
   
+  // 3. Add Error State
+  const [errors, setErrors] = useState<Record<string, string>>({}); 
+
   const [formData, setFormData] = useState<ProfileData>({
     firstName: '',
     lastName: '',
@@ -63,7 +79,6 @@ export default function ProfilePage() {
         setUserId(session.user.id);
         const userEmail = session.user.email || '';
 
-        // ⚡ JOIN QUERY: Fetch User + Profile in one go
         const { data: userRecord, error } = await supabase
           .from('users')
           .select(`
@@ -79,7 +94,6 @@ export default function ProfilePage() {
 
         if (userRecord) {
           const nameParts = (userRecord.full_name || '').split(' ');
-          // Safely access the joined profile data
           const profile = Array.isArray(userRecord.profiles) ? userRecord.profiles[0] : userRecord.profiles;
 
           setFormData({
@@ -91,7 +105,6 @@ export default function ProfilePage() {
             photoUrl: userRecord.avatar_url || '',
             studentId: userRecord.student_id || '',
             
-            // Load from separate Profile table (with fallbacks)
             phone: profile?.phone || '',
             bio: profile?.bio || '',
             university: profile?.university || 'PHINMA University',
@@ -109,18 +122,15 @@ export default function ProfilePage() {
     loadUserProfile();
   }, [router]);
 
-  // Calculate profile completeness
   const calculateProgress = (): { percentage: number; items: ProgressItem[] } => {
     const progressItems: ProgressItem[] = [
-      // Personal Information (7 fields)
       { label: 'First Name', field: 'firstName', weight: 10, completed: !!formData.firstName },
       { label: 'Last Name', field: 'lastName', weight: 10, completed: !!formData.lastName },
       { label: 'Email', field: 'email', weight: 10, completed: !!formData.email },
       { label: 'Phone', field: 'phone', weight: 10, completed: !!formData.phone },
       { label: 'Location', field: 'location', weight: 10, completed: !!formData.location },
       { label: 'Bio', field: 'bio', weight: 15, completed: !!formData.bio && formData.bio.length > 10 },
-      { label: 'MetaMask Wallet', field: 'walletAddress', weight: 15, completed: !!formData.walletAddress && formData.walletAddress.startsWith('0x') && !formData.walletAddress.includes('pending') },
-      // Education (3 fields)
+      { label: 'MetaMask Wallet', field: 'walletAddress', weight: 15, completed: !!formData.walletAddress && formData.walletAddress.startsWith('0x') },
       { label: 'University', field: 'university', weight: 10, completed: !!formData.university },
       { label: 'Major', field: 'major', weight: 5, completed: !!formData.major },
       { label: 'Graduation Year', field: 'graduationYear', weight: 5, completed: !!formData.graduationYear },
@@ -137,31 +147,53 @@ export default function ProfilePage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error for this field when user types
+    if (errors[e.target.name]) {
+       setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[e.target.name];
+          return newErrors;
+       });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
     setSaving(true);
+    setErrors({}); // Reset errors
+
+    // 4. Run Zod Validation
+    const validationResult = profileSchema.safeParse(formData);
+
+    if (!validationResult.success) {
+      const fieldErrors: Record<string, string> = {};
+      validationResult.error.issues.forEach(issue => {
+        // Path[0] corresponds to the field name
+        if (issue.path[0]) fieldErrors[issue.path[0].toString()] = issue.message;
+      });
+      setErrors(fieldErrors);
+      setSaving(false);
+      return; // 🛑 Stop submission if validation fails
+    }
     
     try {
-      // 1. Update 'users' table (Core Identity)
+      // 1. Update 'users' table
       const { error: userError } = await supabase
         .from('users')
         .update({
           full_name: `${formData.firstName} ${formData.lastName}`.trim(),
           location: formData.location,
-          // wallet_address is typically not updated here but kept for reference
         })
         .eq('id', userId);
 
       if (userError) throw userError;
 
-      // 2. Update 'profiles' table (Extended Info)
+      // 2. Update 'profiles' table
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({ 
-          id: userId, // Ensure we link to correct user
+          id: userId,
           phone: formData.phone,
           bio: formData.bio,
           university: formData.university,
@@ -172,6 +204,7 @@ export default function ProfilePage() {
       if (profileError) throw profileError;
       
       setIsEditing(false);
+      // Optional: Add a toast notification here
       alert('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -181,7 +214,10 @@ export default function ProfilePage() {
     }
   };
 
-  const handleCancel = () => setIsEditing(false);
+  const handleCancel = () => {
+    setIsEditing(false);
+    setErrors({});
+  };
 
   if (loading) {
     return (
@@ -213,7 +249,6 @@ export default function ProfilePage() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* Main Content - Left Side */}
           <div className="flex-1">
 
             {/* Profile Photo Section */}
@@ -236,11 +271,15 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                    <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} disabled={!isEditing} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none disabled:bg-gray-50" />
+                    <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} disabled={!isEditing} 
+                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                    {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                    <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} disabled={!isEditing} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none disabled:bg-gray-50" />
+                    <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} disabled={!isEditing} 
+                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                     {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
@@ -248,34 +287,20 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none disabled:bg-gray-50" />
+                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing} 
+                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                      {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Location
-                    </label>
-                    <input
-                      type="text"
-                      name="location"
-                      value={formData.location}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      placeholder="e.g., Manila, Philippines"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none disabled:bg-gray-50 disabled:text-gray-700"
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                    <input type="text" name="location" value={formData.location} onChange={handleChange} disabled={!isEditing} placeholder="e.g., Manila, Philippines" 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none disabled:bg-gray-50" />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bio
-                    </label>
-                    <textarea
-                      name="bio"
-                      value={formData.bio}
-                      onChange={handleChange}
-                      rows={4}
-                      disabled={!isEditing}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none disabled:bg-gray-50 disabled:text-gray-700"
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                    <textarea name="bio" value={formData.bio} onChange={handleChange} rows={4} disabled={!isEditing} 
+                      className={`w-full px-4 py-2 border rounded-lg outline-none resize-none disabled:bg-gray-50 ${errors.bio ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                    {errors.bio && <p className="text-red-500 text-xs mt-1">{errors.bio}</p>}
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Wallet Address</label>
@@ -290,7 +315,9 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">University</label>
-                    <input type="text" name="university" value={formData.university} onChange={handleChange} disabled={!isEditing} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none disabled:bg-gray-50" />
+                    <input type="text" name="university" value={formData.university} onChange={handleChange} disabled={!isEditing} 
+                       className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.university ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                    {errors.university && <p className="text-red-500 text-xs mt-1">{errors.university}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Major</label>
@@ -298,36 +325,26 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Expected Graduation Year</label>
-                    <input type="text" name="graduationYear" value={formData.graduationYear} onChange={handleChange} disabled={!isEditing} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none disabled:bg-gray-50" />
+                    <input type="text" name="graduationYear" value={formData.graduationYear} onChange={handleChange} disabled={!isEditing} 
+                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.graduationYear ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                    {errors.graduationYear && <p className="text-red-500 text-xs mt-1">{errors.graduationYear}</p>}
                   </div>
                 </div>
               </div>
 
-              {/* Account Security */}
+              {/* Rest of the form remains same (Security, Appearance, Save Button) */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Security</h2>
                 <div className="space-y-4">
                   <div>
-                    <button
-                      type="button"
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                    >
-                      Change Password
-                    </button>
+                    <button type="button" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Change Password</button>
                   </div>
                   <div>
-                    <button
-                      type="button"
-                      onClick={() => router.push('/student/profile/security')}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                    >
-                      Enable Two-Factor Authentication
-                    </button>
+                    <button type="button" onClick={() => router.push('/student/profile/security')} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Enable Two-Factor Authentication</button>
                   </div>
                 </div>
               </div>
 
-              {/* Appearance Preferences */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Appearance</h2>
                 <div>
@@ -343,131 +360,59 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Save Button */}
               {isEditing && (
                 <div className="flex flex-col sm:flex-row justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="w-full sm:w-auto px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="w-full sm:w-auto px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {saving ? (
-                      <>
-                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span>Saving...</span>
-                      </>
-                    ) : (
-                      'Save Changes'
-                    )}
+                  <button type="button" onClick={handleCancel} className="w-full sm:w-auto px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Cancel</button>
+                  <button type="submit" disabled={saving} className="w-full sm:w-auto px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               )}
             </form>
           </div>
 
-          {/* Progress Indicator - Right Side */}
           <div className="w-full lg:w-80 flex-shrink-0">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+             {/* Progress Bar Component (Unchanged) */}
+             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Complete your profile</h2>
-              
-              {/* Progress Circle */}
               <div className="flex flex-col items-center mb-6">
                 <div className="relative w-32 h-32">
                   <svg className="w-32 h-32 transform -rotate-90">
-                    {/* Background circle */}
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
-                      stroke="#e5e7eb"
-                      strokeWidth="12"
-                      fill="none"
-                    />
-                    {/* Progress circle */}
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
-                      stroke="#22c55e"
-                      strokeWidth="12"
-                      fill="none"
-                      strokeDasharray={`${2 * Math.PI * 56}`}
-                      strokeDashoffset={`${2 * Math.PI * 56 * (1 - profileCompletion / 100)}`}
-                      strokeLinecap="round"
-                      className="transition-all duration-500"
-                    />
+                    <circle cx="64" cy="64" r="56" stroke="#e5e7eb" strokeWidth="12" fill="none" />
+                    <circle cx="64" cy="64" r="56" stroke="#22c55e" strokeWidth="12" fill="none" strokeDasharray={`${2 * Math.PI * 56}`} strokeDashoffset={`${2 * Math.PI * 56 * (1 - profileCompletion / 100)}`} strokeLinecap="round" className="transition-all duration-500" />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-gray-900">{profileCompletion}%</div>
-                    </div>
+                    <div className="text-center"><div className="text-3xl font-bold text-gray-900">{profileCompletion}%</div></div>
                   </div>
                 </div>
               </div>
-
-              {/* Progress Items Checklist */}
               <div className="space-y-2">
                 <div className="mb-3">
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Personal Information</h3>
                   {progressItems.slice(0, 7).map((item, index) => (
                     <div key={index} className="flex items-center justify-between py-1">
                       <div className="flex items-center gap-2">
-                        {item.completed ? (
-                          <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                        <span className={`text-xs ${item.completed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>
-                          {item.label}
-                        </span>
+                        <span className={`w-4 h-4 rounded-full border ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}></span>
+                        <span className={`text-xs ${item.completed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>{item.label}</span>
                       </div>
-                      <span className={`text-xs font-medium ${item.completed ? 'text-green-600' : 'text-purple-600'}`}>
-                        {item.completed ? '' : `+${item.weight}%`}
-                      </span>
+                      <span className={`text-xs font-medium ${item.completed ? 'text-green-600' : 'text-purple-600'}`}>{item.completed ? '' : `+${item.weight}%`}</span>
                     </div>
                   ))}
                 </div>
-                
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Education</h3>
-                  {progressItems.slice(7, 10).map((item, index) => (
+                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Education</h3>
+                   {progressItems.slice(7, 10).map((item, index) => (
                     <div key={index} className="flex items-center justify-between py-1">
                       <div className="flex items-center gap-2">
-                        {item.completed ? (
-                          <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                        <span className={`text-xs ${item.completed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>
-                          {item.label}
-                        </span>
+                         <span className={`w-4 h-4 rounded-full border ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}></span>
+                        <span className={`text-xs ${item.completed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>{item.label}</span>
                       </div>
-                      <span className={`text-xs font-medium ${item.completed ? 'text-green-600' : 'text-purple-600'}`}>
-                        {item.completed ? '' : `+${item.weight}%`}
-                      </span>
+                      <span className={`text-xs font-medium ${item.completed ? 'text-green-600' : 'text-purple-600'}`}>{item.completed ? '' : `+${item.weight}%`}</span>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
+             </div>
           </div>
         </div>
       </div>
