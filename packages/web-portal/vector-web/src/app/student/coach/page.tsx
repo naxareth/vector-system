@@ -28,7 +28,7 @@ interface MarketPoint {
 export default function CoachPage() {
   const router = useRouter();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [studentId, setStudentId] = useState<string>('');
+  const [studentId, setStudentId] = useState<string>(''); // Kept for display/other logic if needed
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -64,7 +64,7 @@ export default function CoachPage() {
 
       if (!profile) return;
       
-      setStudentId(profile.student_id);
+      setStudentId(profile.student_id || ''); // Handle potential null
       const firstName = profile.full_name?.split(' ')[0] || 'Student';
 
       // 1. Try to fetch wallet skills, but DON'T stop if empty
@@ -145,13 +145,13 @@ export default function CoachPage() {
              setMessages([{ 
                 role: 'ai', 
                 text: `👋 Hi ${firstName}! You don't have any verified skills yet, so I've loaded the **Global Market Trends** for you to explore. Check out what's hot right now!`
-              }]);
+             }]);
         } else {
              const topSkill = processedSkills.sort((a: any, b: any) => b.score - a.score)[0];
              setMessages([{ 
                 role: 'ai', 
                 text: `👋 Hi ${firstName}! I've analyzed your ${foundSkills.length} verified credentials. Your **${topSkill?.name}** is looking strong!`
-              }]);
+             }]);
         }
       }
       
@@ -174,19 +174,30 @@ export default function CoachPage() {
     setChatLoading(true);
 
     try {
+      // 🛑 FIX: Get current session ID to validate request safely
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+         setMessages(prev => [...prev, { role: 'ai', text: "Session expired. Please refresh the page." }]);
+         return;
+      }
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          studentId, 
+          userId: session.user.id, // <--- CHANGED: Send UUID instead of studentId
           message: textToSend,
           context: { skills: skillsList } 
         })
       });
+      
+      if (!res.ok) throw new Error("API Error");
+
       const data = await res.json();
       setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'ai', text: "Connection error." }]);
+      setMessages(prev => [...prev, { role: 'ai', text: "Connection error. Please try again." }]);
     } finally {
       setChatLoading(false);
     }

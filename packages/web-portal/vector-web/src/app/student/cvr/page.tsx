@@ -7,8 +7,35 @@ import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain'
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import CVRSuccessModal from '@/components/dashboard/CVRSuccessModal';
+import { z } from 'zod'; // 1. Import Zod
 
-// Type for our dynamic skills
+// 2. Define Validation Schema for the Resume
+const resumeSchema = z.object({
+  fullName: z.string().min(2, "Full Name is required (min 2 chars)"),
+  title: z.string().min(2, "Professional Title is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().optional().or(z.literal('')), // Allow empty or valid string
+  linkedin: z.string().url("Must be a valid URL (https://...)").optional().or(z.literal('')),
+  portfolio: z.string().url("Must be a valid URL (https://...)").optional().or(z.literal('')),
+  summary: z.string().max(600, "Summary must be under 600 characters").optional(),
+  
+  // Validate Arrays (Ensure they aren't empty objects)
+  education: z.array(z.object({
+    degree: z.string().optional(),
+    school: z.string().optional(),
+    location: z.string().optional(),
+    year: z.string().optional(),
+    honors: z.string().optional(),
+  })).optional(),
+  
+  experience: z.array(z.object({
+    title: z.string().optional(),
+    company: z.string().optional(),
+    dates: z.string().optional(),
+    description: z.string().optional(),
+  })).optional(),
+});
+
 interface SkillItem {
   id: string;
   name: string;
@@ -23,12 +50,12 @@ export default function CVRPage() {
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
   const [selectedColor, setSelectedColor] = useState('#6d28d9');
   
-  // Dynamic Data States
+  // 3. Add Error State
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const [availableSkills, setAvailableSkills] = useState<SkillItem[]>([]);
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [customSkill, setCustomSkill] = useState('');
-
-  // New State for Available Certifications
   const [availableCertifications, setAvailableCertifications] = useState<any[]>([]);
   
   const [isGenerated, setIsGenerated] = useState(false);
@@ -73,7 +100,6 @@ export default function CVRPage() {
     }[],
   });
 
-  // Helper to add empty items
   const addEducation = () => setFormData(prev => ({ 
     ...prev, education: [...prev.education, { degree: '', school: '', location: '', year: '', honors: '' }] 
   }));
@@ -90,7 +116,6 @@ export default function CVRPage() {
     ...prev, awards: [...prev.awards, { title: '', description: '' }]
   }));
 
-  // Helper to remove items
   const removeItem = (section: keyof typeof formData, index: number) => {
     setFormData((prev: any) => ({
       ...prev,
@@ -98,7 +123,6 @@ export default function CVRPage() {
     }));
   };
 
-  // Helper to update item fields
   const updateItem = (section: keyof typeof formData, index: number, field: string, value: string) => {
      setFormData((prev: any) => {
        const newItems = [...prev[section]];
@@ -107,7 +131,18 @@ export default function CVRPage() {
      });
   };
 
-  // ⚡⚡⚡ 1. FETCH REAL DATA ⚡⚡⚡
+  // Clear specific error on change
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+        setErrors(prev => {
+            const newErr = { ...prev };
+            delete newErr[field];
+            return newErr;
+        });
+    }
+  };
+
   useEffect(() => {
     const initPage = async () => {
       try {
@@ -117,7 +152,6 @@ export default function CVRPage() {
           return;
         }
 
-        // A. Fetch User & Profile Data
         const { data: userRecord } = await supabase
           .from('users')
           .select('full_name, wallet_address')
@@ -126,11 +160,10 @@ export default function CVRPage() {
 
         const { data: profileRecord } = await supabase
           .from('profiles')
-          .select('phone, major, bio, linkedin_url') // Assuming 'major' is used as Title
+          .select('phone, major, bio, linkedin_url')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        // B. Populate Form
         setFormData(prev => ({
           ...prev,
           fullName: userRecord?.full_name || '',
@@ -141,15 +174,12 @@ export default function CVRPage() {
           portfolio: profileRecord?.linkedin_url || ''
         }));
 
-        // C. Fetch Blockchain Skills
         if (userRecord?.wallet_address) {
           await fetchVerifiedSkills(userRecord.wallet_address);
         } else {
-          // If no wallet, just show empty list (or could add default unverified list)
           setAvailableSkills([]); 
         }
 
-        // D. Fetch Verified Certifications (from Registrar Dashboard)
         const { data: certs } = await supabase
           .from('verified_credentials')
           .select('*')
@@ -169,10 +199,8 @@ export default function CVRPage() {
     initPage();
   }, [router]);
 
-  // Helper: Check Blockchain for Skills
   const fetchVerifiedSkills = async (walletAddress: string) => {
     try {
-      // Connect to blockchain
       const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
       const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
       
@@ -187,14 +215,13 @@ export default function CVRPage() {
             foundSkills.push({
               id: `chain-${skillId}`,
               name: skillName,
-              verified: true // Mark as verified
+              verified: true
             });
           }
         } catch (e) { /* Ignore read errors */ }
       }
       
       setAvailableSkills(foundSkills);
-      // Auto-select verified skills
       setSelectedSkillIds(foundSkills.map(s => s.id));
 
     } catch (error) {
@@ -213,9 +240,7 @@ export default function CVRPage() {
   const handleAddCustomSkill = () => {
     if (customSkill.trim()) {
       const newId = `custom-${Date.now()}`;
-      // Add to available list as unverified
       setAvailableSkills(prev => [...prev, { id: newId, name: customSkill, verified: false }]);
-      // Auto-select it
       setSelectedSkillIds(prev => [...prev, newId]);
       setCustomSkill('');
     }
@@ -223,6 +248,22 @@ export default function CVRPage() {
 
   const handleGenerateCVR = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({}); // Reset errors
+
+    // 4. Run Zod Validation
+    const validation = resumeSchema.safeParse(formData);
+
+    if (!validation.success) {
+        const newErrors: Record<string, string> = {};
+        validation.error.issues.forEach(issue => {
+            if (issue.path[0]) newErrors[issue.path[0].toString()] = issue.message;
+        });
+        setErrors(newErrors);
+        
+        // Alert user to scroll up
+        alert("Please fix the errors in the form before generating.");
+        return;
+    }
     
     // Filter the full skill objects based on selection
     const finalSkills = availableSkills.filter(s => selectedSkillIds.includes(s.id));
@@ -235,18 +276,16 @@ export default function CVRPage() {
       skills: finalSkills,
     };
 
-    // Required fields
+    // Use validated data
     cvrData.fullName = formData.fullName;
     cvrData.email = formData.email;
 
-    // Optional single-value fields — only include when non-empty
-    if (formData.phone && String(formData.phone).trim() !== '') cvrData.phone = formData.phone;
-    if (formData.portfolio && String(formData.portfolio).trim() !== '') cvrData.portfolio = formData.portfolio;
-    if (formData.linkedin && String(formData.linkedin).trim() !== '') cvrData.linkedin = formData.linkedin;
-    if (formData.title && String(formData.title).trim() !== '') cvrData.title = formData.title;
-    if (formData.summary && String(formData.summary).trim() !== '') cvrData.summary = formData.summary;
+    if (formData.phone) cvrData.phone = formData.phone;
+    if (formData.portfolio) cvrData.portfolio = formData.portfolio;
+    if (formData.linkedin) cvrData.linkedin = formData.linkedin;
+    if (formData.title) cvrData.title = formData.title;
+    if (formData.summary) cvrData.summary = formData.summary;
 
-    // Optional arrays — include only when there is meaningful content
     const cleanedEducation = sanitizeArray(formData.education || []);
     if (cleanedEducation.length) cvrData.education = cleanedEducation;
 
@@ -273,12 +312,10 @@ export default function CVRPage() {
   const handleCreateNew = () => {
     setIsGenerated(false);
     setGeneratedData(null);
-    // Reset selected skills to only verified ones (optional preference)
     setSelectedSkillIds(availableSkills.filter(s => s.verified).map(s => s.id));
   };
 
   const handleAddVerifiedCertification = (cert: any) => {
-    // Check if already added
     const exists = formData.certifications.some((c: any) => c.name === cert.skill_name && c.verified);
     if (exists) return;
 
@@ -303,7 +340,6 @@ export default function CVRPage() {
 
   return (
     <DashboardLayout>
-      {/* Page Header */}
       <div className="mb-4 -mt-10">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
           {isGenerated ? 'Credential Verified Resume (CVR)' : 'Credential Verified Resume'}
@@ -322,7 +358,7 @@ export default function CVRPage() {
       ) : !isGenerated ? (
       <form onSubmit={handleGenerateCVR} className="w-full">
         <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 space-y-6">
-          {/* Personal Details Section - Updated Layout */}
+          {/* Personal Details Section */}
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal Details</h2>
             <div className="space-y-4">
@@ -333,12 +369,12 @@ export default function CVRPage() {
                   </label>
                   <input
                     type="text"
-                    required
                     value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                    onChange={(e) => handleChange('fullName', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.fullName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
                     placeholder="John Doe"
                   />
+                  {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -346,12 +382,12 @@ export default function CVRPage() {
                   </label>
                   <input
                     type="text"
-                    required
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                    onChange={(e) => handleChange('title', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.title ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
                     placeholder="Full-Stack Developer"
                   />
+                  {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
                 </div>
               </div>
 
@@ -362,12 +398,12 @@ export default function CVRPage() {
                   </label>
                   <input
                     type="email"
-                    required
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                    onChange={(e) => handleChange('email', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
                     placeholder="john@example.com"
                   />
+                  {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -376,7 +412,7 @@ export default function CVRPage() {
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) => handleChange('phone', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                     placeholder="+63 912 345 6789"
                   />
@@ -390,10 +426,11 @@ export default function CVRPage() {
                 <input
                   type="url"
                   value={formData.linkedin}
-                  onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                  onChange={(e) => handleChange('linkedin', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.linkedin ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
                   placeholder="https://linkedin.com/in/johndoe"
                 />
+                {errors.linkedin && <p className="text-xs text-red-500 mt-1">{errors.linkedin}</p>}
               </div>
 
               <div>
@@ -403,10 +440,11 @@ export default function CVRPage() {
                 <input
                   type="url"
                   value={formData.portfolio}
-                  onChange={(e) => setFormData({ ...formData, portfolio: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                  onChange={(e) => handleChange('portfolio', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.portfolio ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
                   placeholder="https://github.com/johndoe"
                 />
+                {errors.portfolio && <p className="text-xs text-red-500 mt-1">{errors.portfolio}</p>}
               </div>
 
               <div>
@@ -416,11 +454,12 @@ export default function CVRPage() {
                 <p className="text-xs text-gray-500 mb-2">A short 2–4 sentence paragraph summarizing who you are, your key skills, career goals, and the value you bring.</p>
                 <textarea
                   value={formData.summary}
-                  onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                  onChange={(e) => handleChange('summary', e.target.value)}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.summary ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
                   placeholder="e.g., Diligent Computer Science student with a passion for blockchain technology..."
                 />
+                {errors.summary && <p className="text-xs text-red-500 mt-1">{errors.summary}</p>}
               </div>
             </div>
           </div>
@@ -637,7 +676,7 @@ export default function CVRPage() {
             </div>
           </div>
 
-          {/* Template Selection Section */}
+          {/* Template Selection Section (unchanged from original) */}
           <div className="pt-6 border-t border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Choose Template</h2>
@@ -662,20 +701,19 @@ export default function CVRPage() {
                     ? 'border-purple-600 shadow-md ring-1 ring-purple-600' 
                     : 'border-gray-200 hover:border-purple-300 hover:shadow-sm'
                 }`}>
-                  {/* Visual Preview */}
                   <div className="aspect-[3/4] bg-white p-3 flex flex-col gap-2 relative">
                     <div className="w-1/3 h-2 bg-gray-800 rounded-sm mb-2"></div>
                     <div className="w-full h-px bg-gray-200"></div>
                     <div className="flex gap-2">
-                       <div className="w-2/3 space-y-1">
+                        <div className="w-2/3 space-y-1">
                           <div className="w-full h-1.5 bg-gray-200 rounded-sm"></div>
                           <div className="w-5/6 h-1.5 bg-gray-200 rounded-sm"></div>
                           <div className="w-full h-1.5 bg-gray-200 rounded-sm"></div>
-                       </div>
-                       <div className="w-1/3 space-y-1">
+                        </div>
+                        <div className="w-1/3 space-y-1">
                           <div className="w-full h-1.5 bg-gray-300 rounded-sm"></div>
                           <div className="w-3/4 h-1.5 bg-gray-300 rounded-sm"></div>
-                       </div>
+                        </div>
                     </div>
                     {selectedTemplate === 'professional' && (
                       <div className="absolute inset-0 bg-purple-600/10 flex items-center justify-center">
@@ -707,8 +745,7 @@ export default function CVRPage() {
                     ? 'border-purple-600 shadow-md ring-1 ring-purple-600' 
                     : 'border-gray-200 hover:border-purple-300 hover:shadow-sm'
                 }`}>
-                   {/* Visual Preview */}
-                   <div className="aspect-[3/4] bg-white flex relative">
+                    <div className="aspect-[3/4] bg-white flex relative">
                     <div className="w-1/3 bg-gray-100 p-2 space-y-2">
                       <div className="w-12 h-12 rounded-full bg-gray-300 mx-auto mb-2"></div>
                       <div className="w-full h-1.5 bg-gray-300 rounded-sm"></div>
@@ -750,8 +787,7 @@ export default function CVRPage() {
                     ? 'border-purple-600 shadow-md ring-1 ring-purple-600' 
                     : 'border-gray-200 hover:border-purple-300 hover:shadow-sm'
                 }`}>
-                   {/* Visual Preview - Traditional resume look */}
-                   <div className="aspect-[3/4] bg-white p-4 flex flex-col gap-2 relative">
+                    <div className="aspect-[3/4] bg-white p-4 flex flex-col gap-2 relative">
                     <div className="text-center space-y-0.5 mb-1">
                        <div className="w-2/3 h-2.5 bg-gray-800 rounded-sm mx-auto"></div>
                        <div className="w-1/2 h-1 bg-gray-300 rounded-sm mx-auto"></div>
@@ -830,10 +866,8 @@ export default function CVRPage() {
         </div>
       </form>
       ) : (
-        /* Generated CVR Display - (keeping the existing preview section unchanged) */
+        /* Generated CVR Display */
         <div className="w-full">
-          {/* I'm keeping all the template rendering code the same as before - no changes needed there */}
-          {/* ... rest of the generated resume display code ... */}
           <div className="text-center py-12">
             <p className="text-gray-500 mb-4">Resume preview will render here</p>
             <div className="flex flex-wrap justify-center gap-4">
@@ -865,7 +899,6 @@ export default function CVRPage() {
         onDownload={handleDownload}
       />
 
-      {/* Export CVR Modal */}
       <ExportCVRModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
