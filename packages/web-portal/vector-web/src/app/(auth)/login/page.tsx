@@ -39,7 +39,19 @@ export default function LoginPage() {
     const cleanData = result.data;
 
     try {
-      // 1. Attempt Login
+      // 🛑 STEP 1: CALL THE GATEKEEPER API 🛑
+      // This checks the server-side rate limit before we even talk to Supabase
+      const gateResponse = await fetch('/api/auth/login-check', {
+        method: 'POST',
+      });
+
+      // If the Gatekeeper says 429, we STOP immediately.
+      if (gateResponse.status === 429) {
+        const gateData = await gateResponse.json();
+        throw new Error(gateData.message || "Too many login attempts. Please try again later.");
+      }
+
+      // 🛑 STEP 2: PROCEED TO AUTH (Only if Gatekeeper Approved) 🛑
       const { data, error: authError } = await supabase.auth.signInWithPassword({ 
         email: cleanData.email.trim().toLowerCase(),
         password: cleanData.password 
@@ -49,7 +61,7 @@ export default function LoginPage() {
         throw new Error("Invalid email or password.");
       }
 
-      // 2. Check for MFA Factors
+      // 3. Check for MFA Factors
       const { data: factorsData } = await supabase.auth.mfa.listFactors();
       const totpFactors = factorsData?.totp?.filter(f => f.status === 'verified') ?? [];
 
@@ -66,11 +78,12 @@ export default function LoginPage() {
           
         setPendingRole(userData?.role || 'student');
         setMfaRequired(true);
-        setLoading(false);
-        return; // ⛔ STOP HERE. Do not redirect yet.
+        // We set loading to false here because the UI is switching to the MFA component
+        setLoading(false); 
+        return; 
       }
 
-      // 3. No MFA? Proceed to standard redirect
+      // 4. No MFA? Proceed to standard redirect
       const { data: userData, error: fetchError } = await supabase
         .from('users')
         .select('role')
@@ -82,7 +95,7 @@ export default function LoginPage() {
         throw new Error("Account integrity error. Please contact support.");
       }
 
-      // 🛑 CRITICAL FIX: Refresh router to sync server cookies
+      // Refresh router to sync server cookies
       router.refresh();
 
       // Determine redirect target
@@ -91,8 +104,7 @@ export default function LoginPage() {
       if (returnUrl) {
         router.push(returnUrl);
       } else {
-        // 🛑 UPDATED REDIRECT LOGIC FOR SUPER ADMIN
-        let target = '/student/dashboard'; // Default
+        let target = '/student/dashboard'; 
         
         if (userData.role === 'registrar') {
           target = '/registrar/dashboard';
@@ -103,13 +115,16 @@ export default function LoginPage() {
         router.push(target);
       }
 
+      // Note: We do NOT set loading(false) here if successful 
+      // to keep the button in "Signing In..." state while the page transitions.
+
     } catch (err: any) {
       console.error("Login Error:", err);
-      setError('Invalid email or password.');
-    } finally {
-      // Only stop loading if we hit an error or stopped for MFA.
-      // If redirecting, keep loading true to prevent double-clicks.
-      if (error || mfaRequired) setLoading(false);
+      // If the error came from the Gatekeeper, we show that specific message.
+      // Otherwise, we show the generic error.
+      const isRateLimit = err.message.includes("Too many");
+      setError(isRateLimit ? err.message : 'Invalid email or password.');
+      setLoading(false);
     }
   };
 
@@ -132,12 +147,10 @@ export default function LoginPage() {
         <ChallengeMFA 
           factorId={mfaFactorId} 
           onVerified={() => {
-             // 🛑 UPDATED REDIRECT LOGIC FOR SUPER ADMIN MFA
              let target = '/student/dashboard';
              if (pendingRole === 'registrar') target = '/registrar/dashboard';
              if (pendingRole === 'super_admin') target = '/admin/dashboard';
              
-             // Refresh and Push
              router.refresh();
              router.push(target);
           }} 
@@ -167,8 +180,14 @@ export default function LoginPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start gap-3">
-            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <div className={`mb-6 p-4 text-sm rounded-xl border flex items-start gap-3 ${error.includes("Too many") ? "bg-orange-50 text-orange-700 border-orange-100" : "bg-red-50 text-red-600 border-red-100"}`}>
+            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {error.includes("Too many") ? (
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              ) : (
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              )}
+            </svg>
             {error}
           </div>
         )}
