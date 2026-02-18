@@ -1,12 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // Import Router
+import { useRouter } from 'next/navigation';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
 import { ethers } from 'ethers';
 import { supabase } from '@/lib/supabaseClient';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
-import { encryptData } from '@/lib/encryption';
-import { z } from 'zod'; // 1. Import Zod
+import { z } from 'zod'; 
+// ❌ REMOVED: import { encryptData } ... (Security Fix)
 
 // 2. Define Validation Schema for Minting
 const mintingSchema = z.object({
@@ -15,116 +15,54 @@ const mintingSchema = z.object({
   newCredentialName: z.string().optional(),
   courseCode: z.string().max(20, "Course code too long").optional(),
   issuanceDate: z.string().refine((date) => new Date(date).toString() !== 'Invalid Date', "Invalid Date"),
-  certificateNumber: z.string().min(3, "Certificate Number required").max(50, "Too long"),
+  certificateNumber: z.string()
+    .min(3, "Too short")
+    .max(50, "Too long")
+    .regex(/^[a-zA-Z0-9-]+$/, "Serial number can only contain letters, numbers, and dashes"), 
   privateNotes: z.string().max(1000, "Notes too long").optional(),
 }).refine((data) => {
-  // If creating new, name is required
   if (data.credentialId === 'new' && !data.newCredentialName) return false;
   return true;
 }, { message: "Credential Name is required for new types", path: ["newCredentialName"] });
 
-// --- Types ---
-interface CredentialType {
-  id: number;
-  name: string;
-  code?: string;
-}
-
-interface FileUploadState {
-  file: File | null;
-  dragActive: boolean;
-  parsedData?: {
-    count: number;
-    preview: string[];
-  };
-}
-
-interface MintingProgress {
-  isOpen: boolean;
-  progress: number;
-  status: 'minting' | 'complete' | 'error';
-  message: string;
-  txHash?: string;
-}
+interface CredentialType { id: number; name: string; code?: string; }
+interface FileUploadState { file: File | null; dragActive: boolean; parsedData?: { count: number; preview: string[]; }; }
+interface MintingProgress { isOpen: boolean; progress: number; status: 'minting' | 'complete' | 'error'; message: string; txHash?: string; }
 
 export default function RegistrarDashboard() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true); // Loading state for Auth Check
-  
-  // Data State
+  const [loading, setLoading] = useState(true);
   const [availableCredentials, setAvailableCredentials] = useState<CredentialType[]>([]);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
-  
-  // Validation State
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const [csvUpload, setCsvUpload] = useState<FileUploadState>({
-    file: null,
-    dragActive: false,
-  });
-
-  const [mintingProgress, setMintingProgress] = useState<MintingProgress>({
-    isOpen: false,
-    progress: 0,
-    status: 'minting',
-    message: '',
-  });
+  const [csvUpload, setCsvUpload] = useState<FileUploadState>({ file: null, dragActive: false });
+  const [mintingProgress, setMintingProgress] = useState<MintingProgress>({ isOpen: false, progress: 0, status: 'minting', message: '' });
 
   const [singleCredential, setSingleCredential] = useState({
-    walletAddress: '',
-    credentialId: '',
-    newCredentialName: '',
-    courseCode: '',
-    issuanceDate: new Date().toISOString().split('T')[0],
-    certificateNumber: '',
-    privateNotes: '',
+    walletAddress: '', credentialId: '', newCredentialName: '', courseCode: '',
+    issuanceDate: new Date().toISOString().split('T')[0], certificateNumber: '', privateNotes: '',
   });
 
-  // --- 3. 🛡️ SECURITY: Role-Based Access Control (RBAC) ---
+  // --- 3. 🛡️ Role-Based Access Control ---
   useEffect(() => {
     const checkAccess = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          router.replace('/login');
-          return;
-        }
-
-        // Fetch User Role from Database
-        const { data: user } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-
-        if (user?.role !== 'registrar' && user?.role !== 'super_admin') {
-          // 🛑 Kick them out if they are not authorized
-          router.replace('/student/dashboard'); 
-          return;
-        }
-
-        // ✅ Authorized: Load Data
+        if (!session) { router.replace('/login'); return; }
+        const { data: user } = await supabase.from('users').select('role').eq('id', session.user.id).single();
+        if (user?.role !== 'registrar' && user?.role !== 'super_admin') { router.replace('/student/dashboard'); return; }
         fetchCredentialDefinitions();
         setLoading(false);
-
-      } catch (error) {
-        router.replace('/login');
-      }
+      } catch (error) { router.replace('/login'); }
     };
-
     checkAccess();
   }, [router]);
 
   const fetchCredentialDefinitions = async () => {
-    const { data } = await supabase
-      .from('credential_definitions')
-      .select('id, name, code')
-      .order('name');
-    
+    const { data } = await supabase.from('credential_definitions').select('id, name, code').order('name');
     if (data) {
       setAvailableCredentials(data);
-      if (data.length > 0) {
+      if (data.length > 0 && !singleCredential.credentialId) {
         setSingleCredential(prev => ({ ...prev, credentialId: data[0].id.toString() }));
       }
     }
@@ -133,11 +71,8 @@ export default function RegistrarDashboard() {
   const getContract = async () => {
     if (typeof window === 'undefined') return null;
     const { ethereum } = window as any;
-    if (!ethereum) {
-      alert("MetaMask is not installed!");
-      throw new Error("No crypto wallet found");
-    }
-    const provider = new ethers.BrowserProvider(ethereum, "any"); 
+    if (!ethereum) { alert("MetaMask is not installed!"); throw new Error("No crypto wallet found"); }
+    const provider = new ethers.BrowserProvider(ethereum, "any");
     const signer = await provider.getSigner();
     return new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
   };
@@ -145,39 +80,29 @@ export default function RegistrarDashboard() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setSingleCredential(prev => ({ ...prev, [name]: value }));
-    // Clear error
-    if (errors[name]) {
-        setErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
-    }
+    if (errors[name]) setErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
   };
 
-  // ... (CSV Handlers remain same) ...
-  const handleDrag = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (e.type === 'dragenter' || e.type === 'dragover') setCsvUpload(prev => ({ ...prev, dragActive: true })); else if (e.type === 'dragleave') setCsvUpload(prev => ({ ...prev, dragActive: false })); };
-  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setCsvUpload(prev => ({ ...prev, dragActive: false })); if (e.dataTransfer.files && e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files && e.target.files[0]) processFile(e.target.files[0]); };
-  const processFile = (file: File) => { if (file.type === 'text/csv' || file.name.endsWith('.csv')) { const reader = new FileReader(); reader.onload = (e) => { const text = e.target?.result as string; const lines = text.split('\n').filter(line => line.trim() !== ''); setCsvUpload({ file: file, dragActive: false, parsedData: { count: lines.length, preview: lines.slice(0, 3) } }); }; reader.readAsText(file); } else { alert("Please upload a valid .csv file"); } };
-  const removeFile = () => { setCsvUpload({ file: null, dragActive: false }); };
-  const handleBatchMint = async () => { alert("Batch minting needs to be updated to support dynamic IDs. Please use Single Issue for now."); };
+  // CSV Handlers (Abbreviated for brevity - logic unchanged)
+  const handleDrag = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); e.type === 'dragenter' || e.type === 'dragover' ? setCsvUpload(prev => ({ ...prev, dragActive: true })) : setCsvUpload(prev => ({ ...prev, dragActive: false })); };
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setCsvUpload(prev => ({ ...prev, dragActive: false })); if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0]); };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) processFile(e.target.files[0]); };
+  const processFile = (file: File) => { if (file.type === 'text/csv' || file.name.endsWith('.csv')) { const reader = new FileReader(); reader.onload = (e) => { const lines = (e.target?.result as string).split('\n').filter(l => l.trim() !== ''); setCsvUpload({ file, dragActive: false, parsedData: { count: lines.length, preview: lines.slice(0, 3) } }); }; reader.readAsText(file); } else alert("Invalid CSV"); };
+  const removeFile = () => setCsvUpload({ file: null, dragActive: false });
+  const handleBatchMint = async () => alert("Batch minting requires dynamic ID update.");
 
-  // --- 4. Main Minting Logic with Validation ---
+  // --- 4. Main Minting Logic ---
   const handleMintToken = async () => {
     setErrors({});
-    
-    // 🛡️ Validate Input
-    // We treat "Create New" toggle as a pseudo-value for validation logic
-    const payload = { 
-        ...singleCredential, 
-        credentialId: isCreatingNew ? 'new' : singleCredential.credentialId 
-    };
-    
+    const payload = { ...singleCredential, credentialId: isCreatingNew ? 'new' : singleCredential.credentialId };
     const result = mintingSchema.safeParse(payload);
 
     if (!result.success) {
-        const newErrors: Record<string, string> = {};
-        result.error.issues.forEach(i => { if(i.path[0]) newErrors[i.path[0].toString()] = i.message; });
-        setErrors(newErrors);
-        alert("Please fix form errors.");
-        return;
+      const newErrors: Record<string, string> = {};
+      result.error.issues.forEach(i => { if(i.path[0]) newErrors[i.path[0].toString()] = i.message; });
+      setErrors(newErrors);
+      alert("Please fix form errors.");
+      return;
     }
 
     try {
@@ -187,10 +112,9 @@ export default function RegistrarDashboard() {
       let finalSkillName = '';
 
       if (isCreatingNew) {
-        // ... (Create New Logic - Unchanged) ...
-        setMintingProgress(prev => ({ ...prev, message: 'Registering new credential type in DB...' }));
+        setMintingProgress(prev => ({ ...prev, message: 'Registering new credential type...' }));
         const { data: newType, error: dbError } = await supabase.from('credential_definitions').insert({ name: singleCredential.newCredentialName, code: singleCredential.courseCode }).select().single();
-        if (dbError || !newType) throw new Error("Failed to register new credential type.");
+        if (dbError || !newType) throw new Error("Failed to register new type.");
         finalTokenId = newType.id;
         finalSkillName = newType.name;
         await fetchCredentialDefinitions();
@@ -200,44 +124,34 @@ export default function RegistrarDashboard() {
         finalSkillName = selected?.name || 'Unknown Credential';
       }
 
-      // Blockchain & DB Logic (Unchanged)
+      // Blockchain Interaction
       const contract = await getContract();
       if (!contract) throw new Error("Contract connection failed");
 
-      setMintingProgress(prev => ({ ...prev, progress: 40, message: `Minting "${finalSkillName}" (Token ID: ${finalTokenId})... Please sign in Wallet.` }));
-
+      setMintingProgress(prev => ({ ...prev, progress: 40, message: `Minting "${finalSkillName}"... Please sign in Wallet.` }));
       const tx = await contract.mintSkill(singleCredential.walletAddress, finalTokenId, 1);
       
       setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Waiting for blockchain confirmation...' }));
       await tx.wait();
 
-      setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Encrypting & Logging to Audit Ledger...' }));
+      // 🛡️ SECURE LOGGING via API (No client-side encryption)
+      setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Securely logging to Audit Ledger...' }));
 
-      const { data: studentUser } = await supabase.from('users').select('id').eq('wallet_address', singleCredential.walletAddress.toLowerCase()).single();
+      const logResponse = await fetch('/api/registrar/log-mint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: singleCredential.walletAddress,
+          tokenId: finalTokenId.toString(),
+          skillName: finalSkillName,
+          txHash: tx.hash,
+          certificateNumber: singleCredential.certificateNumber,
+          privateNotes: singleCredential.privateNotes, // Sent plain, Encrypted on Server
+          issuanceDate: singleCredential.issuanceDate
+        })
+      });
 
-      if (studentUser) {
-        // 🔒 Encrypt Note (Client-side encryption is acceptable IF using public key, but ideally server-side. 
-        // For this demo, assuming encryptData is safe or temporary until API move)
-        const encryptedNote = encryptData(singleCredential.privateNotes);
-
-        await supabase.from('verified_credentials').insert({
-          user_id: studentUser.id,
-          skill_name: finalSkillName,
-          token_id: finalTokenId.toString(),
-          transaction_hash: tx.hash,
-          issuer_did: 'Vector Registrar',
-          issued_at: new Date(singleCredential.issuanceDate).toISOString(),
-          certificate_number: singleCredential.certificateNumber,
-          private_notes: encryptedNote
-        });
-
-        await supabase.from('notifications').insert({
-          user_id: studentUser.id,
-          title: 'Credential Verified!',
-          message: `You have received a verified credential for: ${finalSkillName}`,
-          type: 'success'
-        });
-      }
+      if (!logResponse.ok) throw new Error("Minted, but failed to log to database.");
 
       setMintingProgress({ isOpen: true, progress: 100, status: 'complete', message: 'Credential successfully minted & logged!', txHash: tx.hash });
 
@@ -255,9 +169,7 @@ export default function RegistrarDashboard() {
     }
   };
 
-  if (loading) {
-      return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div></div>;
-  }
+  if (loading) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div></div>;
 
   return (
     <RegistrarLayout>
@@ -267,9 +179,8 @@ export default function RegistrarDashboard() {
         </div>
 
         <div id="reg-tour-mint">
-          {/* CSV Upload Section (Unchanged) */}
+          {/* CSV Section (Kept same) */}
           <div className="bg-white rounded-2xl shadow-sm border-2 border-dashed border-gray-300 p-6 md:p-10 mb-8 text-center transition-all">
-             {/* ... (Keep existing CSV UI) ... */}
              <div className={`${csvUpload.dragActive ? 'bg-green-50' : ''} h-full w-full rounded-xl transition-colors`} onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}>
               <div className="flex flex-col items-center">
                 {!csvUpload.file ? (
@@ -368,11 +279,10 @@ export default function RegistrarDashboard() {
           )}
         </div>
 
-        {/* Minting Progress Modal (Unchanged) */}
+        {/* Minting Progress Modal */}
         {mintingProgress.isOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-fade-in-up">
-              {/* ... (Keep existing modal content) ... */}
                <div className="text-center mb-6">
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${mintingProgress.status === 'error' ? 'bg-red-100 text-red-600' : 'bg-purple-100 text-purple-600'}`}>
                   {mintingProgress.status === 'complete' ? ( <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> ) : mintingProgress.status === 'error' ? ( <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg> ) : ( <svg className="w-8 h-8 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> )}
