@@ -88,11 +88,18 @@ export default function LoginPage() {
       // Determine redirect target
       const returnUrl = searchParams.get('redirectTo');
       
-      // Use router.push for smoother navigation
       if (returnUrl) {
         router.push(returnUrl);
       } else {
-        const target = userData.role === 'registrar' ? '/registrar/dashboard' : '/student/dashboard';
+        // 🛑 UPDATED REDIRECT LOGIC FOR SUPER ADMIN
+        let target = '/student/dashboard'; // Default
+        
+        if (userData.role === 'registrar') {
+          target = '/registrar/dashboard';
+        } else if (userData.role === 'super_admin') {
+          target = '/admin/dashboard';
+        }
+        
         router.push(target);
       }
 
@@ -125,7 +132,11 @@ export default function LoginPage() {
         <ChallengeMFA 
           factorId={mfaFactorId} 
           onVerified={() => {
-             const target = pendingRole === 'registrar' ? '/registrar/dashboard' : '/student/dashboard';
+             // 🛑 UPDATED REDIRECT LOGIC FOR SUPER ADMIN MFA
+             let target = '/student/dashboard';
+             if (pendingRole === 'registrar') target = '/registrar/dashboard';
+             if (pendingRole === 'super_admin') target = '/admin/dashboard';
+             
              // Refresh and Push
              router.refresh();
              router.push(target);
