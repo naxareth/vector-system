@@ -1,17 +1,15 @@
 'use client';
 import { useState, useEffect } from 'react';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
-import { supabase } from '@/lib/supabaseClient';
-// 🔓 Import Decryption Utility
-import { decryptData } from '@/lib/encryption';
+// ❌ REMOVED: import { decryptData } from '@/lib/encryption'; (Security Fix)
 
 interface CredentialLog {
   id: string;
   skill_name: string;
   issued_at: string;
   transaction_hash: string;
-  certificate_number?: string; // 🆕
-  private_notes?: string;      // 🆕 (Encrypted)
+  certificate_number?: string;
+  private_notes?: string;      // Now comes decrypted from API
   user: {
     full_name: string;
     wallet_address: string;
@@ -29,25 +27,15 @@ export default function ManageCredentials() {
 
   const fetchCredentials = async () => {
     try {
-      // ✅ Added new fields to select query
-      const { data, error } = await supabase
-        .from('verified_credentials')
-        .select(`
-          id,
-          skill_name,
-          issued_at,
-          transaction_hash,
-          certificate_number,
-          private_notes,
-          user:users!user_id (
-            full_name,
-            wallet_address
-          )
-        `)
-        .order('issued_at', { ascending: false });
+      // 🚀 CHANGED: Fetch from Secure API instead of direct Supabase
+      const res = await fetch('/api/registrar/credentials');
+      
+      if (!res.ok) {
+        throw new Error('Failed to fetch credentials');
+      }
 
-      if (error) throw error;
-      setCredentials(data as any);
+      const data = await res.json();
+      setCredentials(data);
     } catch (err) {
       console.error('Error fetching ledger:', err);
     } finally {
@@ -130,12 +118,11 @@ export default function ManageCredentials() {
                         </span>
                       </td>
                       
-                      {/* 🆕 Cert Number Column */}
                       <td className="px-6 py-4 text-sm text-gray-600 font-mono">
                         {cred.certificate_number || '-'}
                       </td>
 
-                      {/* 🔒 Decryption Tooltip Column */}
+                      {/* 🔒 Notes Column */}
                       <td className="px-6 py-4">
                         {cred.private_notes ? (
                           <div className="group relative w-max">
@@ -145,7 +132,8 @@ export default function ManageCredentials() {
                             {/* The Tooltip */}
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xl">
                               <p className="font-bold text-gray-400 mb-1 uppercase tracking-wider text-[10px]">Decrypted Content:</p>
-                              {decryptData(cred.private_notes)}
+                              {/* ✅ Render directly (it's already decrypted by API) */}
+                              {cred.private_notes} 
                               <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
                             </div>
                           </div>
