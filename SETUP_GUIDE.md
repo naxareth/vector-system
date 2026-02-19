@@ -1,4 +1,6 @@
-# 🚀 VECTOR: Complete Team Onboarding & Setup Guide
+---
+
+# VECTOR: Complete Team Onboarding & Setup Guide
 
 **Goal:** Get a full-stack developer from zero to a running VECTOR system in **under 30 minutes**.
 **Philosophy:** Copy, paste, run. Every command below is battle-tested.
@@ -6,15 +8,16 @@
 ---
 
 ## 📋 Table of Contents
-- [Prerequisites](#-prerequisites)
-- [One-Time Machine Setup](#-one-time-machine-setup)
-- [Project-Wide Setup](#1-clone--install-the-monorepo)
-- [Blockchain Setup (`packages/blockchain-core`)](#2-blockchain-setup-packagesblockchain-core)
-- [AI Engine Setup (`packages/ai-engine`)](#3-ai-engine-setup-packagesai-engine)
-- [Web Portal Setup (`packages/web-portal`)](#4-web-portal-setup-packagesweb-portal)
-- [Shared Package Setup (`packages/shared`)](#5-shared-package-setup-packagesshared)
-- [Running & Testing the System](#6-run-the-full-system)
-- [Troubleshooting & Verification](#-troubleshooting--verification)
+
+* [Prerequisites](https://www.google.com/search?q=%23-prerequisites)
+* [One-Time Machine Setup](https://www.google.com/search?q=%23-one-time-machine-setup)
+* [Project-Wide Setup](https://www.google.com/search?q=%231-clone--install-the-monorepo)
+* [Blockchain Setup](https://www.google.com/search?q=%232-blockchain-setup-packagesblockchain-core)
+* [AI Engine Setup](https://www.google.com/search?q=%233-ai-engine-setup-packagesai-engine)
+* [Web Portal Setup](https://www.google.com/search?q=%234-web-portal-setup-packagesweb-portalvector-web)
+* [Shared Package Setup](https://www.google.com/search?q=%235-shared-package-setup-packagesshared)
+* [Running & Testing the System](https://www.google.com/search?q=%236-run-the-full-system)
+* [Troubleshooting & Verification](https://www.google.com/search?q=%23-troubleshooting--verification)
 
 ---
 
@@ -23,30 +26,34 @@
 Ensure you have these accounts and software ready **before starting**:
 
 | Requirement | Purpose | How to Get It |
-| :--- | :--- | :--- |
+| --- | --- | --- |
 | **Node.js v18+** | JavaScript runtime | [nodejs.org](https://nodejs.org) |
 | **Git** | Version control | Pre-installed or [git-scm.com](https://git-scm.com) |
 | **MetaMask Wallet** | Blockchain interactions | Extension from [metamask.io](https://metamask.io) |
 | **Supabase Account** | Database (PostgreSQL) | Free tier at [supabase.com](https://supabase.com) |
 | **Google Gemini API Key** | AI/NLP (Skill Extraction) | From [Google AI Studio](https://makersuite.google.com/app/apikey) |
-| **RapidAPI Account & Key** | Job Market Data (JSearch) | From [RapidAPI JSearch](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch) |
+| **RapidAPI Key** | Job Market Data (JSearch) | From [RapidAPI JSearch](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch) |
+| **Adzuna API** | Job Market Data (Backup) | From [Adzuna Developer](https://www.google.com/search?q=https://developer.adzuna.com/) |
 
 ---
 
 ## 🌐 One-Time Machine Setup
 
 ### **A. Configure MetaMask for Polygon Amoy**
+
 **This step is critical and prevents 90% of blockchain errors.**
 
-1.  **Open MetaMask** and click the network dropdown (top center).
-2.  If **"Polygon Amoy"** is not in the list, click **"Add network" → "Add a network manually"**.
-3.  Enter these **exact settings**:
-    *   **Network name:** `Polygon Amoy Testnet`
-    *   **New RPC URL:** `https://rpc-amoy.polygon.technology`
-    *   **Chain ID:** `80002`
-    *   **Currency symbol:** `POL`
-    *   **Block explorer URL:** `https://amoy.polygonscan.com`
-4.  Click **Save** and switch to this network.
+1. **Open MetaMask** and click the network dropdown (top center).
+2. If **"Polygon Amoy"** is not in the list, click **"Add network" → "Add a network manually"**.
+3. Enter these **exact settings**:
+* **Network name:** `Polygon Amoy Testnet`
+* **New RPC URL:** `https://rpc-amoy.polygon.technology`
+* **Chain ID:** `80002`
+* **Currency symbol:** `POL`
+* **Block explorer URL:** `https://amoy.polygonscan.com`
+
+
+4. Click **Save** and switch to this network.
 
 > **⚠️ Important Note on POL Balance:** POL is the **native token** (like ETH). **DO NOT** try to import it as a custom token. Your balance will appear automatically in your main asset list after receiving test funds. If it doesn't show immediately, refresh MetaMask or toggle networks.
 
@@ -61,11 +68,13 @@ cd vector-system
 
 # 2. Install root dependencies (this sets up npm workspaces)
 npm install
+
 ```
 
 ---
 
 ## 2. Blockchain Setup (`packages/blockchain-core`)
+
 *For the smart contract engineer.*
 
 ```bash
@@ -90,20 +99,25 @@ echo 'PRIVATE_KEY=0xYOUR_WALLET_PRIVATE_KEY_HERE' > .env
 # 4. Verify the Setup
 npx hardhat compile
 npx hardhat run scripts/deploy.js --network amoy
+
 ```
 
 **✅ Expected Success Output:**
+
 ```
 🚀 Deploying VectorToken to Amoy...
 Deployer: 0xYourAddress...
 ✅ Contract: 0xDeployedContractAddress...
 🔗 https://amoy.polygonscan.com/address/0xDeployedContractAddress...
+
 ```
+
 **Save the contract address.** You'll need it for the web portal.
 
 ---
 
 ## 3. AI Engine Setup (`packages/ai-engine`)
+
 *For the data scientist / ML engineer.*
 
 ```bash
@@ -111,68 +125,84 @@ Deployer: 0xYourAddress...
 cd packages/ai-engine
 
 # 1. Install core AI/ML dependencies
-npm install @google/generative-ai@0.21.0 simple-statistics@7.8.3 ml-matrix@6.10.5 axios@1.6.0
+npm install
 
-# 2. (Optional) Install TypeScript definitions for development
-npm install --save-dev @types/ml-matrix @types/simple-statistics typescript@5.3.0
-
-# 3. Configure API Keys
+# 2. Configure API Keys (Includes Gemini, RapidAPI, and Adzuna)
 cat > .env << EOL
-GEMINI_API_KEY=your_actual_gemini_api_key_here
-RAPIDAPI_KEY=your_actual_rapidapi_key_here
+GEMINI_API_KEY=your_gemini_key
+RAPIDAPI_KEY=your_rapidapi_key
 JOB_MARKET_API_URL=https://jsearch.p.rapidapi.com/search
+ADZUNA_APP_ID=your_adzuna_id
+ADZUNA_APP_KEY=your_adzuna_key
+# Required for Ingestion Scripts:
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_KEY=your_service_role_key
 EOL
 
-# 4. Create a simple test to verify the setup
-cat > test-imports.js << 'EOL'
-const ss = require('simple-statistics');
-console.log('✅ Simple-Statistics working. Mean:', ss.mean([1, 2, 3, 4, 5]));
-const { Matrix } = require('ml-matrix');
-const m = new Matrix([[1, 2], [3, 4]]);
-console.log('✅ ML-Matrix working. Determinant:', m.det());
-console.log('✅ AI Engine dependencies are ready.');
-EOL
-node test-imports.js
+# 3. Verify Dependencies
+npm test
+
 ```
 
 ---
 
-## 4. Web Portal Setup (`packages/web-portal`)
+## 4. Web Portal Setup (`packages/web-portal/vector-web`)
+
 *For the frontend/backend/full-stack developer.*
 
 ```bash
-# Navigate to the web application
-cd packages/web-portal
+# ⚠️ Navigate to the INNER directory where the Next.js app lives
+cd packages/web-portal/vector-web
 
-# 1. Create environment configuration file
-cp .env.example .env.local
-# Now EDIT the .env.local file with your actual values:
-# - DATABASE_URL: From Supabase project settings (use the Connection Pooler URL, port 6543)
-# - GEMINI_API_KEY: Same as used in the AI engine
-# - RAPIDAPI_KEY: Same as used in the AI engine
-# - NEXT_PUBLIC_CONTRACT_ADDRESS: The address from your successful contract deployment
+# 1. Install Dependencies
+npm install
 
-# 2. Bootstrap the Next.js application
-npx create-next-app@latest . --typescript --tailwind --app --no-eslint --yes
+# 2. Configure Environment Variables
+# ⚠️ Create .env with your secured keys. Replace placeholders with real values.
+cat > .env << EOL
+# ------------------------------------------------------------------
+# 🔐 SECURITY & AUTHENTICATION
+# ------------------------------------------------------------------
+# Public Keys
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 
-# 3. Install the full dependency stack
-npm install @prisma/client@5.7.0 prisma@5.7.0 \
-  @google/generative-ai@0.21.0 @react-pdf/renderer@4.0.1 \
-  ethers@6.8.0 @rainbow-me/rainbowkit@1.3.0 wagmi@2.0.0 viem@2.0.0 \
-  simple-statistics@7.8.3 ml-matrix@6.10.5
+# Service Role Key (Backend Only - NEVER expose to client)
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 
-# 4. Set up the database with Prisma
-npx prisma init
-npx prisma db push
+# Data Encryption Key (Backend Only)
+ENCRYPTION_KEY="your-generated-32-byte-hex-key"
+
+# ------------------------------------------------------------------
+# 🗄️ DATABASE CONNECTION
+# ------------------------------------------------------------------
+# ACTIVE CONNECTION (Using Session Mode - Port 5432)
+DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-region.pooler.supabase.com:5432/postgres"
+
+# DIRECT CONNECTION (For Migrations)
+DIRECT_URL="postgresql://postgres.[ref]:[password]@aws-0-region.pooler.supabase.com:5432/postgres"
+
+# ------------------------------------------------------------------
+# 🧠 AI & EXTERNAL SERVICES
+# ------------------------------------------------------------------
+GEMINI_API_KEY="your-gemini-key"
+REGISTRAR_SECRET_KEY="VECTOR-ADMIN-2026"
+# (Optional) Contract Address if hardcoded
+NEXT_PUBLIC_CONTRACT_ADDRESS="0x..."
+EOL
+
+# 3. Generate Prisma Client
 npx prisma generate
 
-# 5. Install local workspace packages (the AI and Shared modules)
-npm install ../ai-engine ../shared
+# 4. Push Database Schema (Only needed if starting fresh)
+# npx prisma db push
+
 ```
 
 ---
 
 ## 5. Shared Package Setup (`packages/shared`)
+
 *For ensuring consistent types across the monorepo.*
 
 ```bash
@@ -180,12 +210,13 @@ npm install ../ai-engine ../shared
 cd packages/shared
 
 # 1. Install TypeScript
-npm install --save-dev typescript@5.3.0 @types/node@20.0.0
+npm install
 
 # 2. Build the package (creates the dist/ folder)
-npm run build  # or run `tsc` if the script is defined
+npm run build 
 
 # 3. (For other packages) After building, they can now correctly import from `shared`.
+
 ```
 
 ---
@@ -196,17 +227,14 @@ With all packages set up, you can launch the application.
 
 ```bash
 # TERMINAL 1: Start the Next.js development server (Frontend + API)
-cd packages/web-portal
+cd packages/web-portal/vector-web
 npm run dev
 # ➜ Local:  http://localhost:3000
 
-# TERMINAL 2: (Optional) Test AI Engine functions
-cd packages/ai-engine
-node test/skill-decay.test.js
-
-# TERMINAL 3: (Optional) Run blockchain tests
+# TERMINAL 2: (Optional) Run blockchain tests
 cd packages/blockchain-core
 npx hardhat test
+
 ```
 
 ---
@@ -214,7 +242,9 @@ npx hardhat test
 ## 🧪 Quick-Start Tests
 
 ### **Test the Blockchain (Mint a Sample Credential)**
-*Create a test script in `packages/blockchain-core/scripts/mint-test.js`*
+
+*Create a test script in `packages/blockchain-core/scripts/mint-test.js*`
+
 ```javascript
 const hre = require("hardhat");
 async function main() {
@@ -224,27 +254,16 @@ async function main() {
   console.log("Mint TX:", tx.hash);
 }
 main();
-```
 
-### **Test the AI Engine (Predict Skill Decay)**
-*Create a test in `packages/ai-engine/test/decay.js`*
-```javascript
-const ss = require('simple-statistics');
-function predictSkillDecay(skillScores) {
-  // Simple linear regression on score vs. time index
-  const data = skillScores.map((score, idx) => [idx, score]);
-  const lr = ss.linearRegression(data);
-  return lr.m; // Returns slope (decay rate per time period)
-}
-const decay = predictSkillDecay([85, 78, 72, 70, 68]);
-console.log(`Predicted skill decay slope: ${decay.toFixed(2)} per period`);
 ```
 
 ### **Test the Web API (Skill Extraction)**
+
 ```bash
 curl -X POST http://localhost:3000/api/extract-skills \
   -H "Content-Type: application/json" \
   -d '{"resumeText": "Built systems with React, Node.js, and PostgreSQL. Experienced in Python machine learning."}'
+
 ```
 
 ---
@@ -252,14 +271,23 @@ curl -X POST http://localhost:3000/api/extract-skills \
 ## 🚨 Troubleshooting Cheat Sheet
 
 | Problem & Error Message | Most Likely Cause | Solution |
-| :--- | :--- | :--- |
-| **`Error: private key too short`** / `invalid hexlify value` | Malformed `.env` file | Ensure `.env` has ONLY one line: `PRIVATE_KEY=0x64hexchars`. No quotes, no trailing spaces. |
-| **`insufficient funds for gas * price + value`** | Wallet has no POL for gas. | 1. Confirm MetaMask is on **Polygon Amoy**. <br> 2. Get POL from the [Amoy Faucet](https://faucet.polygon.technology). |
-| **`Signers array empty`** / `cannot read properties of undefined` | Hardhat can't read the private key. | 1. Confirm `dotenv` is installed in `blockchain-core`. <br> 2. Restart your terminal after creating the `.env` file. |
-| **`Cannot find module '@google/generative-ai'`** | Local package dependency not installed. | Run `npm install` inside the `packages/ai-engine` directory. |
-| **`PrismaClientInitializationError`** | Database connection failed. | 1. Verify `DATABASE_URL` in `web-portal/.env.local`. <br> 2. Use Supabase's **Connection Pooler** URL (port **6543**). |
-| **`Error: Cannot find module 'shared'`** | The shared package wasn't built. | 1. Navigate to `packages/shared`. <br> 2. Run `npm run build`. <br> 3. Re-run `npm install` in `web-portal`. |
-| **MetaMask shows 0 POL after faucet** | Network mismatch or cache issue. | 1. **Triple-check** MetaMask is on **"Polygon Amoy"**. <br> 2. Refresh the MetaMask window. <br> 3. Check your address on [Amoy Polygonscan](https://amoy.polygonscan.com). |
+| --- | --- | --- |
+| **`Error: private key too short`** | Malformed `.env` file | Ensure `.env` has ONLY one line: `PRIVATE_KEY=0x64hexchars`. No quotes, no trailing spaces. |
+| **`insufficient funds for gas`** | Wallet has no POL. | 1. Confirm MetaMask is on **Polygon Amoy**. <br>
+
+<br> 2. Get POL from the [Amoy Faucet](https://faucet.polygon.technology). |
+| **`Signers array empty`** | Hardhat can't read key. | 1. Confirm `dotenv` is installed. <br>
+
+<br> 2. Restart terminal after creating `.env`. |
+| **`PrismaClientInitializationError`** | Database connection failed. | 1. Verify `DATABASE_URL` in `web-portal/vector-web/.env`. <br>
+
+<br> 2. Use Supabase's **Connection Pooler** URL (port **5432** or **6543**). |
+| **`CRITICAL: ENCRYPTION_KEY is missing`** | Missing Security Key | Add `ENCRYPTION_KEY` to your `.env` file (Generate via `openssl rand -hex 32`). |
+| **`Error: Cannot find module 'shared'`** | Shared package not built. | 1. Navigate to `packages/shared`. <br>
+
+<br> 2. Run `npm run build`. <br>
+
+<br> 3. Re-run `npm install` in `vector-web`. |
 
 ---
 
@@ -282,16 +310,16 @@ try {
   execSync('cd packages/ai-engine && node -e "const ss=require(\'simple-statistics\'); console.log(`✅ Simple-Statistics v${ss.version}`)"', { stdio: 'inherit' });
 
   log('3. 🌐  Verifying Web Portal Framework...');
-  execSync('cd packages/web-portal && npx next --version', { stdio: 'inherit' });
+  // Updated path for nested structure
+  execSync('cd packages/web-portal/vector-web && npx next --version', { stdio: 'inherit' });
 
   log('4. 🔗  Verifying Shared Package Build...');
-  // Check if the shared package built correctly
   execSync('cd packages/shared && [ -f "dist/index.js" ] && echo "✅ Shared package built." || echo "❌ Shared package not built."', { stdio: 'inherit', shell: true });
 
   console.log('\n' + '='.repeat(50));
   console.log('🎉 VERIFICATION COMPLETE. SYSTEM IS READY.');
   console.log('='.repeat(50));
-  console.log('\nNext step: Run `cd packages/web-portal && npm run dev` to start the application.');
+  console.log('\nNext step: Run `cd packages/web-portal/vector-web && npm run dev` to start the application.');
 
 } catch (error) {
   console.error('\n❌ VERIFICATION FAILED.');
@@ -299,22 +327,5 @@ try {
   console.log('\nRefer to the troubleshooting table above.');
   process.exit(1);
 }
-```
-
----
-
-## 📁 Project Structure Quick Reference
 
 ```
-vector-system/
-├── packages/
-│   ├── blockchain-core/   # Hardhat, Solidity contracts, deploy scripts
-│   ├── ai-engine/         # Gemini NLP, skill decay, recommendations
-│   ├── web-portal/        # Next.js 14 app (App Router), API routes, UI
-│   └── shared/            # Common TypeScript types and constants
-├── docs/                  # Architecture diagrams, API specs
-├── research/              # Capstone thesis documents
-└── scripts/               # Database seeds, deployment utilities
-```
-
-**You are now ready to build.** The foundational system—blockchain, AI, database, and web server—is operational. Begin development by exploring the respective `/src` directories in each package.
