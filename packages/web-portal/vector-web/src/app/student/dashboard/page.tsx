@@ -33,6 +33,7 @@ interface UserProfile {
 }
 
 interface CredentialItem {
+  id: string; // ✅ Now mandatory for routing
   category: string;
   title: string;
   issueDate: string;
@@ -51,8 +52,6 @@ export default function StudentDashboard() {
   const [allCredentials, setAllCredentials] = useState<CredentialItem[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]); 
   const [isWalletConnecting, setIsWalletConnecting] = useState(false);
-  const [copiedWallet, setCopiedWallet] = useState(false);
-   
   const [showTutorial, setShowTutorial] = useState(true);
 
   const capitalizeWords = (text: string) => {
@@ -95,7 +94,9 @@ export default function StudentDashboard() {
                     processedIds.add(skillId);
                     foundSkills.push(skillName);
                     
+                    // Note: We use the skillId as a temporary ID for blockchain-only items
                     blockchainCreds.push({
+                        id: `bc-${skillId}`,
                         title: skillName,
                         category: 'Blockchain Verified',
                         issueDate: 'Verified On-Chain',
@@ -115,12 +116,12 @@ export default function StudentDashboard() {
         }
       }
 
-      // 3. 🤖 AI Analysis (Flexible Identifier Fallback)
+      // 3. 🤖 AI Analysis
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          studentId: identifier, // Use profile.student_id OR user.id (UUID)
+          studentId: identifier,
           resumeText: "",
           skillsOverride: Array.from(new Set([...foundSkills, ...dbCreds.map((c:any) => c.skill_name)]))
         })
@@ -131,21 +132,29 @@ export default function StudentDashboard() {
         setAiData(json.data);
       }
 
-      // 4. Merge & Deduplicate Credentials for UI
-      const mergedCreds: CredentialItem[] = [...blockchainCreds];
+      // 4. Merge & Deduplicate (Prioritize DB IDs for routing to Detail Page)
+      const mergedCreds: CredentialItem[] = [];
+      
+      // Add DB Credentials first (these have the real UUIDs for the detail page)
       dbCreds.forEach((dbC: any) => {
-         const exists = mergedCreds.find(mc => mc.title.toLowerCase() === dbC.skill_name.toLowerCase());
-         if (!exists) {
-            const analysis = json.data?.skillHealth?.find((s:any) => s.skillName === dbC.skill_name);
-            mergedCreds.push({
-                category: 'University Issued',
-                title: dbC.skill_name,
-                issueDate: new Date(dbC.issued_at).toLocaleDateString(),
-                marketRelevance: analysis ? analysis.healthScore : 70,
-                verified: true,
-                certificateNumber: dbC.certificate_number
-            });
-         }
+        const analysis = json.data?.skillHealth?.find((s:any) => s.skillName === dbC.skill_name);
+        mergedCreds.push({
+            id: dbC.id, // ✅ This is the UUID from public.verified_credentials
+            category: 'University Issued',
+            title: dbC.skill_name,
+            issueDate: new Date(dbC.issued_at).toLocaleDateString(),
+            marketRelevance: analysis ? analysis.healthScore : 70,
+            verified: true,
+            certificateNumber: dbC.certificate_number
+        });
+      });
+
+      // Add Blockchain credentials only if they aren't already in the DB list
+      blockchainCreds.forEach(bc => {
+        const alreadyExists = mergedCreds.some(mc => mc.title.toLowerCase() === bc.title.toLowerCase());
+        if (!alreadyExists) {
+            mergedCreds.push(bc);
+        }
       });
 
       setAllCredentials(mergedCreds);
@@ -204,7 +213,6 @@ export default function StudentDashboard() {
             full_name: profile.full_name ? capitalizeWords(profile.full_name) : 'Student'
           };
           setUser(capitalizedProfile);
-          // 🛡️ Pass UUID (session.user.id) as fallback for student_id
           await refreshPipeline(profile.wallet_address || '', profile.student_id || session.user.id);
         }
       } catch (error) {
@@ -224,13 +232,9 @@ export default function StudentDashboard() {
   const decayingSkill = aiData?.skillHealth.find(s => s.healthScore < 60) || 
                         aiData?.skillHealth.sort((a, b) => a.healthScore - b.healthScore)[0];
 
-  const recommendedCourses = aiData?.recommendations
-    .sort((a, b) => b.relevanceScore - a.relevanceScore)
-    .slice(0, 2) || [];
-
   return (
     <DashboardLayout>
-      {/* 1. Welcome Banner (Full UI Retained) */}
+      {/* 1. Welcome Banner */}
       <div className="mb-6 -mt-6 md:-mt-2 bg-purple-50 border border-purple-100 rounded-2xl overflow-visible relative">
         <div className="flex flex-col md:flex-row items-center justify-between py-2 px-4 md:py-3 md:px-10 relative">
           <div className="flex-1 text-purple-900 z-10 pl-4">
@@ -265,7 +269,7 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* 2. Wallet Tutorial (Full UI Retained) */}
+      {/* 2. Wallet Tutorial */}
       {!loading && !user?.wallet_address && showTutorial && (
         <div className="bg-white rounded-xl border border-blue-200 shadow-lg mb-8 overflow-hidden relative">
           <div className="bg-blue-50 px-6 py-4 border-b border-blue-100 flex justify-between items-center">
@@ -273,9 +277,9 @@ export default function StudentDashboard() {
             <button onClick={() => setShowTutorial(false)} className="text-blue-400 hover:text-blue-700">×</button>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div><div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3 text-orange-600">1</div><h4 className="font-bold">Install MetaMask</h4></div>
-            <div><div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3 text-purple-600">2</div><h4 className="font-bold">Create Account</h4></div>
-            <div><div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 text-green-600">3</div><h4 className="font-bold">Connect</h4></div>
+            <div><div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3 text-orange-600">1</div><h4 className="font-bold text-sm">Install MetaMask</h4></div>
+            <div><div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3 text-purple-600">2</div><h4 className="font-bold text-sm">Create Account</h4></div>
+            <div><div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 text-green-600">3</div><h4 className="font-bold text-sm">Connect</h4></div>
           </div>
         </div>
       )}
@@ -283,7 +287,6 @@ export default function StudentDashboard() {
       {/* 3. Main Dashboard Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 space-y-6">
-          
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm">
               <h3 className="text-sm font-medium text-gray-600">Verified Skills</h3>
@@ -298,27 +301,28 @@ export default function StudentDashboard() {
           {hasPendingCVR && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex justify-between">
               <p className="text-blue-700 text-sm">Your Resume is currently being verified by the registrar.</p>
-              <button onClick={handleClosePendingCard}>×</button>
+              <button onClick={handleClosePendingCard} className="text-blue-400 hover:text-blue-600 font-bold px-2">×</button>
             </div>
           )}
 
-          {!loading && aiData && decayingSkill && (
-            <div className={`border rounded-xl p-4 shadow-sm ${decayingSkill.trend === 'growing' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}`}>
-              <h3 className="font-semibold">{decayingSkill.trend === 'growing' ? 'Market Opportunity Detected' : 'Skill Decay Detected'}</h3>
-              <p className="text-sm">Demand for {decayingSkill.skillName} is currently {decayingSkill.trend}.</p>
-            </div>
-          )}
-
+          {/* 4. Credentials Section */}
           <div>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Verified Credentials</h2>
-              <button onClick={() => router.push('/student/skills')} className="text-purple-600 text-sm font-medium">View All</button>
+              <button onClick={() => router.push('/student/skills')} className="text-purple-600 text-sm font-medium hover:underline">View All</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {allCredentials.length > 0 ? (
-                allCredentials.slice(0, 4).map((cred, i) => <CredentialCard key={i} {...cred} />)
+                allCredentials.slice(0, 4).map((cred) => (
+                  <CredentialCard 
+                    key={cred.id} 
+                    {...cred} 
+                  />
+                ))
               ) : (
-                <div className="col-span-2 p-8 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">No credentials found.</div>
+                <div className="col-span-2 p-12 text-center border-2 border-dashed border-gray-100 rounded-xl bg-gray-50/50">
+                  <p className="text-gray-400 text-sm">No credentials detected yet.</p>
+                </div>
               )}
             </div>
           </div>
@@ -327,30 +331,29 @@ export default function StudentDashboard() {
         <div className="xl:col-span-1 space-y-6">
           <RecentActivity activities={activities} />
 
-          {/* 4. Account Setup Checklist (Full UI Retained) */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Setup Checklist</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Setup</h3>
             <div className="relative pt-1 mb-4">
               <div className="flex mb-2 items-center justify-between">
-                <span className="text-xs font-semibold py-1 px-2 uppercase rounded-full text-purple-600 bg-purple-200">
+                <span className="text-xs font-semibold py-1 px-2 uppercase rounded-full text-purple-600 bg-purple-50">
                   {user?.wallet_address && allCredentials.length > 0 ? 'Almost Done' : 'In Progress'}
                 </span>
                 <span className="text-xs font-semibold text-purple-600">{user?.wallet_address ? (allCredentials.length > 0 ? '75%' : '50%') : '25%'}</span>
               </div>
-              <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-purple-200">
+              <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-purple-100">
                 <div style={{ width: user?.wallet_address ? (allCredentials.length > 0 ? '75%' : '50%') : '25%' }} className="bg-purple-600 transition-all duration-500"></div>
               </div>
             </div>
             <ul className="space-y-3 mb-6">
               <li className="flex items-center text-sm text-gray-600">
-                {user?.wallet_address ? <span className="text-green-500 mr-2">✓</span> : <span className="mr-2">○</span>} Connect Wallet
+                {user?.wallet_address ? <span className="text-green-500 font-bold mr-2">✓</span> : <span className="text-gray-300 mr-2">○</span>} Connect Wallet
               </li>
               <li className="flex items-center text-sm text-gray-600">
-                {allCredentials.length > 0 || hasPendingCVR ? <span className="text-green-500 mr-2">✓</span> : <span className="mr-2">○</span>} Upload Resume (CVR)
+                {allCredentials.length > 0 || hasPendingCVR ? <span className="text-green-500 font-bold mr-2">✓</span> : <span className="text-gray-300 mr-2">○</span>} Upload Resume (CVR)
               </li>
-              <li className="flex items-center text-sm text-gray-600"><span className="mr-2">○</span> Complete Profile</li>
+              <li className="flex items-center text-sm text-gray-600"><span className="text-gray-300 mr-2">○</span> Complete Profile</li>
             </ul>
-            <button onClick={() => router.push('/student/profile')} className="w-full bg-purple-50 text-purple-700 py-2 rounded-lg text-sm font-medium">Complete Setup</button>
+            <button onClick={() => router.push('/student/profile')} className="w-full bg-purple-600 text-white py-2.5 rounded-lg text-sm font-bold shadow-sm shadow-purple-200 hover:bg-purple-700 transition-colors">Complete Setup</button>
           </div>
         </div>
       </div>
