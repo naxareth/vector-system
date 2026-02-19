@@ -1,29 +1,49 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { analyzeStudentProfile } from '../../../../../../ai-engine/src/index'; 
+import { z } from 'zod';
+
+// 🛡️ API Schema Validation: Define the expected shape of the request
+const AnalyzeRequestSchema = z.object({
+  studentId: z.string().optional(),
+  userId: z.string().uuid().optional(),
+  id: z.string().uuid().optional(),
+  resumeText: z.string().optional().default(""),
+  skillsOverride: z.array(z.string()).optional().default([]),
+});
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const rawBody = await req.json();
     
-    // 🛠️ DEBUG: Check your server terminal to see what's actually arriving
-    console.log("DEBUG: /api/analyze received body:", body);
+    // 1. 🛡️ All inputs validated server-side (using Zod)
+    const result = AnalyzeRequestSchema.safeParse(rawBody);
+    
+    if (!result.success) {
+      return NextResponse.json({ 
+        status: 'error', 
+        message: 'Invalid request schema',
+        errors: result.error.errors 
+      }, { status: 400 });
+    }
 
-    // Pick up the identifier from common keys
-    const identifier = body.studentId || body.userId || body.id;
+    const { studentId, userId, id, resumeText, skillsOverride } = result.data;
+
+    // Pick up the identifier (prioritize studentId, then UUIDs)
+    const identifier = studentId || userId || id;
 
     if (!identifier) {
       return NextResponse.json({ 
         status: 'error', 
-        message: 'No identifier found (studentId or userId required)' 
+        message: 'No student identifier found' 
       }, { status: 400 });
     }
 
-    // 1. 🛡️ Flexible Fetch: Search by UUID (id) OR University ID (student_id)
+    // 2. 🛡️ Parameterized SQL queries (via Prisma)
     const student = await prisma.users.findFirst({
       where: {
         OR: [
-          { id: identifier.length === 36 ? identifier : undefined }, // Only check UUID if it matches length
+          { id: identifier.length === 36 ? identifier : undefined },
           { student_id: identifier }
         ]
       },
@@ -33,15 +53,15 @@ export async function POST(req: Request) {
       }
     });
 
-    // Strategy: If user is missing from DB, we treat them as a "Guest" for the demo
     const verifiedNames = student?.verified_credentials.map(c => c.skill_name) || [];
     const selfReportedNames = student?.self_reported_skills.map(s => s.skill_name) || [];
     
-    let allSkills = body.skillsOverride?.length > 0 
-      ? body.skillsOverride 
+    // Use validated skillsOverride
+    let allSkills = skillsOverride.length > 0 
+      ? skillsOverride 
       : Array.from(new Set([...verifiedNames, ...selfReportedNames]));
 
-    // 🚀 Fallback to Monitored Keywords so the chart isn't empty
+    // Fallback logic
     if (allSkills.length === 0) {
         const monitored = await prisma.monitored_keywords.findMany({ 
             where: { is_active: true },
@@ -50,13 +70,11 @@ export async function POST(req: Request) {
         allSkills = monitored.length > 0 ? monitored.map(k => k.keyword) : ['React', 'Node.js', 'Solidity'];
     }
 
-    // 2. Fetch Market History
     const marketHistoryRaw = await prisma.market_snapshots.findMany({
       where: { skill_name: { in: allSkills } },
       orderBy: { recorded_at: 'asc' }
     });
 
-    // Process History for the Graph
     const chartDataMap: Record<string, any> = {};
     marketHistoryRaw.forEach(record => {
       const dateKey = new Date(record.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -73,7 +91,7 @@ export async function POST(req: Request) {
         credentials: student?.verified_credentials || []
       }, 
       marketData: marketHistoryRaw, 
-      resumeText: body.resumeText || "" 
+      resumeText: resumeText 
     });
 
     return NextResponse.json({
