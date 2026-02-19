@@ -8,7 +8,7 @@ const AnalyzeRequestSchema = z.object({
   studentId: z.string().optional(),
   userId: z.string().uuid().optional(),
   id: z.string().uuid().optional(),
-  resumeText: z.string().optional().default(""),
+  resumeText: z.string().max(5000, "Resume text too long (max 5000 chars)").optional().default(""),
   skillsOverride: z.array(z.string()).optional().default([]),
 });
 

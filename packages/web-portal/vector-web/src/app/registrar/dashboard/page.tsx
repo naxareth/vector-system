@@ -6,7 +6,6 @@ import { ethers } from 'ethers';
 import { supabase } from '@/lib/supabaseClient';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
 import { z } from 'zod'; 
-// ❌ REMOVED: import { encryptData } ... (Security Fix)
 
 // 2. Define Validation Schema for Minting
 const mintingSchema = z.object({
@@ -146,7 +145,7 @@ export default function RegistrarDashboard() {
           skillName: finalSkillName,
           txHash: tx.hash,
           certificateNumber: singleCredential.certificateNumber,
-          privateNotes: singleCredential.privateNotes, // Sent plain, Encrypted on Server
+          private_notes: singleCredential.privateNotes,
           issuanceDate: singleCredential.issuanceDate
         })
       });
