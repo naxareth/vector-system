@@ -7,8 +7,35 @@ import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain'
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import CVRSuccessModal from '@/components/dashboard/CVRSuccessModal';
+import { z } from 'zod'; // 1. Import Zod
 
-// Type for our dynamic skills
+// 2. Define Validation Schema for the Resume
+const resumeSchema = z.object({
+  fullName: z.string().min(2, "Full Name is required (min 2 chars)"),
+  title: z.string().min(2, "Professional Title is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().optional().or(z.literal('')), // Allow empty or valid string
+  linkedin: z.string().url("Must be a valid URL (https://...)").optional().or(z.literal('')),
+  portfolio: z.string().url("Must be a valid URL (https://...)").optional().or(z.literal('')),
+  summary: z.string().max(600, "Summary must be under 600 characters").optional(),
+  
+  // Validate Arrays (Ensure they aren't empty objects)
+  education: z.array(z.object({
+    degree: z.string().optional(),
+    school: z.string().optional(),
+    location: z.string().optional(),
+    year: z.string().optional(),
+    honors: z.string().optional(),
+  })).optional(),
+  
+  experience: z.array(z.object({
+    title: z.string().optional(),
+    company: z.string().optional(),
+    dates: z.string().optional(),
+    description: z.string().optional(),
+  })).optional(),
+});
+
 interface SkillItem {
   id: string;
   name: string;
@@ -21,11 +48,15 @@ export default function CVRPage() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
+  const [selectedColor, setSelectedColor] = useState('#6d28d9');
   
-  // Dynamic Data States
+  // 3. Add Error State
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const [availableSkills, setAvailableSkills] = useState<SkillItem[]>([]);
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [customSkill, setCustomSkill] = useState('');
+  const [availableCertifications, setAvailableCertifications] = useState<any[]>([]);
   
   const [isGenerated, setIsGenerated] = useState(false);
   const [generatedData, setGeneratedData] = useState<any>(null);
@@ -35,11 +66,83 @@ export default function CVRPage() {
     email: '',
     phone: '',
     portfolio: '',
+    linkedin: '',
     title: '',
     summary: '',
+    education: [] as {
+      degree: string;
+      school: string;
+      location: string;
+      year: string;
+      honors: string;
+    }[],
+    experience: [] as {
+      title: string;
+      company: string;
+      dates: string;
+      description: string;
+    }[],
+    projects: [] as {
+      title: string;
+      description: string;
+      technologies: string;
+      role: string;
+    }[],
+    certifications: [] as {
+      name: string;
+      issuer: string;
+      date: string;
+      verified: boolean;
+    }[],
+    awards: [] as {
+      title: string;
+      description: string;
+    }[],
   });
 
-  // ⚡⚡⚡ 1. FETCH REAL DATA ⚡⚡⚡
+  const addEducation = () => setFormData(prev => ({ 
+    ...prev, education: [...prev.education, { degree: '', school: '', location: '', year: '', honors: '' }] 
+  }));
+  const addExperience = () => setFormData(prev => ({
+    ...prev, experience: [...prev.experience, { title: '', company: '', dates: '', description: '' }]
+  }));
+  const addProject = () => setFormData(prev => ({
+    ...prev, projects: [...prev.projects, { title: '', description: '', technologies: '', role: '' }]
+  }));
+  const addCertification = () => setFormData(prev => ({
+    ...prev, certifications: [...prev.certifications, { name: '', issuer: '', date: '', verified: false }]
+  }));
+  const addAward = () => setFormData(prev => ({
+    ...prev, awards: [...prev.awards, { title: '', description: '' }]
+  }));
+
+  const removeItem = (section: keyof typeof formData, index: number) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      [section]: prev[section].filter((_: any, i: number) => i !== index)
+    }));
+  };
+
+  const updateItem = (section: keyof typeof formData, index: number, field: string, value: string) => {
+     setFormData((prev: any) => {
+       const newItems = [...prev[section]];
+       newItems[index] = { ...newItems[index], [field]: value };
+       return { ...prev, [section]: newItems };
+     });
+  };
+
+  // Clear specific error on change
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+        setErrors(prev => {
+            const newErr = { ...prev };
+            delete newErr[field];
+            return newErr;
+        });
+    }
+  };
+
   useEffect(() => {
     const initPage = async () => {
       try {
@@ -49,7 +152,6 @@ export default function CVRPage() {
           return;
         }
 
-        // A. Fetch User & Profile Data
         const { data: userRecord } = await supabase
           .from('users')
           .select('full_name, wallet_address')
@@ -58,11 +160,10 @@ export default function CVRPage() {
 
         const { data: profileRecord } = await supabase
           .from('profiles')
-          .select('phone, major, bio, linkedin_url') // Assuming 'major' is used as Title
+          .select('phone, major, bio, linkedin_url')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        // B. Populate Form
         setFormData(prev => ({
           ...prev,
           fullName: userRecord?.full_name || '',
@@ -73,12 +174,19 @@ export default function CVRPage() {
           portfolio: profileRecord?.linkedin_url || ''
         }));
 
-        // C. Fetch Blockchain Skills
         if (userRecord?.wallet_address) {
           await fetchVerifiedSkills(userRecord.wallet_address);
         } else {
-          // If no wallet, just show empty list (or could add default unverified list)
           setAvailableSkills([]); 
+        }
+
+        const { data: certs } = await supabase
+          .from('verified_credentials')
+          .select('*')
+          .eq('user_id', session.user.id);
+
+        if (certs) {
+          setAvailableCertifications(certs);
         }
 
       } catch (error) {
@@ -91,10 +199,8 @@ export default function CVRPage() {
     initPage();
   }, [router]);
 
-  // Helper: Check Blockchain for Skills
   const fetchVerifiedSkills = async (walletAddress: string) => {
     try {
-      // Connect to blockchain
       const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
       const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
       
@@ -109,14 +215,13 @@ export default function CVRPage() {
             foundSkills.push({
               id: `chain-${skillId}`,
               name: skillName,
-              verified: true // Mark as verified
+              verified: true
             });
           }
         } catch (e) { /* Ignore read errors */ }
       }
       
       setAvailableSkills(foundSkills);
-      // Auto-select verified skills
       setSelectedSkillIds(foundSkills.map(s => s.id));
 
     } catch (error) {
@@ -135,9 +240,7 @@ export default function CVRPage() {
   const handleAddCustomSkill = () => {
     if (customSkill.trim()) {
       const newId = `custom-${Date.now()}`;
-      // Add to available list as unverified
       setAvailableSkills(prev => [...prev, { id: newId, name: customSkill, verified: false }]);
-      // Auto-select it
       setSelectedSkillIds(prev => [...prev, newId]);
       setCustomSkill('');
     }
@@ -145,16 +248,58 @@ export default function CVRPage() {
 
   const handleGenerateCVR = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({}); // Reset errors
+
+    // 4. Run Zod Validation
+    const validation = resumeSchema.safeParse(formData);
+
+    if (!validation.success) {
+        const newErrors: Record<string, string> = {};
+        validation.error.issues.forEach(issue => {
+            if (issue.path[0]) newErrors[issue.path[0].toString()] = issue.message;
+        });
+        setErrors(newErrors);
+        
+        // Alert user to scroll up
+        alert("Please fix the errors in the form before generating.");
+        return;
+    }
     
     // Filter the full skill objects based on selection
     const finalSkills = availableSkills.filter(s => selectedSkillIds.includes(s.id));
+    const sanitizeArray = (arr: any[]) => arr.filter(item => Object.values(item).some((v: any) => v !== null && v !== undefined && String(v).trim() !== ''));
 
-    const cvrData = {
-      ...formData,
-      template: selectedTemplate,
-      skills: finalSkills, // Pass the full objects (name + verified status)
+    const cvrData: any = {
       generatedAt: new Date().toISOString(),
+      template: selectedTemplate,
+      color: selectedColor,
+      skills: finalSkills,
     };
+
+    // Use validated data
+    cvrData.fullName = formData.fullName;
+    cvrData.email = formData.email;
+
+    if (formData.phone) cvrData.phone = formData.phone;
+    if (formData.portfolio) cvrData.portfolio = formData.portfolio;
+    if (formData.linkedin) cvrData.linkedin = formData.linkedin;
+    if (formData.title) cvrData.title = formData.title;
+    if (formData.summary) cvrData.summary = formData.summary;
+
+    const cleanedEducation = sanitizeArray(formData.education || []);
+    if (cleanedEducation.length) cvrData.education = cleanedEducation;
+
+    const cleanedExperience = sanitizeArray(formData.experience || []);
+    if (cleanedExperience.length) cvrData.experience = cleanedExperience;
+
+    const cleanedProjects = sanitizeArray(formData.projects || []);
+    if (cleanedProjects.length) cvrData.projects = cleanedProjects;
+
+    const cleanedCerts = sanitizeArray(formData.certifications || []);
+    if (cleanedCerts.length) cvrData.certifications = cleanedCerts;
+
+    const cleanedAwards = sanitizeArray(formData.awards || []);
+    if (cleanedAwards.length) cvrData.awards = cleanedAwards;
     
     localStorage.setItem('sampleCVRData', JSON.stringify(cvrData));
     localStorage.setItem('pendingCVR', 'true');
@@ -167,8 +312,25 @@ export default function CVRPage() {
   const handleCreateNew = () => {
     setIsGenerated(false);
     setGeneratedData(null);
-    // Reset selected skills to only verified ones (optional preference)
     setSelectedSkillIds(availableSkills.filter(s => s.verified).map(s => s.id));
+  };
+
+  const handleAddVerifiedCertification = (cert: any) => {
+    const exists = formData.certifications.some((c: any) => c.name === cert.skill_name && c.verified);
+    if (exists) return;
+
+    setFormData(prev => ({
+      ...prev,
+      certifications: [
+        ...prev.certifications,
+        {
+          name: cert.skill_name,
+          issuer: 'Vector University (Blockchain Verified)',
+          date: new Date(cert.issued_at).toLocaleDateString(),
+          verified: true
+        }
+      ]
+    }));
   };
 
   const handleDownload = () => {
@@ -178,10 +340,9 @@ export default function CVRPage() {
 
   return (
     <DashboardLayout>
-      {/* Page Header */}
       <div className="mb-4 -mt-10">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-          {isGenerated ? 'Credential Verified Resume (CVR)' : 'Generate CVR'}
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+          {isGenerated ? 'Credential Verified Resume (CVR)' : 'Credential Verified Resume'}
         </h1>
         <p className="text-sm md:text-base text-gray-500">
           {isGenerated 
@@ -195,88 +356,244 @@ export default function CVRPage() {
           Syncing Profile & Blockchain Data...
         </div>
       ) : !isGenerated ? (
-      <form onSubmit={handleGenerateCVR} className="max-w-4xl">
+      <form onSubmit={handleGenerateCVR} className="w-full">
         <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 space-y-6">
           {/* Personal Details Section */}
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal Details</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.fullName}
+                    onChange={(e) => handleChange('fullName', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.fullName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
+                    placeholder="John Doe"
+                  />
+                  {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Professional Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => handleChange('title', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.title ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
+                    placeholder="Full-Stack Developer"
+                  />
+                  {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleChange('email', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
+                    placeholder="john@example.com"
+                  />
+                  {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => handleChange('phone', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                    placeholder="+63 912 345 6789"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name <span className="text-red-500">*</span>
+                  LinkedIn Profile (Optional)
                 </label>
                 <input
-                  type="text"
-                  required
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                  placeholder="John Doe"
+                  type="url"
+                  value={formData.linkedin}
+                  onChange={(e) => handleChange('linkedin', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.linkedin ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
+                  placeholder="https://linkedin.com/in/johndoe"
                 />
+                {errors.linkedin && <p className="text-xs text-red-500 mt-1">{errors.linkedin}</p>}
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Professional Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                  placeholder="Full-Stack Developer"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                  placeholder="john@example.com"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                  placeholder="+63 912 345 6789"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Portfolio/Website
+                  Portfolio/Website (GitHub for Devs)
                 </label>
                 <input
                   type="url"
                   value={formData.portfolio}
-                  onChange={(e) => setFormData({ ...formData, portfolio: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                  placeholder="https://portfolio.com"
+                  onChange={(e) => handleChange('portfolio', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.portfolio ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
+                  placeholder="https://github.com/johndoe"
                 />
+                {errors.portfolio && <p className="text-xs text-red-500 mt-1">{errors.portfolio}</p>}
               </div>
-              <div className="md:col-span-2">
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Professional Summary
                 </label>
+                <p className="text-xs text-gray-500 mb-2">A short 2–4 sentence paragraph summarizing who you are, your key skills, career goals, and the value you bring.</p>
                 <textarea
                   value={formData.summary}
-                  onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                  onChange={(e) => handleChange('summary', e.target.value)}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                  placeholder="Brief professional summary..."
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.summary ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`}
+                  placeholder="e.g., Diligent Computer Science student with a passion for blockchain technology..."
                 />
+                {errors.summary && <p className="text-xs text-red-500 mt-1">{errors.summary}</p>}
               </div>
             </div>
+          </div>
+
+          {/* 3. Education Section */}
+          <div className="pt-6 border-t border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex justify-between items-center">
+              Education
+              <button type="button" onClick={addEducation} className="text-sm text-purple-600 hover:text-purple-700 font-medium">+ Add Education</button>
+            </h2>
+            {formData.education.map((edu: any, index: number) => (
+              <div key={index} className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200 relative">
+                <button type="button" onClick={() => removeItem('education', index)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500">×</button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input placeholder="Degree (e.g. BS Information Technology)" className="p-2 border rounded" value={edu.degree} onChange={(e) => updateItem('education', index, 'degree', e.target.value)} />
+                  <input placeholder="School Name" className="p-2 border rounded" value={edu.school} onChange={(e) => updateItem('education', index, 'school', e.target.value)} />
+                  <input placeholder="Location" className="p-2 border rounded" value={edu.location} onChange={(e) => updateItem('education', index, 'location', e.target.value)} />
+                  <input placeholder="Graduation Year/Date" className="p-2 border rounded" value={edu.year} onChange={(e) => updateItem('education', index, 'year', e.target.value)} />
+                  <input placeholder="Academic Honors (Optional)" className="md:col-span-2 p-2 border rounded" value={edu.honors} onChange={(e) => updateItem('education', index, 'honors', e.target.value)} />
+                </div>
+              </div>
+            ))}
+             {formData.education.length === 0 && <p className="text-sm text-gray-500 italic">No education added yet.</p>}
+          </div>
+
+          {/* 4. Work Experience Section */}
+          <div className="pt-6 border-t border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex justify-between items-center">
+              Work Experience
+              <button type="button" onClick={addExperience} className="text-sm text-purple-600 hover:text-purple-700 font-medium">+ Add Experience</button>
+            </h2>
+            {formData.experience.map((exp: any, index: number) => (
+               <div key={index} className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200 relative">
+                <button type="button" onClick={() => removeItem('experience', index)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500">×</button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input placeholder="Job Title" className="p-2 border rounded" value={exp.title} onChange={(e) => updateItem('experience', index, 'title', e.target.value)} />
+                  <input placeholder="Company Name" className="p-2 border rounded" value={exp.company} onChange={(e) => updateItem('experience', index, 'company', e.target.value)} />
+                  <input placeholder="Dates (e.g. Jan 2023 - Present)" className="md:col-span-2 p-2 border rounded" value={exp.dates} onChange={(e) => updateItem('experience', index, 'dates', e.target.value)} />
+                  <textarea placeholder="Description (Bullet points recommended)" rows={3} className="md:col-span-2 p-2 border rounded" value={exp.description} onChange={(e) => updateItem('experience', index, 'description', e.target.value)} />
+                </div>
+              </div>
+            ))}
+            {formData.experience.length === 0 && <p className="text-sm text-gray-500 italic">No work experience added yet.</p>}
+          </div>
+
+           {/* 5. Projects Section */}
+           <div className="pt-6 border-t border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex justify-between items-center">
+              Projects
+              <button type="button" onClick={addProject} className="text-sm text-purple-600 hover:text-purple-700 font-medium">+ Add Project</button>
+            </h2>
+            {formData.projects.map((proj: any, index: number) => (
+               <div key={index} className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200 relative">
+                <button type="button" onClick={() => removeItem('projects', index)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500">×</button>
+                <div className="grid grid-cols-1 gap-4">
+                  <input placeholder="Project Title" className="p-2 border rounded" value={proj.title} onChange={(e) => updateItem('projects', index, 'title', e.target.value)} />
+                  <input placeholder="Technologies Used" className="p-2 border rounded" value={proj.technologies} onChange={(e) => updateItem('projects', index, 'technologies', e.target.value)} />
+                   <input placeholder="Your Role" className="p-2 border rounded" value={proj.role} onChange={(e) => updateItem('projects', index, 'role', e.target.value)} />
+                  <textarea placeholder="Short description..." rows={2} className="p-2 border rounded" value={proj.description} onChange={(e) => updateItem('projects', index, 'description', e.target.value)} />
+                </div>
+              </div>
+            ))}
+             {formData.projects.length === 0 && <p className="text-sm text-gray-500 italic">No projects added yet.</p>}
+          </div>
+
+
+           {/* Available Verified Certifications (New Block) */}
+           {availableCertifications.length > 0 && (
+            <div className="pt-6 border-t border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                Available Verified Certifications
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Blockchain Synced</span>
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {availableCertifications.map((cert) => {
+                   const isAdded = formData.certifications.some((c: any) => c.name === cert.skill_name && c.verified);
+                   return (
+                    <div key={cert.id} className={`p-4 rounded-lg border flex justify-between items-center ${isAdded ? 'bg-green-50 border-green-200 opacity-70' : 'bg-white border-purple-200 shadow-sm'}`}>
+                      <div>
+                        <h3 className="font-bold text-gray-800">{cert.skill_name}</h3>
+                        <p className="text-xs text-gray-500">Issued: {new Date(cert.issued_at).toLocaleDateString()}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddVerifiedCertification(cert)}
+                        disabled={isAdded}
+                        className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                          isAdded 
+                            ? 'text-green-700 bg-green-100 cursor-default' 
+                            : 'text-white bg-purple-600 hover:bg-purple-700'
+                        }`}
+                      >
+                        {isAdded ? 'Added ✓' : '+ Add to CVR'}
+                      </button>
+                    </div>
+                   );
+                })}
+              </div>
+            </div>
+          )}
+
+           {/* 6. Certifications & Awards Section */}
+           <div className="pt-6 border-t border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex justify-between items-center">
+              Certifications & Awards
+               <div className="space-x-4">
+                <button type="button" onClick={addCertification} className="text-sm text-purple-600 hover:text-purple-700 font-medium">+ Add Certification</button>
+                <button type="button" onClick={addAward} className="text-sm text-purple-600 hover:text-purple-700 font-medium">+ Add Award</button>
+               </div>
+            </h2>
+             {/* Certs */}
+            {formData.certifications.map((cert: any, index: number) => (
+               <div key={`cert-${index}`} className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-100 relative">
+                <button type="button" onClick={() => removeItem('certifications', index)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500">×</button>
+                <p className="text-xs text-blue-600 font-semibold mb-2 uppercase">Certification</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input placeholder="Certification Name" className="p-2 border rounded" value={cert.name} onChange={(e) => updateItem('certifications', index, 'name', e.target.value)} />
+                  <input placeholder="Issuing Organization" className="p-2 border rounded" value={cert.issuer} onChange={(e) => updateItem('certifications', index, 'issuer', e.target.value)} />
+                  <input placeholder="Date Earned" className="p-2 border rounded" value={cert.date} onChange={(e) => updateItem('certifications', index, 'date', e.target.value)} />
+                </div>
+              </div>
+            ))}
+            {/* Awards */}
+            {formData.awards.map((award: any, index: number) => (
+               <div key={`award-${index}`} className="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-100 relative">
+                <button type="button" onClick={() => removeItem('awards', index)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500">×</button>
+                <p className="text-xs text-yellow-600 font-semibold mb-2 uppercase">Award</p>
+                <div className="grid grid-cols-1 gap-4">
+                  <input placeholder="Award Title" className="p-2 border rounded" value={award.title} onChange={(e) => updateItem('awards', index, 'title', e.target.value)} />
+                  <textarea placeholder="Description" rows={2} className="p-2 border rounded" value={award.description} onChange={(e) => updateItem('awards', index, 'description', e.target.value)} />
+                </div>
+              </div>
+            ))}
+             {formData.certifications.length === 0 && formData.awards.length === 0 && <p className="text-sm text-gray-500 italic">No certifications or awards added yet.</p>}
           </div>
 
           {/* Skills Selection Section */}
@@ -359,42 +676,178 @@ export default function CVRPage() {
             </div>
           </div>
 
-          {/* Template Selection Section */}
+          {/* Template Selection Section (unchanged from original) */}
           <div className="pt-6 border-t border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Choose Template</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {['professional', 'modern', 'minimal'].map((template) => (
-                <label
-                  key={template}
-                  className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    selectedTemplate === template
-                      ? 'border-purple-600 bg-purple-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="template"
-                    value={template}
-                    checked={selectedTemplate === template}
-                    onChange={(e) => setSelectedTemplate(e.target.value)}
-                    className="sr-only"
-                  />
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-gray-900 capitalize">{template}</span>
-                    {selectedTemplate === template && (
-                      <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Choose Template</h2>
+              <span className="text-sm text-purple-600 font-medium bg-purple-50 px-3 py-1 rounded-full">
+                {selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)} Selected
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Professional Template Option */}
+              <label className={`group relative cursor-pointer block`}>
+                <input
+                  type="radio"
+                  name="template"
+                  value="professional"
+                  checked={selectedTemplate === 'professional'}
+                  onChange={(e) => setSelectedTemplate(e.target.value)}
+                  className="sr-only"
+                />
+                <div className={`h-full rounded-xl border-2 transition-all duration-200 overflow-hidden ${
+                  selectedTemplate === 'professional' 
+                    ? 'border-purple-600 shadow-md ring-1 ring-purple-600' 
+                    : 'border-gray-200 hover:border-purple-300 hover:shadow-sm'
+                }`}>
+                  <div className="aspect-[3/4] bg-white p-3 flex flex-col gap-2 relative">
+                    <div className="w-1/3 h-2 bg-gray-800 rounded-sm mb-2"></div>
+                    <div className="w-full h-px bg-gray-200"></div>
+                    <div className="flex gap-2">
+                        <div className="w-2/3 space-y-1">
+                          <div className="w-full h-1.5 bg-gray-200 rounded-sm"></div>
+                          <div className="w-5/6 h-1.5 bg-gray-200 rounded-sm"></div>
+                          <div className="w-full h-1.5 bg-gray-200 rounded-sm"></div>
+                        </div>
+                        <div className="w-1/3 space-y-1">
+                          <div className="w-full h-1.5 bg-gray-300 rounded-sm"></div>
+                          <div className="w-3/4 h-1.5 bg-gray-300 rounded-sm"></div>
+                        </div>
+                    </div>
+                    {selectedTemplate === 'professional' && (
+                      <div className="absolute inset-0 bg-purple-600/10 flex items-center justify-center">
+                        <div className="bg-purple-600 text-white p-2 rounded-full shadow-lg">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">
-                    {template === 'professional' && 'Classic layout for corporate roles'}
-                    {template === 'modern' && 'Creative design for tech positions'}
-                    {template === 'minimal' && 'Clean and simple format'}
-                  </p>
-                </label>
-              ))}
+                  <div className="p-4 bg-gray-50 border-t border-gray-100">
+                    <h3 className="font-bold text-gray-900">Professional</h3>
+                    <p className="text-xs text-gray-500 mt-1">Clean, structured layout best for corporate and enterprise roles.</p>
+                  </div>
+                </div>
+              </label>
+
+              {/* Modern Template Option */}
+              <label className={`group relative cursor-pointer block`}>
+                <input
+                  type="radio"
+                  name="template"
+                  value="modern"
+                  checked={selectedTemplate === 'modern'}
+                  onChange={(e) => setSelectedTemplate(e.target.value)}
+                  className="sr-only"
+                />
+                <div className={`h-full rounded-xl border-2 transition-all duration-200 overflow-hidden ${
+                  selectedTemplate === 'modern' 
+                    ? 'border-purple-600 shadow-md ring-1 ring-purple-600' 
+                    : 'border-gray-200 hover:border-purple-300 hover:shadow-sm'
+                }`}>
+                    <div className="aspect-[3/4] bg-white flex relative">
+                    <div className="w-1/3 bg-gray-100 p-2 space-y-2">
+                      <div className="w-12 h-12 rounded-full bg-gray-300 mx-auto mb-2"></div>
+                      <div className="w-full h-1.5 bg-gray-300 rounded-sm"></div>
+                      <div className="w-2/3 h-1.5 bg-gray-300 rounded-sm mx-auto"></div>
+                    </div>
+                    <div className="w-2/3 p-2 space-y-2">
+                      <div className="w-1/2 h-3 bg-purple-600 rounded-sm mb-2"></div>
+                      <div className="w-full h-1.5 bg-gray-200 rounded-sm"></div>
+                      <div className="w-full h-1.5 bg-gray-200 rounded-sm"></div>
+                      <div className="w-5/6 h-1.5 bg-gray-200 rounded-sm"></div>
+                    </div>
+                    {selectedTemplate === 'modern' && (
+                      <div className="absolute inset-0 bg-purple-600/10 flex items-center justify-center">
+                        <div className="bg-purple-600 text-white p-2 rounded-full shadow-lg">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 bg-gray-50 border-t border-gray-100">
+                    <h3 className="font-bold text-gray-900">Modern</h3>
+                    <p className="text-xs text-gray-500 mt-1">Creative two-column design with verified skills sidebar.</p>
+                  </div>
+                </div>
+              </label>
+
+               {/* Simple Template Option */}
+               <label className={`group relative cursor-pointer block`}>
+                <input
+                  type="radio"
+                  name="template"
+                  value="simple"
+                  checked={selectedTemplate === 'simple'}
+                  onChange={(e) => setSelectedTemplate(e.target.value)}
+                  className="sr-only"
+                />
+                <div className={`h-full rounded-xl border-2 transition-all duration-200 overflow-hidden ${
+                  selectedTemplate === 'simple' 
+                    ? 'border-purple-600 shadow-md ring-1 ring-purple-600' 
+                    : 'border-gray-200 hover:border-purple-300 hover:shadow-sm'
+                }`}>
+                    <div className="aspect-[3/4] bg-white p-4 flex flex-col gap-2 relative">
+                    <div className="text-center space-y-0.5 mb-1">
+                       <div className="w-2/3 h-2.5 bg-gray-800 rounded-sm mx-auto"></div>
+                       <div className="w-1/2 h-1 bg-gray-300 rounded-sm mx-auto"></div>
+                       <div className="w-2/5 h-1 bg-gray-300 rounded-sm mx-auto"></div>
+                    </div>
+                    <div className="w-full h-px bg-gray-800"></div>
+                    <div className="w-full h-1 bg-gray-100 rounded-sm italic"></div>
+                    <div className="space-y-1.5 mt-1">
+                       <div className="w-2/5 h-1.5 bg-gray-800 rounded-sm tracking-widest"></div>
+                       <div className="w-full h-px bg-gray-400"></div>
+                       <div className="flex justify-between">
+                         <div className="w-1/3 h-1 bg-gray-700 rounded-sm"></div>
+                         <div className="w-1/4 h-1 bg-gray-400 rounded-sm"></div>
+                       </div>
+                       <div className="pl-3 space-y-0.5">
+                         <div className="flex items-start gap-1"><div className="w-1 h-1 bg-gray-400 rounded-full mt-0.5 flex-shrink-0"></div><div className="w-full h-1 bg-gray-200 rounded-sm"></div></div>
+                         <div className="flex items-start gap-1"><div className="w-1 h-1 bg-gray-400 rounded-full mt-0.5 flex-shrink-0"></div><div className="w-5/6 h-1 bg-gray-200 rounded-sm"></div></div>
+                       </div>
+                    </div>
+                    <div className="space-y-1 mt-1">
+                       <div className="w-1/4 h-1.5 bg-gray-800 rounded-sm"></div>
+                       <div className="w-full h-px bg-gray-400"></div>
+                       <div className="w-full h-1 bg-gray-200 rounded-sm"></div>
+                    </div>
+                    {selectedTemplate === 'simple' && (
+                      <div className="absolute inset-0 bg-purple-600/10 flex items-center justify-center">
+                        <div className="bg-purple-600 text-white p-2 rounded-full shadow-lg">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 bg-gray-50 border-t border-gray-100">
+                    <h3 className="font-bold text-gray-900">Simple</h3>
+                    <p className="text-xs text-gray-500 mt-1">Traditional, no-frills resume. Clean and ATS-friendly.</p>
+                  </div>
+                </div>
+              </label>
+            </div>
+            {/* Color Picker for Template Accent */}
+            <div className="mt-4 flex items-center gap-4">
+              <label className="text-sm font-medium text-gray-700">Primary Color</label>
+              <input
+                type="color"
+                value={selectedColor}
+                onChange={(e) => setSelectedColor(e.target.value)}
+                className="w-10 h-8 p-0 border rounded-md"
+                aria-label="Choose primary color"
+              />
+              <input
+                type="text"
+                value={selectedColor}
+                onChange={(e) => setSelectedColor(e.target.value)}
+                className="px-2 py-1 border rounded-md text-sm w-28"
+                aria-label="Primary color hex"
+              />
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-xs text-gray-500">Preview</span>
+                <span className="w-6 h-6 rounded-full border" style={{ background: selectedColor }} />
+              </div>
             </div>
           </div>
 
@@ -402,7 +855,7 @@ export default function CVRPage() {
           <div>
             <button
               type="submit"
-              className="w-full md:w-auto px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all"
+              className="w-full md:w-auto px-8 py-3 bg-purple-600 hover:bg-purple-700 !text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -415,163 +868,26 @@ export default function CVRPage() {
       ) : (
         /* Generated CVR Display */
         <div className="w-full">
-      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 space-y-6">
-            {/* Header Section */}
-            <div className="text-center border-b border-gray-200 pb-6">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">{generatedData.fullName}</h2>
-              <p className="text-xl text-purple-600 font-medium mb-4">{generatedData.title}</p>
-              <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  {generatedData.email}
-                </div>
-                {generatedData.phone && (
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    {generatedData.phone}
-                  </div>
-                )}
-                {generatedData.portfolio && (
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                    </svg>
-                    <a href={generatedData.portfolio} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
-                      Portfolio
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Professional Summary */}
-            {generatedData.summary && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Professional Summary</h3>
-                <p className="text-gray-700 leading-relaxed">{generatedData.summary}</p>
-              </div>
-            )}
-
-            {/* Skills Section */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Skills</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {generatedData.skills.map((skill: SkillItem, index: number) => {
-                  return (
-                    <div key={index} className={`flex items-center gap-2 p-3 border rounded-lg ${
-                      skill.verified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
-                    }`}>
-                      {skill.verified ? (
-                        <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      )}
-                      <span className="font-medium text-gray-900">{skill.name}</span>
-                      {skill.verified && (
-                        <span className="ml-auto text-xs text-green-600 font-medium bg-white border border-green-200 px-2 py-0.5 rounded">Verified</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Blockchain Verification Details */}
-            {/* Only show this block if at least one skill is verified */}
-            {generatedData.skills.some((s: SkillItem) => s.verified) && (
-              <div className="pt-6 border-t border-gray-200 bg-gradient-to-br from-purple-50 to-blue-50 -mx-6 md:-mx-8 px-6 md:px-8 py-6 rounded-lg mt-6">
-                <div className="flex items-start justify-between gap-6">
-                  <div className="flex-1 space-y-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <h3 className="text-lg font-semibold text-gray-900">Blockchain Verification</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-gray-600 font-medium mb-1">Issuer</p>
-                        <p className="text-gray-900 font-semibold">Vector University</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600 font-medium mb-1">Issue Date</p>
-                        <p className="text-gray-900 font-semibold">{new Date().toLocaleDateString()}</p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <p className="text-gray-600 font-medium mb-1">Contract Address</p>
-                        <p className="text-gray-900 font-mono text-xs break-all">{CONTRACT_ADDRESS}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* QR Code */}
-                  <div className="flex-shrink-0">
-                    <div className="bg-white p-3 rounded-lg shadow-md">
-                      <div className="w-32 h-32 bg-gray-900 relative flex items-center justify-center">
-                        <svg viewBox="0 0 100 100" className="w-full h-full">
-                          <rect width="100" height="100" fill="white"/>
-                          <rect x="5" y="5" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
-                          <rect x="10" y="10" width="15" height="15" fill="black"/>
-                          <rect x="70" y="5" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
-                          <rect x="75" y="10" width="15" height="15" fill="black"/>
-                          <rect x="5" y="70" width="25" height="25" fill="none" stroke="black" strokeWidth="3"/>
-                          <rect x="10" y="75" width="15" height="15" fill="black"/>
-                          <rect x="40" y="40" width="20" height="20" fill="black"/>
-                        </svg>
-                      </div>
-                      <p className="text-xs text-center text-gray-600 mt-2 font-medium">Scan to Verify</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Template & Generated Date */}
-            <div className="pt-4">
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                  </svg>
-                  <span>Template: <span className="capitalize font-medium">{generatedData.template}</span></span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span>Generated: {new Date(generatedData.generatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3 pt-4">
+          <div className="text-center py-12">
+            <p className="text-gray-500 mb-4">Resume preview will render here</p>
+            <div className="flex flex-wrap justify-center gap-4">
               <button
                 onClick={() => setIsExportModalOpen(true)}
-                className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center gap-2"
+                className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold shadow-lg shadow-purple-200 transition-all flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Export CVR
+                Export PDF
               </button>
               <button
                 onClick={handleCreateNew}
-                className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium flex items-center gap-2"
+                className="px-8 py-3 bg-white border-2 border-gray-200 hover:border-purple-200 hover:bg-purple-50 text-gray-700 hover:text-purple-700 rounded-lg font-bold transition-all flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Create New CVR
+                Create New Resume
               </button>
             </div>
           </div>
@@ -583,7 +899,6 @@ export default function CVRPage() {
         onDownload={handleDownload}
       />
 
-      {/* Export CVR Modal */}
       <ExportCVRModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}

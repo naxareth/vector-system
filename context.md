@@ -2541,7 +2541,7 @@ export default function CVRPage() {
       {/* Page Header */}
       <div className="mb-4 md:mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-          {isGenerated ? 'Credential Verified Resume (CVR)' : 'Generate CVR'}
+          {isGenerated ? 'Credential Verified Resume (CVR)' : 'Generate Credential Verified Resume'}
         </h1>
         <p className="text-sm md:text-base text-gray-500">
           {isGenerated 
@@ -2750,7 +2750,7 @@ export default function CVRPage() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Generate CVR
+              Generate Credential Verified Re
             </button>
           </div>
         </div>

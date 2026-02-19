@@ -66,19 +66,15 @@ export default function RegisterPage() {
     });
 
     if (!validationResult.success) {
-      // HANDLE VALIDATION ERRORS
       const fieldErrors: Record<string, string> = {};
-      
-      // FIX: Use '.issues' instead of '.errors' to avoid the "forEach of undefined" crash
       validationResult.error.issues.forEach((issue) => {
         if (issue.path[0]) {
           fieldErrors[issue.path[0].toString()] = issue.message;
         }
       });
-      
       setErrors(fieldErrors);
       setLoading(false);
-      return; // 🛑 Stop execution here
+      return; 
     }
 
     const validData = validationResult.data;
@@ -111,25 +107,41 @@ export default function RegisterPage() {
         }
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Account creation failed");
+      // 🛑 PHASE 1 FIX: ANTI-ENUMERATION LOGIC
+      // If user exists, we pretend it worked to hide this fact from hackers.
+      if (authError) {
+        if (authError.message.includes("already registered") || authError.status === 400) {
+           console.warn("Registration attempt on existing email (Suppressed for security)");
+           // Fall through to success logic below without throwing
+        } else {
+           throw authError; // Throw other real errors (network, system)
+        }
+      }
 
-      // 4. Create Public Profile
-      const generatedStudentId = `03-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      // 4. Create Public Profile (Only run if we actually got a user object)
+      // If the user already existed (authError caught above), authData.user might be null or existing.
+      // We skip insertion if no NEW user was created to avoid primary key conflicts.
+      if (authData.user) {
+        const generatedStudentId = `03-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-      const { error: dbError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          student_id: isRegistrarMode ? null : generatedStudentId,
-          full_name: `${validData.firstName} ${validData.lastName}`,
-          role: isRegistrarMode ? 'registrar' : 'student',
-          wallet_address: null
-        });
+        const { error: dbError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            student_id: isRegistrarMode ? null : generatedStudentId,
+            full_name: `${validData.firstName} ${validData.lastName}`,
+            role: isRegistrarMode ? 'registrar' : 'student',
+            wallet_address: null
+          });
 
-      if (dbError) throw dbError;
+        if (dbError) {
+            // If duplicate key error (user profile already exists), just ignore it
+            if (dbError.code !== '23505') throw dbError; 
+        }
+      }
 
       // 5. Success -> Redirect
+      // For email confirmation flows, you might redirect to a "Check Email" page instead.
       if (isRegistrarMode) {
         router.push('/registrar/dashboard');
       } else {
@@ -138,8 +150,8 @@ export default function RegisterPage() {
 
     } catch (err: any) {
       console.error("Registration Error:", err);
-      // Generic error handler for API/Auth issues
-      setErrors({ form: err.message || 'Registration failed. Please try again.' });
+      // 🛑 PHASE 1 FIX: GENERIC ERROR MESSAGE
+      setErrors({ form: 'Registration failed. Please check your connection and try again.' });
     } finally {
       setLoading(false);
     }

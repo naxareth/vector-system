@@ -1,18 +1,19 @@
 'use client';
 import { useState, useEffect } from 'react';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
-import { supabase } from '@/lib/supabaseClient';
+// ❌ REMOVED: import { decryptData } from '@/lib/encryption'; (Security Fix)
 
 interface CredentialLog {
   id: string;
   skill_name: string;
   issued_at: string;
   transaction_hash: string;
+  certificate_number?: string;
+  private_notes?: string;      // Now comes decrypted from API
   user: {
     full_name: string;
     wallet_address: string;
-    email?: string;
-  };
+  } | null;
 }
 
 export default function ManageCredentials() {
@@ -26,23 +27,15 @@ export default function ManageCredentials() {
 
   const fetchCredentials = async () => {
     try {
-      // Join verified_credentials with users table to get names
-      const { data, error } = await supabase
-        .from('verified_credentials')
-        .select(`
-          id,
-          skill_name,
-          issued_at,
-          transaction_hash,
-          user:users (
-            full_name,
-            wallet_address
-          )
-        `)
-        .order('issued_at', { ascending: false });
+      // 🚀 CHANGED: Fetch from Secure API instead of direct Supabase
+      const res = await fetch('/api/registrar/credentials');
+      
+      if (!res.ok) {
+        throw new Error('Failed to fetch credentials');
+      }
 
-      if (error) throw error;
-      setCredentials(data as any);
+      const data = await res.json();
+      setCredentials(data);
     } catch (err) {
       console.error('Error fetching ledger:', err);
     } finally {
@@ -52,10 +45,11 @@ export default function ManageCredentials() {
 
   const filteredCredentials = credentials.filter(cred => {
     const term = searchQuery.toLowerCase();
-    const name = cred.user?.full_name?.toLowerCase() || '';
+    const name = cred.user?.full_name?.toLowerCase() || 'unknown';
     const wallet = cred.user?.wallet_address?.toLowerCase() || '';
     const skill = cred.skill_name.toLowerCase();
-    return name.includes(term) || wallet.includes(term) || skill.includes(term);
+    const cert = cred.certificate_number?.toLowerCase() || '';
+    return name.includes(term) || wallet.includes(term) || skill.includes(term) || cert.includes(term);
   });
 
   return (
@@ -64,7 +58,7 @@ export default function ManageCredentials() {
         <div className="mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Credential Audit Log</h1>
           <p className="text-sm md:text-base text-gray-600">
-            Immutable record of all credentials issued on the Polygon blockchain.
+            Immutable record of all credentials issued on the Polygon blockchain + Encrypted Database Records.
           </p>
         </div>
 
@@ -81,7 +75,7 @@ export default function ManageCredentials() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 bg-white"
-              placeholder="Search history..."
+              placeholder="Search by Student, Wallet, Skill, or Cert ID..."
             />
           </div>
         </div>
@@ -94,25 +88,28 @@ export default function ManageCredentials() {
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Student</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Credential</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Wallet</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Issued Date</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Cert No.</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Secure Notes</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Proof</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {loading ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">Loading ledger...</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading ledger...</td></tr>
                 ) : filteredCredentials.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">No records found. Start minting!</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">No records found.</td></tr>
                 ) : (
                   filteredCredentials.map((cred) => (
-                    <tr key={cred.id} className="hover:bg-gray-50">
+                    <tr key={cred.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs mr-3">
-                            {cred.user?.full_name?.[0] || 'S'}
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mr-3 ${cred.user ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-500'}`}>
+                            {cred.user?.full_name?.[0] || '?'}
                           </div>
-                          <span className="text-sm font-medium text-gray-900">{cred.user?.full_name || 'Unknown'}</span>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{cred.user?.full_name || 'Restricted'}</p>
+                            <p className="text-xs text-gray-500 font-mono">{cred.user?.wallet_address ? cred.user.wallet_address.slice(0,6)+'...' : ''}</p>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -120,14 +117,31 @@ export default function ManageCredentials() {
                           {cred.skill_name}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 font-mono">
-                        {cred.user?.wallet_address 
-                          ? `${cred.user.wallet_address.slice(0, 6)}...${cred.user.wallet_address.slice(-4)}`
-                          : 'N/A'}
+                      
+                      <td className="px-6 py-4 text-sm text-gray-600 font-mono">
+                        {cred.certificate_number || '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {new Date(cred.issued_at).toLocaleDateString()}
+
+                      {/* 🔒 Notes Column */}
+                      <td className="px-6 py-4">
+                        {cred.private_notes ? (
+                          <div className="group relative w-max">
+                            <span className="cursor-help text-purple-600 text-xs font-medium border-b border-dotted border-purple-600">
+                              View Secure Note
+                            </span>
+                            {/* The Tooltip */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xl">
+                              <p className="font-bold text-gray-400 mb-1 uppercase tracking-wider text-[10px]">Decrypted Content:</p>
+                              {/* ✅ Render directly (it's already decrypted by API) */}
+                              {cred.private_notes} 
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-300 text-xs">-</span>
+                        )}
                       </td>
+
                       <td className="px-6 py-4">
                         {cred.transaction_hash && (
                           <a 

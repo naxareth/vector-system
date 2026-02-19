@@ -9,7 +9,6 @@ export default function Sidebar() {
   const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // Use optional chaining and provide defaults
   let theme: 'light' | 'dark' = 'light';
   let toggleTheme = () => {};
   
@@ -17,15 +16,12 @@ export default function Sidebar() {
     const themeContext = useTheme();
     theme = themeContext.theme;
     toggleTheme = themeContext.toggleTheme;
-  } catch (error) {
-    // Theme context not available yet
-  }
+  } catch (error) {}
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
@@ -96,45 +92,46 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-screen w-64 bg-purple-900 border-r border-purple-800 flex flex-col z-40 transition-transform duration-300 lg:translate-x-0 ${
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-      {/* Logo */}
-      <div className="p-6 border-b border-purple-800">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-purple-900 font-bold text-sm">V</span>
+      {/* Sidebar with Tour ID */}
+      <div 
+        id="tour-sidebar" 
+        className={`fixed left-0 top-0 h-screen w-64 bg-purple-900 border-r border-purple-800 flex flex-col z-40 transition-transform duration-300 lg:translate-x-0 ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Logo */}
+        <div className="p-6 border-b border-purple-800">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+              <span className="text-purple-900 font-bold text-sm">V</span>
+            </div>
+            <span className="text-xl font-bold text-white">VECTOR</span>
           </div>
-          <span className="text-xl font-bold text-white">VECTOR</span>
         </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                  isActive
+                    ? 'bg-purple-50 !text-purple-900 shadow-sm'
+                    : '!text-purple-200 hover:bg-purple-800/50 !hover:text-white'
+                }`}
+              >
+                <span className={isActive ? '!text-purple-900' : '!text-purple-300'}>
+                  {item.icon}
+                </span>
+                <span className="font-medium">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                isActive
-                  ? 'bg-purple-50 !text-purple-900 shadow-sm'
-                  : '!text-purple-200 hover:bg-purple-800/50 !hover:text-white'
-              }`}
-            >
-              <span className={isActive ? '!text-purple-900' : '!text-purple-300'}>
-                {item.icon}
-              </span>
-              <span className="font-medium">{item.name}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Bottom Illustration */}
-    </div>
     </>
   );
 }

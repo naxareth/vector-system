@@ -1,36 +1,62 @@
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { decryptData } from '@/lib/encryption';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  const cookieStore = await cookies();
+
+  // 1. Init Supabase with Service Role to ensure we can fetch data securely
+  // independent of restrictive RLS that might block the anon key
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!, 
+    {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value },
+      },
+    }
+  );
+
   try {
-    // 1. Get the wallet address from the URL (e.g., ?wallet=0x123...)
-    const { searchParams } = new URL(req.url);
-    const wallet = searchParams.get('wallet');
-
-    if (!wallet) {
-      return NextResponse.json({ status: 'error', message: 'Wallet address required' }, { status: 400 });
+    // 2. 🛡️ Auth Check: Who is asking?
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Find the user and their credentials
-    const user = await prisma.users.findUnique({
-      where: { wallet_address: wallet },
-      include: {
-        verified_credentials: true // <--- This JOINs the tables automatically
-      }
+    // 3. 🛡️ Data Fetch: Only fetch for THIS user's ID
+    // We strictly use the session ID, ignoring any client inputs
+    const { data: credentials, error } = await supabase
+      .from('verified_credentials')
+      .select('*')
+      .eq('user_id', user.id) 
+      .order('issued_at', { ascending: false });
+
+    if (error) throw error;
+
+    // 4. 🔓 Server-Side Decryption (Category 3)
+    const processedData = credentials.map(cred => {
+        let decryptedNote = null;
+        if (cred.private_notes) {
+            try {
+                decryptedNote = decryptData(cred.private_notes);
+            } catch (e) {
+                console.error("Decryption failed for cred:", cred.id);
+            }
+        }
+        return {
+            ...cred,
+            private_notes: decryptedNote
+        };
     });
 
-    if (!user) {
-      return NextResponse.json({ status: 'success', credentials: [] });
-    }
+    return NextResponse.json(processedData);
 
-    // 3. Return the data
-    return NextResponse.json({ 
-      status: 'success', 
-      credentials: user.verified_credentials 
-    });
-
-  } catch (error) {
-    console.error('Fetch Creds Error:', error);
-    return NextResponse.json({ status: 'error', message: String(error) }, { status: 500 });
+  } catch (err: any) {
+    console.error("Credential Fetch Error:", err);
+    return NextResponse.json({ error: 'Failed to fetch credentials' }, { status: 500 });
   }
 }

@@ -1,134 +1,173 @@
-***
-# VECTOR: A Decentralized Micro-Credentialing System with Predictive Career Analytics and Skill Decay Detection
-
-**VECTOR** transforms static academic records into a dynamic, market-aware career engine. It tackles credential fraud and the skills gap by issuing blockchain-verified micro-credentials and providing AI-powered career insights.
-
-### Core Innovations
-1.  **Granular Skill Verification:** Issues **ERC-1155** tokens for specific skills (e.g., "Advanced SQL") on the **Polygon Amoy** blockchain.
-2.  **Predictive Career Analytics:** A 3-pillar AI engine (NLP, Prediction, Recommendation) analyzes real-time job market data to detect "Skill Decay" using linear regression.
-3.  **Collaborative Upskilling:** Suggests personalized courses based on peer success data (Collaborative Filtering).
-4.  **Cryptographically Verified Resumes (CVR):** Generates QR-linked PDF resumes client-side that allow instant verification.
 
 ---
 
-## Tech Stack
+# VECTOR: Decentralized Micro-Credentialing & Career Analytics System
 
-| Layer | Technology |
-| :--- | :--- |
-| **Monolith Framework** | **Next.js 14** (App Router) - Handles Frontend & Serverless API |
-| **Blockchain** | **Polygon Amoy Testnet**, Hardhat, Alchemy, Ethers.js |
-| **Database** | **Supabase** (PostgreSQL) + **Prisma ORM** |
-| **AI - NLP** | **Google Gemini 1.5 Flash** (Skill Extraction) |
-| **AI - Analytics** | **Simple-Statistics** (Linear Regression for Decay Prediction) |
-| **AI - Recommendations** | **ML-Matrix** (Cosine Similarity for Course Matching) |
-| **PDF Generation** | **@react-pdf/renderer** (Client-side CVR generation) |
+**VECTOR** is a blockchain-based platform that bridges the gap between academic achievements and industry requirements. It transforms static resumes into dynamic, verifiable career assets using **ERC-1155** tokens and **AI-driven** skill analytics.
 
 ---
 
-## Project Structure
-This project is a **Monorepo** managed with **npm workspaces**.
+## 🌟 Key Features
+
+### 1. 🛡️ Trustless Verification (Blockchain)
+
+* **Smart Contracts:** Deployed on **Polygon Amoy Testnet**.
+* **Soulbound-style Tokens:** Credentials cannot be transferred, preventing identity fraud.
+* **Institutional Minting:** Only verified Registrars (Universities) can issue skill tokens.
+
+### 2. 🧠 AI Career Engine (The "Brain")
+
+* **Skill Extraction:** Uses **Google Gemini 1.5 Flash** to parse raw resume text into structured skill tags.
+* **Decay Detection:** Uses **Linear Regression** (via `simple-statistics`) to analyze job market trends and predict if a user's skills are becoming obsolete.
+* **Recommendation System:** Uses **Collaborative Filtering** (Cosine Similarity) to suggest courses based on successful peer paths.
+
+### 3. 🔒 Enterprise-Grade Security
+
+* **Role-Based Access Control (RBAC):** Strict separation of `Student`, `Registrar`, and `Super Admin` roles.
+* **Data Encryption:** Sensitive fields (like private instructor notes) are encrypted at rest using **AES-256**.
+* **Audit Logging:** Immutable logs track every administrative action and verification event.
+
+---
+
+## 🏗️ Technical Architecture
+
+This project is a **Monorepo** managed with `npm workspaces`.
 
 ```text
 vector-system/
 ├── packages/              
-│   ├── ai-engine/         # The Brain: NLP, Predictions, and Recommendations
-│   │   ├── src/nlp/       # Gemini Integration
-│   │   ├── src/predictions/ # Decay Analysis logic
-│   │   └── src/recommendations/ # Collaborative Filtering logic
+│   ├── ai-engine/                  # NLP & Predictive Logic
+│   │   ├── src/nlp/                # Gemini Client
+│   │   └── src/predictions/        # Skill Decay Algorithms
 │   │
-│   ├── blockchain-core/   # The Ledger: Hardhat, Contracts, & Tests
+│   ├── blockchain-core/            # Hardhat, Solidity, & Scripts
+│   │   └── contracts/              # VectorToken.sol (ERC-1155)
 │   │
-│   ├── web-portal/        # The App: Next.js Frontend + Serverless Backend
-│   │   ├── app/api/       # API Routes (replaces old backend server)
-│   │   └── components/    # UI & CVR PDF Generator
+│   ├── web-portal/                 # Full-Stack Application
+│   │   └── vector-web/             # Next.js 14 App Router
+│   │       ├── src/app/api/        # Secure Serverless Endpoints
+│   │       ├── src/lib/            # Encryption & DB Utilities
+│   │       └── prisma/             # Database Schema
 │   │
-│   └── shared/            # Common Types & Constants
+│   └── shared/                     # Shared TypeScript Types
 │
-├── docs/                  # Architecture, API Docs, & User Manuals
-├── research/              # Capstone Manuscript (Chapters 1-5)
-└── scripts/               # DevOps (Seeding DB, Deploying Contracts)
+├── docs/                           # Setup Guides & API Specs
+└── scripts/                        # DevOps & Seeding Utilities
+
 ```
+
+| Layer | Stack |
+| --- | --- |
+| **Frontend** | Next.js 14 (App Router), TailwindCSS, RainbowKit |
+| **Backend** | Next.js API Routes, Supabase (PostgreSQL), Prisma ORM |
+| **Blockchain** | Polygon Amoy, Hardhat, Ethers.js v6 |
+| **AI Models** | Google Gemini 1.5 Flash, Simple-Statistics, ML-Matrix |
+| **Security** | Zod (Validation), CryptoJS (Encryption), Middleware (RBAC) |
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
+
+*For a detailed step-by-step walkthrough, read the **[Setup Guide](https://www.google.com/search?q=./docs/SETUP_GUIDE.md)**.*
 
 ### 1. Prerequisites
-*   Node.js (v18+)
-*   Git
-*   MetaMask Wallet (Configured for Polygon Amoy)
-*   Supabase Account (Free Tier)
-*   Google Gemini API Key
+
+* Node.js v18+
+* MetaMask Wallet (Polygon Amoy Network)
+* Supabase Account
+* Google Gemini API Key
 
 ### 2. Installation
+
 ```bash
-# Clone the repository
+# Clone and install dependencies
 git clone https://github.com/[YOUR_USERNAME]/vector-system.git
 cd vector-system
-
-# Install dependencies for ALL packages
 npm install
+
 ```
 
-### 3. Environment Setup
-You need to configure secrets for the Blockchain and the Web App.
+### 3. Configuration (Security Critical)
 
-**A. Blockchain Config**
-Create `packages/blockchain-core/.env`:
+You must set up environment variables for the Web Portal.
+
+**Create `packages/web-portal/vector-web/.env`:**
+
 ```env
-PRIVATE_KEY="YOUR_WALLET_PRIVATE_KEY" # Never commit this!
+# --- Public Config ---
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+NEXT_PUBLIC_CONTRACT_ADDRESS="0x..."
+
+# --- Private Secrets (NEVER COMMIT) ---
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+ENCRYPTION_KEY="your-generated-32-byte-hex-key"  # Critical for security
+GEMINI_API_KEY="your-google-gemini-key"
+DATABASE_URL="postgres://..."
+
 ```
 
-**B. Web Portal & AI Config**
-Create `packages/web-portal/.env.local`:
-```env
-# Database (From Supabase -> Settings -> Database -> Connection Pooler)
-DATABASE_URL="postgresql://postgres:[PASSWORD]@db.supabase.co:5432/postgres?pgbouncer=true"
+### 4. Running the Application
 
-# AI & Market Data Services
-GEMINI_API_KEY="YOUR_GOOGLE_GEMINI_KEY"
-RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY" # Used for JSearch
-JOB_MARKET_API_URL="https://jsearch.p.rapidapi.com/search"
-
-# Blockchain
-NEXT_PUBLIC_CONTRACT_ADDRESS="0xYourDeployedContractAddress"
-NEXT_PUBLIC_WALLET_CONNECT_ID="YOUR_PROJECT_ID" # Optional for RainbowKit
-```
-
-### 4. Running the Project
-
-**To Compile Smart Contracts:**
 ```bash
-cd packages/blockchain-core
-npx hardhat compile
-npx hardhat test
-```
-
-**To Run the Web Portal (Frontend + Backend):**
-```bash
-cd packages/web-portal
+# Start the Web Portal (Frontend + Backend)
+cd packages/web-portal/vector-web
 npm run dev
-# App opens at http://localhost:3000
+# Access at: http://localhost:3000
+
 ```
 
 ---
 
-## Contributing & Standards
+## 🔌 API Documentation
 
-### Commit Format
-We use **Conventional Commits** to keep our history clean.
-*   `feat(web): add student dashboard`
-*   `fix(ai): correct linear regression formula`
-*   `docs(research): update chapter 3 methodology`
-*   `refactor(root): cleanup unused folders`
+The system exposes several internal API endpoints protected by Middleware.
 
-### Development Workflow
-1.  Create a branch: `git checkout -b feat/your-feature-name`
-2.  Code inside the specific package (`web-portal`, `ai-engine`, etc.).
-3.  Test locally.
-4.  Push and create a Pull Request.
+| Endpoint | Method | Role Required | Description |
+| --- | --- | --- | --- |
+| `/api/extract-skills` | `POST` | Student | Parses resume text and returns skill objects. |
+| `/api/registrar/log-mint` | `POST` | Registrar | Logs a blockchain transaction and encrypts private notes. |
+| `/api/admin/verify-user` | `POST` | Super Admin | Promotes a user role (creates Audit Log). |
+| `/api/analyze` | `POST` | System | Triggers the Skill Decay analysis engine. |
+
+*Note: All API routes strictly validate input using **Zod** schemas.*
 
 ---
 
-## License
-This project is developed for Academic Capstone purposes.
+## 🛠️ Troubleshooting
+
+**1. `CRITICAL: ENCRYPTION_KEY is missing**`
+
+* **Cause:** You haven't set the server-side encryption key in `.env`.
+* **Fix:** Run `openssl rand -hex 32` and paste the result into `ENCRYPTION_KEY`.
+
+**2. `PrismaClientInitializationError**`
+
+* **Cause:** Database connection failed.
+* **Fix:** Ensure `DATABASE_URL` uses port **5432** (Transaction Mode) or **6543** (Session Mode) based on your Supabase settings.
+
+**3. `Nonce too low` (Blockchain)**
+
+* **Cause:** Your MetaMask account is out of sync with the testnet.
+* **Fix:** In MetaMask, go to Settings > Advanced > Clear Activity Tab Data.
+
+---
+
+## 🔄 Maintenance & Deployment
+
+* **Database Migrations:** When changing `schema.prisma`, run `npx prisma db push`.
+* **Smart Contracts:** Contracts are immutable. If you change `VectorToken.sol`, you must redeploy and update `NEXT_PUBLIC_CONTRACT_ADDRESS` in the frontend.
+* **AI Models:** The skill decay logic is stateless. Updates to `ai-engine` take effect immediately upon server restart.
+
+---
+
+## 📜 License & Academic Integrity
+
+This project is an **Academic Capstone** for PHINMA University of Pangasinan (BSIT).
+
+* **Authors:** Ace [Your Last Name] & Team.
+* **Status:** Proof of Concept / MVP.
+
+---
+
+> **Security Note:** Do not commit `.env` files to GitHub. This repository uses `.gitignore` to prevent credential leakage.

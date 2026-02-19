@@ -30,14 +30,11 @@ export default function Navbar() {
               onClick={() => setIsDark(!isDark)}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
             </button>
             <Link href="/login" className="text-gray-700 hover:text-gray-900 font-medium transition-colors px-4 py-2">
               Sign In
             </Link>
-            <Link href="/register" className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all">
+            <Link href="/register" className="px-5 py-2 bg-purple-600 hover:bg-purple-700 !text-white rounded-lg font-medium transition-all">
               Sign Up
             </Link>
           </div>
