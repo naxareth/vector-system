@@ -18,6 +18,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Check for successful password reset redirect
+  const isResetSuccess = searchParams.get('reset') === 'success';
+
   // MFA State
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState('');
@@ -147,12 +150,12 @@ export default function LoginPage() {
         <ChallengeMFA 
           factorId={mfaFactorId} 
           onVerified={() => {
-             let target = '/student/dashboard';
-             if (pendingRole === 'registrar') target = '/registrar/dashboard';
-             if (pendingRole === 'super_admin') target = '/admin/dashboard';
-             
-             router.refresh();
-             router.push(target);
+              let target = '/student/dashboard';
+              if (pendingRole === 'registrar') target = '/registrar/dashboard';
+              if (pendingRole === 'super_admin') target = '/admin/dashboard';
+              
+              router.refresh();
+              router.push(target);
           }} 
           onCancel={() => { 
             setMfaRequired(false); 
@@ -177,6 +180,16 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Welcome Back</h1>
           <p className="text-gray-500 mt-2 text-sm">Sign in to access VECTOR</p>
         </div>
+
+        {/* Success Message for Password Reset */}
+        {isResetSuccess && !error && (
+          <div className="mb-6 p-4 bg-green-50 text-green-700 text-sm rounded-xl border border-green-100 flex items-start gap-3">
+            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Password reset successful! You can now sign in.
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (

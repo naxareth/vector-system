@@ -363,10 +363,13 @@ CREATE TABLE public.users (
   location text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
+CREATE TYPE public.verification_type AS ENUM ('EMAIL_VERIFICATION', 'PASSWORD_RESET');
+
 CREATE TABLE public.verification_codes (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   email text NOT NULL,
   code text NOT NULL,
+  type public.verification_type DEFAULT 'EMAIL_VERIFICATION'::public.verification_type,
   expires_at timestamp with time zone NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT verification_codes_pkey PRIMARY KEY (id)
