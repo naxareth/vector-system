@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
 import { ChallengeMFA } from '@/components/auth/ChallengeMFA'; 
-import { Eye, EyeOff } from 'lucide-react'; // <-- Added Import
+import { Eye, EyeOff } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -20,8 +20,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // <-- Added state for password visibility
   const [showPassword, setShowPassword] = useState(false);
+  // <-- Added state to visually highlight the Google button if OAuth is required
+  const [isOAuthUser, setIsOAuthUser] = useState(false);
 
   // Check for successful password reset redirect
   const isResetSuccess = searchParams.get('reset') === 'success';
@@ -35,6 +36,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setIsOAuthUser(false); // Reset on new attempt
 
     const result = loginSchema.safeParse(formData);
 
@@ -47,14 +49,23 @@ export default function LoginPage() {
     const cleanData = result.data;
 
     try {
-      // 🛑 STEP 1: CALL THE GATEKEEPER API 🛑
+      // 🛑 STEP 1: CALL THE GATEKEEPER API WITH EMAIL 🛑
       const gateResponse = await fetch('/api/auth/login-check', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanData.email.trim().toLowerCase() }),
       });
 
-      if (gateResponse.status === 429) {
+      // Handle custom gatekeeper rejections (Rate Limits & OAuth-Only accounts)
+      if (!gateResponse.ok) {
         const gateData = await gateResponse.json();
-        throw new Error(gateData.message || "Too many login attempts. Please try again later.");
+        
+        // Trigger visual highlight if the account is Google-only
+        if (gateData.isOAuthOnly) {
+          setIsOAuthUser(true);
+        }
+        
+        throw new Error(gateData.message || "Login check failed.");
       }
 
       // 🛑 STEP 2: PROCEED TO AUTH 🛑
@@ -118,8 +129,9 @@ export default function LoginPage() {
 
     } catch (err: any) {
       console.error("Login Error:", err);
-      const isRateLimit = err.message.includes("Too many");
-      setError(isRateLimit ? err.message : 'Invalid email or password.');
+      // Only genericize standard Supabase errors; preserve our custom Gatekeeper messages
+      const isCustomError = err.message.includes("Too many") || err.message.includes("Google");
+      setError(isCustomError ? err.message : 'Invalid email or password.');
       setLoading(false);
     }
   };
@@ -186,15 +198,23 @@ export default function LoginPage() {
 
         {/* Error Message */}
         {error && (
-          <div className={`mb-6 p-4 text-sm rounded-xl border flex items-start gap-3 ${error.includes("Too many") ? "bg-orange-50 text-orange-700 border-orange-100" : "bg-red-50 text-red-600 border-red-100"}`}>
+          <div className={`mb-6 p-4 text-sm rounded-xl border flex items-start gap-3 ${
+            error.includes("Google") 
+              ? "bg-blue-50 text-blue-700 border-blue-200" 
+              : error.includes("Too many") 
+                ? "bg-orange-50 text-orange-700 border-orange-100" 
+                : "bg-red-50 text-red-600 border-red-100"
+          }`}>
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {error.includes("Too many") ? (
+              {error.includes("Google") ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              ) : error.includes("Too many") ? (
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               ) : (
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               )}
             </svg>
-            {error}
+            <span className="leading-tight">{error}</span>
           </div>
         )}
 
@@ -221,7 +241,7 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            {/* <-- Updated Password Field with Toggle --> */}
+            
             <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"} 
@@ -265,10 +285,15 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Highlighted Google Button when isOAuthUser is true */}
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-semibold transition-all hover:shadow-sm"
+          className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+            isOAuthUser 
+              ? 'border-blue-400 bg-blue-50/50 hover:bg-blue-100 ring-2 ring-blue-100 shadow-md' 
+              : 'border-gray-300 bg-white hover:bg-gray-50 hover:shadow-sm text-gray-700'
+          } font-semibold`}
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>

@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { headers } from 'next/headers'; 
 
-// Initialize ADMIN client (bypasses RLS to save codes & check limits)
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -13,12 +12,12 @@ export async function POST(req: Request) {
   try {
     const { email } = await req.json();
 
-    // 🛑 RATE LIMITING LOGIC STARTS HERE 🛑
+    // 🛑 RATE LIMITING LOGIC 🛑
     const headersList = await headers();
     const forwardedFor = headersList.get('x-forwarded-for');
     const ip = forwardedFor ? forwardedFor.split(',')[0] : 'unknown';
 
-    const { data: limitRecord, error: fetchError } = await supabaseAdmin
+    const { data: limitRecord } = await supabaseAdmin
       .from('rate_limits')
       .select('*')
       .eq('ip', ip)
@@ -53,27 +52,26 @@ export async function POST(req: Request) {
         attempts: 1
       });
     }
-    // 🛑 RATE LIMITING LOGIC ENDS HERE 🛑
 
-    // --- EXISTING LOGIC BELOW ---
-
-    // 6. Check if user exists (Anti-Enumeration: Fake success if not found)
-    const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-    if (listError) throw listError;
-    
-    const user = users?.users.find(u => u.email === email);
+    // --- EFFICIENT USER CHECK ---
+    // Fetch just the ID from your public users table instead of loading all auth users
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
 
     if (!user) {
-      // Fake delay to simulate work (prevents timing attacks)
+      // Fake delay to simulate work (prevents timing attacks/email enumeration)
       await new Promise(resolve => setTimeout(resolve, 1000));
       return NextResponse.json({ success: true }); 
     }
 
-    // 7. Generate 6-Digit Code
+    // Generate 6-Digit Code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // Aligned to 15 mins
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); 
 
-    // 8. Save to DB with specific OTP type
+    // Save to DB
     const { error: dbError } = await supabaseAdmin
       .from('verification_codes')
       .insert({ 
@@ -85,7 +83,7 @@ export async function POST(req: Request) {
 
     if (dbError) throw dbError;
 
-    // 9. Send Email
+    // Send Email
     const emailResult = await sendPasswordResetEmail(email, code);
     
     if (!emailResult.success) {

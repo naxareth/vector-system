@@ -421,16 +421,17 @@ CREATE TABLE public.system_logs (
 
 # 6. Current State / Next Steps
 
-* **Last Completed:** - Separated student and registrar registration flows into dedicated routes (`/register` and `/registrar-register`).
-  - Implemented real-time form validation using `react-hook-form` and `zod` (`mode: 'onChange'`) for instant user feedback.
-  - Added password visibility toggles (eye icons) using `lucide-react` across all authentication forms (Login, Register, Forgot Password).
-  - Updated `middleware.ts` to explicitly allow the new `/registrar-register` path in `AUTH_PATHS` to prevent prefix collisions and routing loops.
-* **Current Focus:** - Verifying the newly separated UI layouts locally.
+* **Last Completed:** - Resolved the "OAuth Loop" issue by implementing a pre-login check in api/auth/login-check and allowing account linking via confirm-reset.
+
+* **Current Focus:** - Verifying the UI feedback on /login/page.tsx when a Google-only user attempts a standard login.
   - Local testing of the end-to-end OTP flow and middleware routing.
+
 * **Architecture Changes:** - Added `lucide-react` to `package.json` for UI icons.
   - Split registration UI logic into `StudentRegisterForm.tsx` and `RegistrarRegisterForm.tsx` components.
+
 * **Data Changes:** - Split a unified auth schema into `studentSchema` and `registrarSchema` in `lib/schemas/auth.ts`.
-* **Next Steps:** -
+
+* **Next Steps:** - Test the end-to-end flow of setting a local password for a Google account and check for any edge cases in the registrar registration flow.
 
 
 
