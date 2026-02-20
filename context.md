@@ -422,8 +422,8 @@ CREATE TABLE public.system_logs (
   - Secure Email Verification Flow (Nodemailer, secure 6-digit OTP via `verification_codes` table).
   - Advanced Middleware (Route protection locking `pending_verification` users + Background `event.waitUntil()` traffic logging).
   - Super Admin System Monitoring Dashboard (`system_logs` table, API analytics, UI).
-* **Current Focus:** 
-* **Next Steps:** - 
+* **Current Focus:** -  
+* **Next Steps:** -
 
 
 
