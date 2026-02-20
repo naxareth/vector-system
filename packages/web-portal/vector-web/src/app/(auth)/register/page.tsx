@@ -138,16 +138,24 @@ export default function RegisterPage() {
         }
       }
 
-      // --- THE FIX ---
+      // 5. Trigger Verification Email API
+      const emailRes = await fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: validData.email }),
+      });
+
+      if (!emailRes.ok) {
+        console.error("Failed to trigger verification email, but user was created.");
+        // We still proceed so the user isn't stuck, they can request a new code on the next page
+      }
+
       // Force refresh to update server-side session state before redirect
       router.refresh();
 
-      // 5. Success -> Redirect
-      if (isRegistrarMode) {
-        router.push('/registrar/dashboard');
-      } else {
-        router.push('/student/dashboard');
-      }
+      // 6. Redirect to Verification Page (NOT the dashboard)
+      // We pass the email in the URL so the verify page knows who we are verifying
+      router.push(`/verify-email?email=${encodeURIComponent(validData.email)}`);
 
     } catch (err: any) {
       console.error("Registration Error:", err);

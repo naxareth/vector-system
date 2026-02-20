@@ -28,25 +28,58 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // --- DIAGNOSTIC LOG START ---
-  if (user) {
-    console.log(`🔍 MIDDLEWARE check for: ${user.email} | Path: ${pathname}`);
-  }
-
-  // --- RULE: AUTH PATHS (Redirecting logged-in users away from /login) ---
-  if (user && AUTH_PATHS.some(p => pathname.startsWith(p))) {
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
-    const role = profile?.role || 'student';
-    console.log(`🚩 RULE 2 (Auth Path): User is ${role}, redirecting to dashboard`);
-    url.pathname = role === 'super_admin' ? '/admin/dashboard' : role === 'registrar' ? '/registrar/dashboard' : '/student/dashboard';
+  // --- RULE: UNAUTHENTICATED USERS ---
+  // Ensure unauthenticated users cannot access protected paths
+  if (!user && PROTECTED_PATHS.some(p => pathname.startsWith(p))) {
+    console.log(`🛡️ GUEST BLOCKED: Redirecting to /login`);
+    url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  // --- RULE: RBAC ENFORCEMENT ---
+  // --- LOGIC FOR AUTHENTICATED USERS ---
   if (user) {
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle();
-    const role = profile?.role || 'student';
+    console.log(`🔍 MIDDLEWARE check for: ${user.email} | Path: ${pathname}`);
 
+    // Fetch both role and status
+    const { data: profile } = await supabase
+      .from('users')
+      .select('role, status')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const role = profile?.role || 'student';
+    const status = profile?.status || 'pending_verification'; // Default to pending for safety
+
+    // --- RULE 1: PENDING VERIFICATION LOCKOUT ---
+    // If the user hasn't verified their email, they can ONLY access the verify-email page
+    if (status === 'pending_verification') {
+      if (pathname !== '/verify-email') {
+        console.log(`🔒 LOCKOUT: User ${user.email} is pending verification. Forcing to /verify-email`);
+        url.pathname = '/verify-email';
+        // Append email so the verification page knows who to verify
+        url.searchParams.set('email', user.email || '');
+        return NextResponse.redirect(url);
+      }
+      // If they are already on the verify-email page, let them stay
+      return response;
+    }
+
+    // --- RULE 2: VERIFIED USERS ON VERIFICATION PAGE ---
+    // If a verified user tries to go back to the verify-email page, bounce them to their dashboard
+    if (status === 'active' && pathname === '/verify-email') {
+      console.log(`✅ User ${user.email} is already verified. Redirecting to dashboard.`);
+      url.pathname = role === 'super_admin' ? '/admin/dashboard' : role === 'registrar' ? '/registrar/dashboard' : '/student/dashboard';
+      return NextResponse.redirect(url);
+    }
+
+    // --- RULE 3: AUTH PATHS (Redirecting logged-in, verified users away from /login) ---
+    if (AUTH_PATHS.some(p => pathname.startsWith(p)) && status === 'active') {
+      console.log(`🚩 RULE 3 (Auth Path): User is ${role} and verified, redirecting to dashboard`);
+      url.pathname = role === 'super_admin' ? '/admin/dashboard' : role === 'registrar' ? '/registrar/dashboard' : '/student/dashboard';
+      return NextResponse.redirect(url);
+    }
+
+    // --- RULE 4: RBAC ENFORCEMENT (For verified users) ---
     // Check A: Admin accessing Admin paths
     if (pathname.startsWith('/admin')) {
       if (role === 'super_admin') {
