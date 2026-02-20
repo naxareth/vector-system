@@ -1,10 +1,12 @@
 'use client';
+
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
 import { ChallengeMFA } from '@/components/auth/ChallengeMFA'; 
+import { Eye, EyeOff } from 'lucide-react'; // <-- Added Import
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -17,6 +19,9 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // <-- Added state for password visibility
+  const [showPassword, setShowPassword] = useState(false);
 
   // Check for successful password reset redirect
   const isResetSuccess = searchParams.get('reset') === 'success';
@@ -43,18 +48,16 @@ export default function LoginPage() {
 
     try {
       // 🛑 STEP 1: CALL THE GATEKEEPER API 🛑
-      // This checks the server-side rate limit before we even talk to Supabase
       const gateResponse = await fetch('/api/auth/login-check', {
         method: 'POST',
       });
 
-      // If the Gatekeeper says 429, we STOP immediately.
       if (gateResponse.status === 429) {
         const gateData = await gateResponse.json();
         throw new Error(gateData.message || "Too many login attempts. Please try again later.");
       }
 
-      // 🛑 STEP 2: PROCEED TO AUTH (Only if Gatekeeper Approved) 🛑
+      // 🛑 STEP 2: PROCEED TO AUTH 🛑
       const { data, error: authError } = await supabase.auth.signInWithPassword({ 
         email: cleanData.email.trim().toLowerCase(),
         password: cleanData.password 
@@ -69,10 +72,8 @@ export default function LoginPage() {
       const totpFactors = factorsData?.totp?.filter(f => f.status === 'verified') ?? [];
 
       if (totpFactors.length > 0) {
-        // MFA Enabled: Stop execution and show challenge
         setMfaFactorId(totpFactors[0].id);
         
-        // Pre-fetch role for later redirect
         const { data: userData } = await supabase
           .from('users')
           .select('role')
@@ -81,7 +82,6 @@ export default function LoginPage() {
           
         setPendingRole(userData?.role || 'student');
         setMfaRequired(true);
-        // We set loading to false here because the UI is switching to the MFA component
         setLoading(false); 
         return; 
       }
@@ -98,10 +98,8 @@ export default function LoginPage() {
         throw new Error("Account integrity error. Please contact support.");
       }
 
-      // Refresh router to sync server cookies
       router.refresh();
 
-      // Determine redirect target
       const returnUrl = searchParams.get('redirectTo');
       
       if (returnUrl) {
@@ -118,13 +116,8 @@ export default function LoginPage() {
         router.push(target);
       }
 
-      // Note: We do NOT set loading(false) here if successful 
-      // to keep the button in "Signing In..." state while the page transitions.
-
     } catch (err: any) {
       console.error("Login Error:", err);
-      // If the error came from the Gatekeeper, we show that specific message.
-      // Otherwise, we show the generic error.
       const isRateLimit = err.message.includes("Too many");
       setError(isRateLimit ? err.message : 'Invalid email or password.');
       setLoading(false);
@@ -228,14 +221,24 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            <input 
-              type="password" 
-              value={formData.password} 
-              onChange={(e) => setFormData({...formData, password: e.target.value})} 
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" 
-              placeholder="••••••••" 
-              required 
-            />
+            {/* <-- Updated Password Field with Toggle --> */}
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                value={formData.password} 
+                onChange={(e) => setFormData({...formData, password: e.target.value})} 
+                className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" 
+                placeholder="••••••••" 
+                required 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           
           <button 

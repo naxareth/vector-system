@@ -85,6 +85,8 @@ packages\web-portal\vector-web\src\app
 packages\web-portal\vector-web\src\app\(auth)
 packages\web-portal\vector-web\src\app\(auth)\forgot-password
 packages\web-portal\vector-web\src\app\(auth)\forgot-password\page.tsx
+packages\web-portal\vector-web\src\app\(auth)\registrar-register
+packages\web-portal\vector-web\src\app\(auth)\registrar-register\page.tsx
 packages\web-portal\vector-web\src\app\(auth)\login
 packages\web-portal\vector-web\src\app\(auth)\login\page.tsx
 packages\web-portal\vector-web\src\app\(auth)\register
@@ -146,6 +148,8 @@ packages\web-portal\vector-web\src\app\layout.tsx
 packages\web-portal\vector-web\src\app\page.tsx
 packages\web-portal\vector-web\src\components
 packages\web-portal\vector-web\src\components\auth
+packages\web-portal\vector-web\src\components\auth\StudentRegisterForm.tsx
+packages\web-portal\vector-web\src\components\auth\RegistrarRegisterForm.tsx
 packages\web-portal\vector-web\src\components\auth\ChallengeMFA.tsx
 packages\web-portal\vector-web\src\components\auth\EnrollMFA.tsx
 packages\web-portal\vector-web\src\components\cvr
@@ -184,6 +188,7 @@ packages\web-portal\vector-web\src\hooks
 packages\web-portal\vector-web\src\hooks\useCVR.ts
 packages\web-portal\vector-web\src\lib
 packages\web-portal\vector-web\src\lib\schemas
+packages\web-portal\vector-web\src\lib\schemas\auth.ts
 packages\web-portal\vector-web\src\lib\schemas\cvr.ts
 packages\web-portal\vector-web\src\lib\audit.ts
 packages\web-portal\vector-web\src\lib\blockchain.ts
@@ -416,13 +421,15 @@ CREATE TABLE public.system_logs (
 
 # 6. Current State / Next Steps
 
-* **Last Completed:** - Overcame ISP regional blocking via port mapping (`6543` vs `5432`) and hotspot routing.
-  - End-to-End Database Encryption for Confidential Registrar Notes.
-  - Registrar UI upgrade (De-jargonization and Autocomplete Student Search).
-  - Secure Email Verification Flow (Nodemailer, secure 6-digit OTP via `verification_codes` table).
-  - Advanced Middleware (Route protection locking `pending_verification` users + Background `event.waitUntil()` traffic logging).
-  - Super Admin System Monitoring Dashboard (`system_logs` table, API analytics, UI).
-* **Current Focus:** -  
+* **Last Completed:** - Separated student and registrar registration flows into dedicated routes (`/register` and `/registrar-register`).
+  - Implemented real-time form validation using `react-hook-form` and `zod` (`mode: 'onChange'`) for instant user feedback.
+  - Added password visibility toggles (eye icons) using `lucide-react` across all authentication forms (Login, Register, Forgot Password).
+  - Updated `middleware.ts` to explicitly allow the new `/registrar-register` path in `AUTH_PATHS` to prevent prefix collisions and routing loops.
+* **Current Focus:** - Verifying the newly separated UI layouts locally.
+  - Local testing of the end-to-end OTP flow and middleware routing.
+* **Architecture Changes:** - Added `lucide-react` to `package.json` for UI icons.
+  - Split registration UI logic into `StudentRegisterForm.tsx` and `RegistrarRegisterForm.tsx` components.
+* **Data Changes:** - Split a unified auth schema into `studentSchema` and `registrarSchema` in `lib/schemas/auth.ts`.
 * **Next Steps:** -
 
 
