@@ -107,20 +107,16 @@ export default function RegisterPage() {
         }
       });
 
-      // 🛑 PHASE 1 FIX: ANTI-ENUMERATION LOGIC
-      // If user exists, we pretend it worked to hide this fact from hackers.
+      // ANTI-ENUMERATION: Handle case where email might already exist
       if (authError) {
         if (authError.message.includes("already registered") || authError.status === 400) {
            console.warn("Registration attempt on existing email (Suppressed for security)");
-           // Fall through to success logic below without throwing
         } else {
-           throw authError; // Throw other real errors (network, system)
+           throw authError; 
         }
       }
 
-      // 4. Create Public Profile (Only run if we actually got a user object)
-      // If the user already existed (authError caught above), authData.user might be null or existing.
-      // We skip insertion if no NEW user was created to avoid primary key conflicts.
+      // 4. Create Public Profile 
       if (authData.user) {
         const generatedStudentId = `03-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -135,23 +131,35 @@ export default function RegisterPage() {
           });
 
         if (dbError) {
-            // If duplicate key error (user profile already exists), just ignore it
-            if (dbError.code !== '23505') throw dbError; 
+            // Ignore duplicate key errors, but log others for debugging
+            if (dbError.code !== '23505') {
+              console.error("Database Insert Warning (Profile creation skipped/failed):", dbError.message);
+            }
         }
       }
 
-      // 5. Success -> Redirect
-      // For email confirmation flows, you might redirect to a "Check Email" page instead.
-      if (isRegistrarMode) {
-        router.push('/registrar/dashboard');
-      } else {
-        router.push('/student/dashboard');
+      // 5. Trigger Verification Email API
+      const emailRes = await fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: validData.email }),
+      });
+
+      if (!emailRes.ok) {
+        console.error("Failed to trigger verification email, but user was created.");
+        // We still proceed so the user isn't stuck, they can request a new code on the next page
       }
+
+      // Force refresh to update server-side session state before redirect
+      router.refresh();
+
+      // 6. Redirect to Verification Page (NOT the dashboard)
+      // We pass the email in the URL so the verify page knows who we are verifying
+      router.push(`/verify-email?email=${encodeURIComponent(validData.email)}`);
 
     } catch (err: any) {
       console.error("Registration Error:", err);
-      // 🛑 PHASE 1 FIX: GENERIC ERROR MESSAGE
-      setErrors({ form: 'Registration failed. Please check your connection and try again.' });
+      setErrors({ form: err.message || 'Registration failed. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -173,7 +181,7 @@ export default function RegisterPage() {
 
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
           {errors.form && (
-            <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200 flex items-center gap-2">
+            <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200 flex items-center gap-2 animate-pulse">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               {errors.form}
             </div>
@@ -181,7 +189,7 @@ export default function RegisterPage() {
 
           {/* Role Toggle Switch */}
           <div className="flex justify-center mb-6">
-            <div className="bg-gray-100 p-1 rounded-lg flex text-sm font-medium">
+            <div className="bg-gray-100 p-1 rounded-lg flex text-sm font-medium shadow-inner">
               <button 
                 type="button"
                 onClick={() => setIsRegistrarMode(false)}
@@ -203,65 +211,64 @@ export default function RegisterPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">First Name</label>
-                <input type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.firstName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="John" />
-                {errors.firstName && <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>}
+                <input type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.firstName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all`} placeholder="John" />
+                {errors.firstName && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.firstName}</p>}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Last Name</label>
-                <input type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.lastName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="Doe" />
-                {errors.lastName && <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>}
+                <input type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.lastName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all`} placeholder="Doe" />
+                {errors.lastName && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.lastName}</p>}
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Email</label>
-              <input type="email" name="email" value={formData.email} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="student@university.edu" />
-              {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
+              <input type="email" name="email" value={formData.email} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all`} placeholder="student@university.edu" />
+              {errors.email && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.email}</p>}
             </div>
 
-            {/* Registrar Invite Code (Conditional) */}
             {isRegistrarMode && (
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
                 <label className="block text-xs font-bold text-purple-800 uppercase mb-1">Admin Invite Code</label>
                 <input 
-                  type="password" // Hidden for security
+                  type="password"
                   name="inviteCode" 
                   value={formData.inviteCode} 
                   onChange={handleInputChange} 
-                  className={`w-full px-3 py-2 border ${errors.inviteCode ? 'border-red-500' : 'border-purple-200'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} 
+                  className={`w-full px-3 py-2 border ${errors.inviteCode ? 'border-red-500 bg-red-50' : 'border-purple-200'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} 
                   placeholder="Enter admin code" 
                 />
-                <p className="text-xs text-purple-600 mt-1">Required for registrar access.</p>
-                {errors.inviteCode && <p className="mt-1 text-xs text-red-600">{errors.inviteCode}</p>}
+                <p className="text-[10px] text-purple-600 mt-1 font-medium">Verification required for access.</p>
+                {errors.inviteCode && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.inviteCode}</p>}
               </div>
             )}
 
             <div>
               <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Password</label>
-              <input type="password" name="password" value={formData.password} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="12+ chars, symbols, numbers" />
-              {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
+              <input type="password" name="password" value={formData.password} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all`} placeholder="12+ chars, symbols, numbers" />
+              {errors.password && <p className="mt-1 text-[10px] text-red-600 font-bold leading-tight">{errors.password}</p>}
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Confirm Password</label>
-              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="••••••••" />
-              {errors.confirmPassword && <p className="mt-1 text-xs text-red-600">{errors.confirmPassword}</p>}
+              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} className={`w-full px-3 py-2 border ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all`} placeholder="••••••••" />
+              {errors.confirmPassword && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.confirmPassword}</p>}
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-4">
+            <button type="submit" disabled={loading} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-all transform active:scale-[0.98] shadow-md flex items-center justify-center gap-2 disabled:opacity-50 mt-4">
               {loading ? (
                 <>
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                  Initializing...
+                  Processing...
                 </>
               ) : 'Create Account'}
             </button>
           </form>
           
-          <p className="text-xs text-gray-500 text-center mt-6">By creating an account, you agree to our Terms and Privacy Policy.</p>
+          <p className="text-[10px] text-gray-400 text-center mt-6">Secure end-to-end verification protected by VECTOR Protocol.</p>
         </div>
         <div className="text-center mt-6">
-          <p className="text-gray-600">Already have an account? <Link href="/login" className="text-purple-600 hover:text-purple-700 font-medium">Sign in</Link></p>
+          <p className="text-gray-600 text-sm">Already have an account? <Link href="/login" className="text-purple-600 hover:text-purple-700 font-bold">Sign in</Link></p>
         </div>
       </div>
     </div>

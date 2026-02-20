@@ -8,68 +8,38 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// 1. Role Enum
-enum user_role {
-  student
-  registrar
-  super_admin
-  admin
-}
-
-// 2. 🆕 Status Enum (Matches your Postgres 'account_status' type)
-enum account_status {
-  active
-  pending_verification
-  suspended
-  banned
-}
-
 model users {
-  id             String         @id @db.Uuid
-  email          String         @unique      
-  student_id     String?        @unique
-  full_name      String?
-  
-  // Use the Enums instead of String
-  role           user_role      @default(student) 
-  
-  // 3. 🆕 Updated type to account_status
-  status         account_status @default(pending_verification)
-  
-  wallet_address String?        @unique
-  avatar_url     String?
-  location       String?   
-
-  created_at     DateTime?      @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
-  updated_at     DateTime?      @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
-
-  // Relations
+  id                   String                       @id @db.Uuid
+  student_id           String?                      @unique
+  full_name            String?
+  role                 user_role?                   @default(student)
+  wallet_address       String?                      @unique
+  avatar_url           String?
+  created_at           DateTime?                    @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  email                String                       @unique
+  status               account_status?              @default(pending_verification)
+  updated_at           DateTime?                    @default(now()) @updatedAt @db.Timestamptz(6)
+  location             String?
+  audit_logs_actor     audit_logs[]                 @relation("AuditActor")
+  audit_logs_target    audit_logs[]                 @relation("AuditTarget")
   minting_batches      minting_batches[]
   notifications        notifications[]
   profiles             profiles?
   self_reported_skills self_reported_skills[]
   enrollments          student_course_enrollments[]
   verified_credentials verified_credentials[]
-  
-  // Audit Log Relations
-  audit_logs_actor     audit_logs[] @relation("AuditActor")
-  audit_logs_target    audit_logs[] @relation("AuditTarget")
 }
 
-// ... (Rest of your models remain unchanged below) ...
-
 model audit_logs {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
-  actor_id    String?  @db.Uuid
-  target_id   String?  @db.Uuid
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  actor_id    String?   @db.Uuid
+  target_id   String?   @db.Uuid
   action_type String
   description String?
   metadata    Json?
-  ip_address  String?
-
-  actor       users?   @relation("AuditActor", fields: [actor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  target      users?   @relation("AuditTarget", fields: [target_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  actor       users?    @relation("AuditActor", fields: [actor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  target      users?    @relation("AuditTarget", fields: [target_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model minting_batches {
@@ -83,17 +53,19 @@ model minting_batches {
 }
 
 model verified_credentials {
-  id               String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id          String           @db.Uuid
-  batch_id         String?          @db.Uuid
-  skill_name       String
-  token_id         String
-  transaction_hash String?
-  issuer_did       String?
-  metadata_uri     String?
-  issued_at        DateTime?        @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
-  batch            minting_batches? @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  student          users            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                 String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id            String           @db.Uuid
+  batch_id           String?          @db.Uuid
+  skill_name         String
+  token_id           String
+  transaction_hash   String?
+  issuer_did         String?
+  metadata_uri       String?
+  issued_at          DateTime?        @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  private_notes      String?
+  certificate_number String?
+  batch              minting_batches? @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  student            users            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([user_id], map: "idx_verified_credentials_user")
 }
@@ -178,5 +150,67 @@ model profiles {
   linkedin_url    String?
   github_url      String?
   updated_at      DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  portfolio_links Json?     @default("{\"github\": \"\", \"linkedin\": \"\", \"portfolio\": \"\"}")
   users           users     @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model credential_definitions {
+  id         BigInt    @id @default(autoincrement())
+  name       String    @unique
+  category   String?
+  type       String?
+  created_at DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  code       String?
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model rate_limits {
+  ip           String
+  endpoint     String
+  attempts     Int?      @default(1)
+  last_attempt DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@id([ip, endpoint])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model verification_codes {
+  id         BigInt            @id @default(autoincrement())
+  email      String
+  code       String
+  type       verification_type @default(EMAIL_VERIFICATION)
+  expires_at DateTime          @db.Timestamptz(6)
+  created_at DateTime?         @default(now()) @db.Timestamptz(6)
+}
+
+enum verification_type {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum user_role {
+  student
+  registrar
+  super_admin
+}
+
+enum account_status {
+  active
+  pending_verification
+  suspended
+}
+
+model system_logs {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  method     String   // e.g., GET, POST
+  path       String   // e.g., /api/mint, /student/dashboard
+  status     Int      // e.g., 200, 404, 500
+  ip_address String?  // The user's IP address
+  duration   Int?     // How many milliseconds the request took
+  user_agent String?  // Browser info
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([status]) 
+  @@index([created_at(sort: Desc)]) 
 }
