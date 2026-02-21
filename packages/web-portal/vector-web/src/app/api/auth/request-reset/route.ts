@@ -84,6 +84,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true }); 
     }
 
+    // 🛑 NEW: Delete any existing reset codes for this email before making a new one 🛑
+    await supabaseAdmin
+      .from('verification_codes')
+      .delete()
+      .eq('email', email)
+      .eq('type', 'PASSWORD_RESET');
+
     // 4. Generate 6-Digit Code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); 

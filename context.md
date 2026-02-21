@@ -108,6 +108,7 @@ packages\web-portal\vector-web\src\app\api\auth\confirm-reset
 packages\web-portal\vector-web\src\app\api\auth\confirm-reset\route.ts
 packages\web-portal\vector-web\src\app\api\auth\login-check
 packages\web-portal\vector-web\src\app\api\auth\login-check\route.ts
+packages/web-portal/vector-web/src/app/api/auth/cancel-reset/route.ts
 packages\web-portal\vector-web\src\app\api\auth\request-reset
 packages\web-portal\vector-web\src\app\api\auth\request-reset\route.ts
 packages\web-portal\vector-web\src\app\api\auth\verify-captcha\route.ts
@@ -423,12 +424,11 @@ CREATE TABLE public.system_logs (
 
 # 6. Current State / Next Steps
 
-* **Last Completed:** - Resolved the "OAuth Loop" issue by implementing a pre-login check in api/auth/login-check and allowing account linking via confirm-reset.
-  - Implemented Cloudflare Turnstile CAPTCHA across all auth forms (Student Register, Registrar Register, Login, and Forgot Password) and secured the backend API routes.
-
-* **Current Focus:** - Fixing the verification code (password reset) not expiring after the user successfully confirms the OTP or cancels the request.
-  - Testing the end-to-end flow of setting a local password for a Google account.
-  - Verifying edge cases in the registrar registration flow.
+* **Last Completed:** - Implemented Cloudflare Turnstile CAPTCHA across all auth forms (Student Register, Registrar Register, Login, and Forgot Password) and secured the backend API routes.
+ - Fixed the OTP expiration bug by actively shredding the PASSWORD_RESET token in confirm-reset/route.ts upon success, and in request-reset/route.ts and cancel-reset/route.ts when a user cancels or requests a new code.
+* **Current Focus:** - Testing the end-to-end flow of setting a local password for a Google account (OAuth linking).
+  
+ - Verifying edge cases in the registrar registration flow.
 
 * **Architecture Changes:** - Added `lucide-react` to `package.json` for UI icons.
   - Split registration UI logic into `StudentRegisterForm.tsx` and `RegistrarRegisterForm.tsx` components.
@@ -436,9 +436,8 @@ CREATE TABLE public.system_logs (
 
 * **Data Changes:** - Split a unified auth schema into `studentSchema` and `registrarSchema` in `lib/schemas/auth.ts`.
 
-* **Next Steps:** - Complete the OTP expiration bug fix.
-  - Run comprehensive local testing on OAuth to Local credential linking.
-
+* **Next Steps:** - Run comprehensive local testing on OAuth to Local credential linking.
+  - Finalize the unified authentication error handling UI.
 
 
 ---

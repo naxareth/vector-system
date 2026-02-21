@@ -153,6 +153,44 @@ export default function ForgotPasswordPage() {
     }
   };
 
+  // Step 4: Cancel Reset Request (Cleans up DB)
+  const handleCancel = async () => {
+    // Fire and forget cancellation to the backend
+    if (email) {
+      fetch('/api/auth/cancel-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).catch(err => console.error("Failed to cancel reset request:", err));
+    }
+    
+    // Reset UI and form states
+    setStep('email');
+    setOtp('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setError('');
+    setSuccessMsg('');
+    
+    // Reset Turnstile
+    turnstileRef.current?.reset();
+    setTurnstileToken(null);
+  };
+
+  // Step 5: Navigate back to login (with cleanup)
+  const handleBackToLogin = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Only bother the backend if we actually generated an OTP (i.e., we are past the email step)
+    if (email && (step === 'otp' || step === 'reset')) {
+      fetch('/api/auth/cancel-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).catch(err => console.error("Cleanup failed:", err));
+    }
+    router.push('/login');
+  };
+
   // --- RENDER ---
 
   return (
@@ -250,7 +288,7 @@ export default function ForgotPasswordPage() {
             </button>
             <button 
               type="button" 
-              onClick={() => { setStep('email'); setOtp(''); setError(''); }}
+              onClick={handleCancel}
               className="w-full text-gray-500 text-sm hover:text-gray-700 mt-4 underline"
             >
               Start over
@@ -312,9 +350,12 @@ export default function ForgotPasswordPage() {
         <div className="mt-8 text-center pt-6 border-t border-gray-100">
           <p className="text-sm text-gray-600">
             Remembered it?{' '}
-            <Link href="/login" className="text-blue-600 font-semibold hover:text-blue-700 hover:underline">
+            <button 
+              onClick={handleBackToLogin}
+              className="text-blue-600 font-semibold hover:text-blue-700 hover:underline bg-transparent border-none cursor-pointer"
+            >
               Back to Login
-            </Link>
+            </button>
           </p>
         </div>
 
