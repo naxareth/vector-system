@@ -1,8 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
+import { Eye, EyeOff } from 'lucide-react'; 
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 
 // --- ZOD SCHEMAS ---
 
@@ -42,6 +44,14 @@ export default function ForgotPasswordPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Password Visibility States
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Turnstile state and ref
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
+
   // --- HANDLERS ---
 
   // Step 1: Send Recovery Code (Calls Custom API)
@@ -50,19 +60,27 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setError('');
 
+    if (!turnstileToken) {
+      setError("Please complete the human verification check.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const cleanData = emailSchema.parse({ email });
       const sanitizedEmail = cleanData.email.trim().toLowerCase();
 
-      // 🚀 Call your Custom API
+      // 🚀 Call your Custom API (This route now handles the CAPTCHA check securely)
       const res = await fetch('/api/auth/request-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: sanitizedEmail }),
+        body: JSON.stringify({ email: sanitizedEmail, token: turnstileToken }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error("Could not send code. Please try again.");
+        throw new Error(data.message || "Could not send code. Please try again.");
       }
 
       setEmail(sanitizedEmail);
@@ -71,13 +89,17 @@ export default function ForgotPasswordPage() {
 
     } catch (err: any) {
       setError(err instanceof z.ZodError ? err.errors[0].message : err.message);
+      // Reset Turnstile widget so the user can generate a fresh token
+      if (step === 'email') {
+        turnstileRef.current?.reset();
+        setTurnstileToken(null);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   // Step 2: Verify Format (Client-Side Check)
-  // Note: We verify the actual code + password together in Step 3 to save an API call
   const handleVerifyCode = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -131,6 +153,44 @@ export default function ForgotPasswordPage() {
     }
   };
 
+  // Step 4: Cancel Reset Request (Cleans up DB)
+  const handleCancel = async () => {
+    // Fire and forget cancellation to the backend
+    if (email) {
+      fetch('/api/auth/cancel-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).catch(err => console.error("Failed to cancel reset request:", err));
+    }
+    
+    // Reset UI and form states
+    setStep('email');
+    setOtp('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setError('');
+    setSuccessMsg('');
+    
+    // Reset Turnstile
+    turnstileRef.current?.reset();
+    setTurnstileToken(null);
+  };
+
+  // Step 5: Navigate back to login (with cleanup)
+  const handleBackToLogin = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Only bother the backend if we actually generated an OTP (i.e., we are past the email step)
+    if (email && (step === 'otp' || step === 'reset')) {
+      fetch('/api/auth/cancel-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).catch(err => console.error("Cleanup failed:", err));
+    }
+    router.push('/login');
+  };
+
   // --- RENDER ---
 
   return (
@@ -181,9 +241,22 @@ export default function ForgotPasswordPage() {
                 autoFocus
               />
             </div>
+
+            {/* Cloudflare Turnstile Widget */}
+            <div className="flex justify-center py-2">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onError={() => setError("CAPTCHA failed to load. Please refresh the page.")}
+                onExpire={() => setTurnstileToken(null)}
+                options={{ theme: 'light' }}
+              />
+            </div>
+
             <button 
               type="submit" 
-              disabled={loading} 
+              disabled={loading || !turnstileToken} 
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 flex justify-center items-center"
             >
               {loading ? 'Sending...' : 'Send Recovery Code'}
@@ -215,7 +288,7 @@ export default function ForgotPasswordPage() {
             </button>
             <button 
               type="button" 
-              onClick={() => { setStep('email'); setOtp(''); setError(''); }}
+              onClick={handleCancel}
               className="w-full text-gray-500 text-sm hover:text-gray-700 mt-4 underline"
             >
               Start over
@@ -228,23 +301,41 @@ export default function ForgotPasswordPage() {
           <form onSubmit={handleResetPassword} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password</label>
-              <input 
-                type="password" 
-                value={newPassword} 
-                onChange={(e) => setNewPassword(e.target.value)} 
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" 
-                placeholder="Secure password" 
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                  className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" 
+                  placeholder="Secure password" 
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
-              <input 
-                type="password" 
-                value={confirmPassword} 
-                onChange={(e) => setConfirmPassword(e.target.value)} 
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" 
-                placeholder="Repeat password" 
-              />
+              <div className="relative">
+                <input 
+                  type={showConfirmPassword ? "text" : "password"} 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                  className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" 
+                  placeholder="Repeat password" 
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
             <button 
               type="submit" 
@@ -259,9 +350,12 @@ export default function ForgotPasswordPage() {
         <div className="mt-8 text-center pt-6 border-t border-gray-100">
           <p className="text-sm text-gray-600">
             Remembered it?{' '}
-            <Link href="/login" className="text-blue-600 font-semibold hover:text-blue-700 hover:underline">
+            <button 
+              onClick={handleBackToLogin}
+              className="text-blue-600 font-semibold hover:text-blue-700 hover:underline bg-transparent border-none cursor-pointer"
+            >
               Back to Login
-            </Link>
+            </button>
           </p>
         </div>
 

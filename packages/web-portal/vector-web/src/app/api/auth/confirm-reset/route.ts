@@ -10,13 +10,13 @@ export async function POST(req: Request) {
   try {
     const { email, code, password } = await req.json();
 
-    // 1. Verify Code from DB, explicitly checking the type
+    // 1. Verify Code from DB
     const { data: records, error: fetchError } = await supabaseAdmin
       .from('verification_codes')
       .select('*')
       .eq('email', email)
       .eq('code', code)
-      .eq('type', 'PASSWORD_RESET') // Security Check: Must be a reset code
+      .eq('type', 'PASSWORD_RESET') 
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
       .limit(1);
@@ -30,26 +30,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Invalid or expired code' }, { status: 400 });
     }
 
-    // 2. Get User ID from Supabase Auth
-    const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    // 2. EFFICIENTLY Get User ID
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
     
-    if (listError) throw listError;
-
-    const user = users.find(u => u.email === email);
-    
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json({ success: false, message: 'User error' }, { status: 400 });
     }
 
-    // 3. Force Password Update
+    // 3. Force Password Update (This attaches a local password to Google accounts!)
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       user.id,
-      { password: password } // Bypasses the need for the old password
+      { password: password } 
     );
 
     if (updateError) throw updateError;
 
-    // 4. Clean up used code (only deleting reset codes, preserving any active email verifications)
+    // 4. Clean up used code
     await supabaseAdmin
       .from('verification_codes')
       .delete()

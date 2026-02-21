@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { headers } from 'next/headers'; 
+import { verifyTurnstileToken } from '@/lib/turnstile'; // <-- Import your utility
 
-// Initialize ADMIN client (bypasses RLS to save codes & check limits)
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -11,14 +11,31 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
   try {
-    const { email } = await req.json();
+    const { email, token } = await req.json(); // <-- Expect the token here
 
-    // 🛑 RATE LIMITING LOGIC STARTS HERE 🛑
+    // 🛑 1. CAPTCHA VERIFICATION 🛑
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: 'Human verification required.' }, 
+        { status: 400 }
+      );
+    }
+
+    const isCaptchaValid = await verifyTurnstileToken(token);
+    
+    if (!isCaptchaValid) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid CAPTCHA. Please refresh and try again.' }, 
+        { status: 400 }
+      );
+    }
+
+    // 🛑 2. RATE LIMITING LOGIC 🛑
     const headersList = await headers();
     const forwardedFor = headersList.get('x-forwarded-for');
     const ip = forwardedFor ? forwardedFor.split(',')[0] : 'unknown';
 
-    const { data: limitRecord, error: fetchError } = await supabaseAdmin
+    const { data: limitRecord } = await supabaseAdmin
       .from('rate_limits')
       .select('*')
       .eq('ip', ip)
@@ -53,27 +70,32 @@ export async function POST(req: Request) {
         attempts: 1
       });
     }
-    // 🛑 RATE LIMITING LOGIC ENDS HERE 🛑
 
-    // --- EXISTING LOGIC BELOW ---
-
-    // 6. Check if user exists (Anti-Enumeration: Fake success if not found)
-    const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-    if (listError) throw listError;
-    
-    const user = users?.users.find(u => u.email === email);
+    // --- 3. EFFICIENT USER CHECK ---
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
 
     if (!user) {
-      // Fake delay to simulate work (prevents timing attacks)
+      // Fake delay to simulate work (prevents timing attacks/email enumeration)
       await new Promise(resolve => setTimeout(resolve, 1000));
       return NextResponse.json({ success: true }); 
     }
 
-    // 7. Generate 6-Digit Code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // Aligned to 15 mins
+    // 🛑 NEW: Delete any existing reset codes for this email before making a new one 🛑
+    await supabaseAdmin
+      .from('verification_codes')
+      .delete()
+      .eq('email', email)
+      .eq('type', 'PASSWORD_RESET');
 
-    // 8. Save to DB with specific OTP type
+    // 4. Generate 6-Digit Code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); 
+
+    // 5. Save to DB
     const { error: dbError } = await supabaseAdmin
       .from('verification_codes')
       .insert({ 
@@ -85,7 +107,7 @@ export async function POST(req: Request) {
 
     if (dbError) throw dbError;
 
-    // 9. Send Email
+    // 6. Send Email
     const emailResult = await sendPasswordResetEmail(email, code);
     
     if (!emailResult.success) {

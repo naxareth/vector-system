@@ -3,9 +3,9 @@ import { NextResponse, type NextRequest, type NextFetchEvent } from 'next/server
 import { logSystemTraffic } from '@/lib/logger';
 
 const PROTECTED_PATHS = ['/registrar', '/student', '/admin', '/api/admin'];
-const AUTH_PATHS = ['/login', '/register', '/forgot-password'];
+// 1. Added '/registrar-register' to AUTH_PATHS
+const AUTH_PATHS = ['/login', '/register', '/registrar-register', '/forgot-password'];
 
-// ⚠️ Notice the addition of 'event: NextFetchEvent'
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const startTime = Date.now(); // Start the timer
   const url = request.nextUrl.clone();
@@ -15,14 +15,11 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   let response = NextResponse.next({ request: { headers: request.headers } });
 
   // --- LOGGING HELPER ---
-  // This safely handles the response and fires off the DB log in the background
   const logAndReturn = (res: NextResponse) => {
     const duration = Date.now() - startTime;
     const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
-    // event.waitUntil allows the response to finish and send to the user,
-    // while the database insert happens asynchronously in the background.
     event.waitUntil(
       logSystemTraffic({
         method: request.method,
@@ -55,7 +52,8 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // --- RULE: UNAUTHENTICATED USERS ---
-  if (!user && PROTECTED_PATHS.some(p => pathname.startsWith(p))) {
+  // 2. Added `&& !AUTH_PATHS.includes(pathname)` to prevent prefix collisions
+  if (!user && PROTECTED_PATHS.some(p => pathname.startsWith(p)) && !AUTH_PATHS.includes(pathname)) {
     url.pathname = '/login';
     return logAndReturn(NextResponse.redirect(url));
   }

@@ -1,10 +1,13 @@
 'use client';
-import { useState } from 'react';
+
+import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
 import { ChallengeMFA } from '@/components/auth/ChallengeMFA'; 
+import { Eye, EyeOff } from 'lucide-react';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -17,6 +20,13 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  const [showPassword, setShowPassword] = useState(false);
+  const [isOAuthUser, setIsOAuthUser] = useState(false);
+
+  // Turnstile state and ref
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   // Check for successful password reset redirect
   const isResetSuccess = searchParams.get('reset') === 'success';
@@ -30,6 +40,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setIsOAuthUser(false); // Reset on new attempt
 
     const result = loginSchema.safeParse(formData);
 
@@ -39,22 +50,48 @@ export default function LoginPage() {
       return;
     }
 
+    if (!turnstileToken) {
+      setError("Please complete the human verification check.");
+      setLoading(false);
+      return;
+    }
+
     const cleanData = result.data;
 
     try {
-      // 🛑 STEP 1: CALL THE GATEKEEPER API 🛑
-      // This checks the server-side rate limit before we even talk to Supabase
-      const gateResponse = await fetch('/api/auth/login-check', {
+      // 🛑 STEP 0: VERIFY CAPTCHA FIRST 🛑
+      const captchaResponse = await fetch('/api/auth/verify-captcha', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken }),
       });
 
-      // If the Gatekeeper says 429, we STOP immediately.
-      if (gateResponse.status === 429) {
-        const gateData = await gateResponse.json();
-        throw new Error(gateData.message || "Too many login attempts. Please try again later.");
+      const captchaResult = await captchaResponse.json();
+
+      if (!captchaResponse.ok || !captchaResult.success) {
+        throw new Error('CAPTCHA verification failed. Please try again.');
       }
 
-      // 🛑 STEP 2: PROCEED TO AUTH (Only if Gatekeeper Approved) 🛑
+      // 🛑 STEP 1: CALL THE GATEKEEPER API WITH EMAIL 🛑
+      const gateResponse = await fetch('/api/auth/login-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanData.email.trim().toLowerCase() }),
+      });
+
+      // Handle custom gatekeeper rejections (Rate Limits & OAuth-Only accounts)
+      if (!gateResponse.ok) {
+        const gateData = await gateResponse.json();
+        
+        // Trigger visual highlight if the account is Google-only
+        if (gateData.isOAuthOnly) {
+          setIsOAuthUser(true);
+        }
+        
+        throw new Error(gateData.message || "Login check failed.");
+      }
+
+      // 🛑 STEP 2: PROCEED TO AUTH 🛑
       const { data, error: authError } = await supabase.auth.signInWithPassword({ 
         email: cleanData.email.trim().toLowerCase(),
         password: cleanData.password 
@@ -69,10 +106,8 @@ export default function LoginPage() {
       const totpFactors = factorsData?.totp?.filter(f => f.status === 'verified') ?? [];
 
       if (totpFactors.length > 0) {
-        // MFA Enabled: Stop execution and show challenge
         setMfaFactorId(totpFactors[0].id);
         
-        // Pre-fetch role for later redirect
         const { data: userData } = await supabase
           .from('users')
           .select('role')
@@ -81,7 +116,6 @@ export default function LoginPage() {
           
         setPendingRole(userData?.role || 'student');
         setMfaRequired(true);
-        // We set loading to false here because the UI is switching to the MFA component
         setLoading(false); 
         return; 
       }
@@ -98,10 +132,8 @@ export default function LoginPage() {
         throw new Error("Account integrity error. Please contact support.");
       }
 
-      // Refresh router to sync server cookies
       router.refresh();
 
-      // Determine redirect target
       const returnUrl = searchParams.get('redirectTo');
       
       if (returnUrl) {
@@ -118,20 +150,21 @@ export default function LoginPage() {
         router.push(target);
       }
 
-      // Note: We do NOT set loading(false) here if successful 
-      // to keep the button in "Signing In..." state while the page transitions.
-
     } catch (err: any) {
       console.error("Login Error:", err);
-      // If the error came from the Gatekeeper, we show that specific message.
-      // Otherwise, we show the generic error.
-      const isRateLimit = err.message.includes("Too many");
-      setError(isRateLimit ? err.message : 'Invalid email or password.');
+      // Only genericize standard Supabase errors; preserve our custom Gatekeeper and CAPTCHA messages
+      const isCustomError = err.message.includes("Too many") || err.message.includes("Google") || err.message.includes("CAPTCHA");
+      setError(isCustomError ? err.message : 'Invalid email or password.');
       setLoading(false);
+      
+      // Reset Turnstile on error so they can try again
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
     }
   };
 
   const handleGoogleLogin = async () => {
+    // OAuth providers handle their own bot mitigation, so we bypass Turnstile here.
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -193,15 +226,23 @@ export default function LoginPage() {
 
         {/* Error Message */}
         {error && (
-          <div className={`mb-6 p-4 text-sm rounded-xl border flex items-start gap-3 ${error.includes("Too many") ? "bg-orange-50 text-orange-700 border-orange-100" : "bg-red-50 text-red-600 border-red-100"}`}>
+          <div className={`mb-6 p-4 text-sm rounded-xl border flex items-start gap-3 ${
+            error.includes("Google") 
+              ? "bg-blue-50 text-blue-700 border-blue-200" 
+              : (error.includes("Too many") || error.includes("CAPTCHA"))
+                ? "bg-orange-50 text-orange-700 border-orange-100" 
+                : "bg-red-50 text-red-600 border-red-100"
+          }`}>
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {error.includes("Too many") ? (
+              {error.includes("Google") ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              ) : (error.includes("Too many") || error.includes("CAPTCHA")) ? (
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               ) : (
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               )}
             </svg>
-            {error}
+            <span className="leading-tight">{error}</span>
           </div>
         )}
 
@@ -228,19 +269,41 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            <input 
-              type="password" 
-              value={formData.password} 
-              onChange={(e) => setFormData({...formData, password: e.target.value})} 
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" 
-              placeholder="••••••••" 
-              required 
+            
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                value={formData.password} 
+                onChange={(e) => setFormData({...formData, password: e.target.value})} 
+                className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all" 
+                placeholder="••••••••" 
+                required 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Cloudflare Turnstile Widget */}
+          <div className="flex justify-center py-2">
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
+              onSuccess={(token) => setTurnstileToken(token)}
+              onError={() => setError("CAPTCHA failed to load. Please refresh the page.")}
+              onExpire={() => setTurnstileToken(null)}
+              options={{ theme: 'light' }}
             />
           </div>
           
           <button 
             type="submit" 
-            disabled={loading} 
+            disabled={loading || !turnstileToken} 
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center shadow-md hover:shadow-lg transform active:scale-[0.98]"
           >
             {loading ? (
@@ -262,10 +325,15 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Highlighted Google Button when isOAuthUser is true */}
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-semibold transition-all hover:shadow-sm"
+          className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+            isOAuthUser 
+              ? 'border-blue-400 bg-blue-50/50 hover:bg-blue-100 ring-2 ring-blue-100 shadow-md' 
+              : 'border-gray-300 bg-white hover:bg-gray-50 hover:shadow-sm text-gray-700'
+          } font-semibold`}
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>

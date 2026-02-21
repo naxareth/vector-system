@@ -85,6 +85,8 @@ packages\web-portal\vector-web\src\app
 packages\web-portal\vector-web\src\app\(auth)
 packages\web-portal\vector-web\src\app\(auth)\forgot-password
 packages\web-portal\vector-web\src\app\(auth)\forgot-password\page.tsx
+packages\web-portal\vector-web\src\app\(auth)\registrar-register
+packages\web-portal\vector-web\src\app\(auth)\registrar-register\page.tsx
 packages\web-portal\vector-web\src\app\(auth)\login
 packages\web-portal\vector-web\src\app\(auth)\login\page.tsx
 packages\web-portal\vector-web\src\app\(auth)\register
@@ -106,8 +108,10 @@ packages\web-portal\vector-web\src\app\api\auth\confirm-reset
 packages\web-portal\vector-web\src\app\api\auth\confirm-reset\route.ts
 packages\web-portal\vector-web\src\app\api\auth\login-check
 packages\web-portal\vector-web\src\app\api\auth\login-check\route.ts
+packages/web-portal/vector-web/src/app/api/auth/cancel-reset/route.ts
 packages\web-portal\vector-web\src\app\api\auth\request-reset
 packages\web-portal\vector-web\src\app\api\auth\request-reset\route.ts
+packages\web-portal\vector-web\src\app\api\auth\verify-captcha\route.ts
 packages\web-portal\vector-web\src\app\api\chat
 packages\web-portal\vector-web\src\app\api\chat\route.ts
 packages\web-portal\vector-web\src\app\api\mint
@@ -146,6 +150,8 @@ packages\web-portal\vector-web\src\app\layout.tsx
 packages\web-portal\vector-web\src\app\page.tsx
 packages\web-portal\vector-web\src\components
 packages\web-portal\vector-web\src\components\auth
+packages\web-portal\vector-web\src\components\auth\StudentRegisterForm.tsx
+packages\web-portal\vector-web\src\components\auth\RegistrarRegisterForm.tsx
 packages\web-portal\vector-web\src\components\auth\ChallengeMFA.tsx
 packages\web-portal\vector-web\src\components\auth\EnrollMFA.tsx
 packages\web-portal\vector-web\src\components\cvr
@@ -184,7 +190,9 @@ packages\web-portal\vector-web\src\hooks
 packages\web-portal\vector-web\src\hooks\useCVR.ts
 packages\web-portal\vector-web\src\lib
 packages\web-portal\vector-web\src\lib\schemas
+packages\web-portal\vector-web\src\lib\schemas\auth.ts
 packages\web-portal\vector-web\src\lib\schemas\cvr.ts
+packages\web-portal\vector-web\src\lib\turnstile.ts
 packages\web-portal\vector-web\src\lib\audit.ts
 packages\web-portal\vector-web\src\lib\blockchain.ts
 packages\web-portal\vector-web\src\lib\db.ts
@@ -416,15 +424,20 @@ CREATE TABLE public.system_logs (
 
 # 6. Current State / Next Steps
 
-* **Last Completed:** - Overcame ISP regional blocking via port mapping (`6543` vs `5432`) and hotspot routing.
-  - End-to-End Database Encryption for Confidential Registrar Notes.
-  - Registrar UI upgrade (De-jargonization and Autocomplete Student Search).
-  - Secure Email Verification Flow (Nodemailer, secure 6-digit OTP via `verification_codes` table).
-  - Advanced Middleware (Route protection locking `pending_verification` users + Background `event.waitUntil()` traffic logging).
-  - Super Admin System Monitoring Dashboard (`system_logs` table, API analytics, UI).
-* **Current Focus:** -  
-* **Next Steps:** -
+* **Last Completed:** - Implemented Cloudflare Turnstile CAPTCHA across all auth forms (Student Register, Registrar Register, Login, and Forgot Password) and secured the backend API routes.
+ - Fixed the OTP expiration bug by actively shredding the PASSWORD_RESET token in confirm-reset/route.ts upon success, and in request-reset/route.ts and cancel-reset/route.ts when a user cancels or requests a new code.
+* **Current Focus:** - Testing the end-to-end flow of setting a local password for a Google account (OAuth linking).
+  
+ - Verifying edge cases in the registrar registration flow.
 
+* **Architecture Changes:** - Added `lucide-react` to `package.json` for UI icons.
+  - Split registration UI logic into `StudentRegisterForm.tsx` and `RegistrarRegisterForm.tsx` components.
+  - Added `turnstile.ts` utility for server-side CAPTCHA validation.
+
+* **Data Changes:** - Split a unified auth schema into `studentSchema` and `registrarSchema` in `lib/schemas/auth.ts`.
+
+* **Next Steps:** - Run comprehensive local testing on OAuth to Local credential linking.
+  - Finalize the unified authentication error handling UI.
 
 
 ---
