@@ -96,6 +96,7 @@ export default function RegistrarRegisterForm() {
             student_id: null, // Registrars don't get a student_id
             full_name: `${validData.firstName} ${validData.lastName}`,
             role: 'registrar',
+            email: validData.email, // Added missing email field
           });
 
         if (dbError && dbError.code !== '23505') {
