@@ -1,0 +1,49 @@
+name: Next.js CI Pipeline
+
+# 1. THE TRIGGER: When should this robot wake up?
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# 2. THE JOB: What server are we booting up?
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # 3. THE STEPS: What exactly is the robot doing?
+    steps:
+    # Step A: Download your repository code onto the virtual server
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # Step B: Install Node.js and cache npm dependencies
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm' 
+
+    # Step C: Install your project dependencies cleanly
+    - name: Install Dependencies
+      run: npm ci
+
+    # Step D: Cache Next.js build files to speed up future runs
+    - name: Cache Next.js build
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.npm
+          ${{ github.workspace }}/.next/cache
+        key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+        restore-keys: |
+          ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+
+    # Step E: Check code formatting (Linting)
+    - name: Run Linter
+      run: npm run lint
+
+    # Step F: Test if the Next.js project successfully builds without crashing
+    - name: Build Project
+      run: npm run build
