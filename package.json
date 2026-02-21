@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "echo 'Run dev in all packages'",
     "build": "echo 'Run build in all packages'",
+    "lint": "npm run lint -ws --if-present",
     "test": "echo 'Run tests in all packages'",
     "setup": "npm install && npm run init-subpackages",
     "init-subpackages": "node scripts/init-packages.js"
