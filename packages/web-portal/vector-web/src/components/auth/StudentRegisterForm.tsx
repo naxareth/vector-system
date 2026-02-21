@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase } from '@/lib/supabaseClient';
 import { studentSchema, type StudentRegisterData } from '@/lib/schemas/auth';
 import { Eye, EyeOff } from 'lucide-react';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 
 export default function StudentRegisterForm() {
   const router = useRouter();
@@ -16,28 +17,50 @@ export default function StudentRegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // This is where the real-time validation magic happens
+  // Turnstile state and ref
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<StudentRegisterData>({
     resolver: zodResolver(studentSchema),
-    mode: 'onChange', // Triggers validation instantly as the user types
+    mode: 'onChange',
   });
 
   const onSubmit = async (validData: StudentRegisterData) => {
     setServerError(null);
 
+    // 1. Ensure CAPTCHA is completed
+    if (!turnstileToken) {
+      setServerError("Please complete the human verification check.");
+      return;
+    }
+
     try {
-      // 1. Create User in Supabase Auth
+      // 2. Verify the CAPTCHA token securely on the server before creating the user
+      const captchaResponse = await fetch('/api/auth/verify-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken }),
+      });
+
+      const captchaResult = await captchaResponse.json();
+
+      if (!captchaResponse.ok || !captchaResult.success) {
+        throw new Error('CAPTCHA verification failed. Please try again.');
+      }
+
+      // 3. Create User in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validData.email,
         password: validData.password,
         options: {
           data: {
             full_name: `${validData.firstName} ${validData.lastName}`,
-            role: 'student', // Enforced role
+            role: 'student',
           }
         }
       });
@@ -50,7 +73,7 @@ export default function StudentRegisterForm() {
         }
       }
 
-      // 2. Create Public Profile
+      // 4. Create Public Profile
       if (authData.user) {
         const generatedStudentId = `03-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -69,7 +92,7 @@ export default function StudentRegisterForm() {
         }
       }
 
-      // 3. Trigger Verification Email API
+      // 5. Trigger Verification Email API
       await fetch('/api/auth/send-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,6 +105,9 @@ export default function StudentRegisterForm() {
     } catch (err: any) {
       console.error("Registration Error:", err);
       setServerError(err.message || 'Registration failed. Please try again.');
+      // Reset Turnstile widget so the user can generate a fresh token to try again
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
     }
   };
 
@@ -166,7 +192,19 @@ export default function StudentRegisterForm() {
         {errors.confirmPassword && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.confirmPassword.message}</p>}
       </div>
 
-      <button type="submit" disabled={isSubmitting} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-all transform active:scale-[0.98] shadow-md flex items-center justify-center gap-2 disabled:opacity-50 mt-4">
+      {/* Cloudflare Turnstile Widget */}
+      <div className="flex justify-center py-2">
+        <Turnstile
+          ref={turnstileRef}
+          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
+          onSuccess={(token) => setTurnstileToken(token)}
+          onError={() => setServerError("CAPTCHA failed to load. Please refresh the page.")}
+          onExpire={() => setTurnstileToken(null)}
+          options={{ theme: 'light' }}
+        />
+      </div>
+
+      <button type="submit" disabled={isSubmitting || !turnstileToken} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-all transform active:scale-[0.98] shadow-md flex items-center justify-center gap-2 disabled:opacity-50 mt-4">
         {isSubmitting ? 'Processing...' : 'Create Student Account'}
       </button>
     </form>

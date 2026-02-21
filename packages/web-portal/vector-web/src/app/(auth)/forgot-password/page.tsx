@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
-import { Eye, EyeOff } from 'lucide-react'; // <-- Added Import
+import { Eye, EyeOff } from 'lucide-react'; 
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 
 // --- ZOD SCHEMAS ---
 
@@ -47,6 +48,10 @@ export default function ForgotPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Turnstile state and ref
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
+
   // --- HANDLERS ---
 
   // Step 1: Send Recovery Code (Calls Custom API)
@@ -55,19 +60,27 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setError('');
 
+    if (!turnstileToken) {
+      setError("Please complete the human verification check.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const cleanData = emailSchema.parse({ email });
       const sanitizedEmail = cleanData.email.trim().toLowerCase();
 
-      // 🚀 Call your Custom API
+      // 🚀 Call your Custom API (This route now handles the CAPTCHA check securely)
       const res = await fetch('/api/auth/request-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: sanitizedEmail }),
+        body: JSON.stringify({ email: sanitizedEmail, token: turnstileToken }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error("Could not send code. Please try again.");
+        throw new Error(data.message || "Could not send code. Please try again.");
       }
 
       setEmail(sanitizedEmail);
@@ -76,13 +89,17 @@ export default function ForgotPasswordPage() {
 
     } catch (err: any) {
       setError(err instanceof z.ZodError ? err.errors[0].message : err.message);
+      // Reset Turnstile widget so the user can generate a fresh token
+      if (step === 'email') {
+        turnstileRef.current?.reset();
+        setTurnstileToken(null);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   // Step 2: Verify Format (Client-Side Check)
-  // Note: We verify the actual code + password together in Step 3 to save an API call
   const handleVerifyCode = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -186,9 +203,22 @@ export default function ForgotPasswordPage() {
                 autoFocus
               />
             </div>
+
+            {/* Cloudflare Turnstile Widget */}
+            <div className="flex justify-center py-2">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onError={() => setError("CAPTCHA failed to load. Please refresh the page.")}
+                onExpire={() => setTurnstileToken(null)}
+                options={{ theme: 'light' }}
+              />
+            </div>
+
             <button 
               type="submit" 
-              disabled={loading} 
+              disabled={loading || !turnstileToken} 
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 flex justify-center items-center"
             >
               {loading ? 'Sending...' : 'Send Recovery Code'}

@@ -110,6 +110,7 @@ packages\web-portal\vector-web\src\app\api\auth\login-check
 packages\web-portal\vector-web\src\app\api\auth\login-check\route.ts
 packages\web-portal\vector-web\src\app\api\auth\request-reset
 packages\web-portal\vector-web\src\app\api\auth\request-reset\route.ts
+packages\web-portal\vector-web\src\app\api\auth\verify-captcha\route.ts
 packages\web-portal\vector-web\src\app\api\chat
 packages\web-portal\vector-web\src\app\api\chat\route.ts
 packages\web-portal\vector-web\src\app\api\mint
@@ -190,6 +191,7 @@ packages\web-portal\vector-web\src\lib
 packages\web-portal\vector-web\src\lib\schemas
 packages\web-portal\vector-web\src\lib\schemas\auth.ts
 packages\web-portal\vector-web\src\lib\schemas\cvr.ts
+packages\web-portal\vector-web\src\lib\turnstile.ts
 packages\web-portal\vector-web\src\lib\audit.ts
 packages\web-portal\vector-web\src\lib\blockchain.ts
 packages\web-portal\vector-web\src\lib\db.ts
@@ -422,16 +424,20 @@ CREATE TABLE public.system_logs (
 # 6. Current State / Next Steps
 
 * **Last Completed:** - Resolved the "OAuth Loop" issue by implementing a pre-login check in api/auth/login-check and allowing account linking via confirm-reset.
+  - Implemented Cloudflare Turnstile CAPTCHA across all auth forms (Student Register, Registrar Register, Login, and Forgot Password) and secured the backend API routes.
 
-* **Current Focus:** - Verifying the UI feedback on /login/page.tsx when a Google-only user attempts a standard login.
-  - Local testing of the end-to-end OTP flow and middleware routing.
+* **Current Focus:** - Fixing the verification code (password reset) not expiring after the user successfully confirms the OTP or cancels the request.
+  - Testing the end-to-end flow of setting a local password for a Google account.
+  - Verifying edge cases in the registrar registration flow.
 
 * **Architecture Changes:** - Added `lucide-react` to `package.json` for UI icons.
   - Split registration UI logic into `StudentRegisterForm.tsx` and `RegistrarRegisterForm.tsx` components.
+  - Added `turnstile.ts` utility for server-side CAPTCHA validation.
 
 * **Data Changes:** - Split a unified auth schema into `studentSchema` and `registrarSchema` in `lib/schemas/auth.ts`.
 
-* **Next Steps:** - Test the end-to-end flow of setting a local password for a Google account and check for any edge cases in the registrar registration flow.
+* **Next Steps:** - Complete the OTP expiration bug fix.
+  - Run comprehensive local testing on OAuth to Local credential linking.
 
 
 

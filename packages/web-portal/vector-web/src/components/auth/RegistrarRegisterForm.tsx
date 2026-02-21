@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase } from '@/lib/supabaseClient';
 import { registrarSchema, type RegistrarRegisterData } from '@/lib/schemas/auth';
 import { Eye, EyeOff } from 'lucide-react';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 
 export default function RegistrarRegisterForm() {
   const router = useRouter();
@@ -16,6 +17,10 @@ export default function RegistrarRegisterForm() {
   const [showCode, setShowCode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Turnstile state and ref
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const {
     register,
@@ -29,8 +34,27 @@ export default function RegistrarRegisterForm() {
   const onSubmit = async (validData: RegistrarRegisterData) => {
     setServerError(null);
 
+    // 1. Ensure CAPTCHA is completed
+    if (!turnstileToken) {
+      setServerError("Please complete the human verification check.");
+      return;
+    }
+
     try {
-      // 1. Security Check (Server-Side)
+      // 2. Verify the CAPTCHA token securely on the server
+      const captchaResponse = await fetch('/api/auth/verify-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken }),
+      });
+
+      const captchaResult = await captchaResponse.json();
+
+      if (!captchaResponse.ok || !captchaResult.success) {
+        throw new Error('CAPTCHA verification failed. Please try again.');
+      }
+
+      // 3. Security Check (Server-Side) for Registrar
       const res = await fetch('/api/verify-registrar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,7 +67,7 @@ export default function RegistrarRegisterForm() {
         throw new Error(verification.message || "Invalid Authorization Code.");
       }
 
-      // 2. Create User in Supabase Auth
+      // 4. Create User in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validData.email,
         password: validData.password,
@@ -63,7 +87,7 @@ export default function RegistrarRegisterForm() {
         }
       }
 
-      // 3. Create Public Profile
+      // 5. Create Public Profile
       if (authData.user) {
         const { error: dbError } = await supabase
           .from('users')
@@ -79,7 +103,7 @@ export default function RegistrarRegisterForm() {
         }
       }
 
-      // 4. Trigger Verification Email API
+      // 6. Trigger Verification Email API
       await fetch('/api/auth/send-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,6 +116,9 @@ export default function RegistrarRegisterForm() {
     } catch (err: any) {
       console.error("Registration Error:", err);
       setServerError(err.message || 'Registration failed. Please try again.');
+      // Reset Turnstile widget so the user can generate a fresh token
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
     }
   };
 
@@ -198,7 +225,19 @@ export default function RegistrarRegisterForm() {
         {errors.confirmPassword && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.confirmPassword.message}</p>}
       </div>
 
-      <button type="submit" disabled={isSubmitting} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-all transform active:scale-[0.98] shadow-md flex items-center justify-center gap-2 disabled:opacity-50 mt-4">
+      {/* Cloudflare Turnstile Widget */}
+      <div className="flex justify-center py-2">
+        <Turnstile
+          ref={turnstileRef}
+          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
+          onSuccess={(token) => setTurnstileToken(token)}
+          onError={() => setServerError("CAPTCHA failed to load. Please refresh the page.")}
+          onExpire={() => setTurnstileToken(null)}
+          options={{ theme: 'light' }}
+        />
+      </div>
+
+      <button type="submit" disabled={isSubmitting || !turnstileToken} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-all transform active:scale-[0.98] shadow-md flex items-center justify-center gap-2 disabled:opacity-50 mt-4">
         {isSubmitting ? 'Verifying...' : 'Create Registrar Account'}
       </button>
     </form>

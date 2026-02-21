@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { headers } from 'next/headers'; 
+import { verifyTurnstileToken } from '@/lib/turnstile'; // <-- Import your utility
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,9 +11,26 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: Request) {
   try {
-    const { email } = await req.json();
+    const { email, token } = await req.json(); // <-- Expect the token here
 
-    // 🛑 RATE LIMITING LOGIC 🛑
+    // 🛑 1. CAPTCHA VERIFICATION 🛑
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: 'Human verification required.' }, 
+        { status: 400 }
+      );
+    }
+
+    const isCaptchaValid = await verifyTurnstileToken(token);
+    
+    if (!isCaptchaValid) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid CAPTCHA. Please refresh and try again.' }, 
+        { status: 400 }
+      );
+    }
+
+    // 🛑 2. RATE LIMITING LOGIC 🛑
     const headersList = await headers();
     const forwardedFor = headersList.get('x-forwarded-for');
     const ip = forwardedFor ? forwardedFor.split(',')[0] : 'unknown';
@@ -53,8 +71,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // --- EFFICIENT USER CHECK ---
-    // Fetch just the ID from your public users table instead of loading all auth users
+    // --- 3. EFFICIENT USER CHECK ---
     const { data: user } = await supabaseAdmin
       .from('users')
       .select('id')
@@ -67,11 +84,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true }); 
     }
 
-    // Generate 6-Digit Code
+    // 4. Generate 6-Digit Code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); 
 
-    // Save to DB
+    // 5. Save to DB
     const { error: dbError } = await supabaseAdmin
       .from('verification_codes')
       .insert({ 
@@ -83,7 +100,7 @@ export async function POST(req: Request) {
 
     if (dbError) throw dbError;
 
-    // Send Email
+    // 6. Send Email
     const emailResult = await sendPasswordResetEmail(email, code);
     
     if (!emailResult.success) {

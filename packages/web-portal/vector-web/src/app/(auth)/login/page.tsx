@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
 import { ChallengeMFA } from '@/components/auth/ChallengeMFA'; 
 import { Eye, EyeOff } from 'lucide-react';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -21,8 +22,11 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
-  // <-- Added state to visually highlight the Google button if OAuth is required
   const [isOAuthUser, setIsOAuthUser] = useState(false);
+
+  // Turnstile state and ref
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   // Check for successful password reset redirect
   const isResetSuccess = searchParams.get('reset') === 'success';
@@ -46,9 +50,28 @@ export default function LoginPage() {
       return;
     }
 
+    if (!turnstileToken) {
+      setError("Please complete the human verification check.");
+      setLoading(false);
+      return;
+    }
+
     const cleanData = result.data;
 
     try {
+      // 🛑 STEP 0: VERIFY CAPTCHA FIRST 🛑
+      const captchaResponse = await fetch('/api/auth/verify-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken }),
+      });
+
+      const captchaResult = await captchaResponse.json();
+
+      if (!captchaResponse.ok || !captchaResult.success) {
+        throw new Error('CAPTCHA verification failed. Please try again.');
+      }
+
       // 🛑 STEP 1: CALL THE GATEKEEPER API WITH EMAIL 🛑
       const gateResponse = await fetch('/api/auth/login-check', {
         method: 'POST',
@@ -129,14 +152,19 @@ export default function LoginPage() {
 
     } catch (err: any) {
       console.error("Login Error:", err);
-      // Only genericize standard Supabase errors; preserve our custom Gatekeeper messages
-      const isCustomError = err.message.includes("Too many") || err.message.includes("Google");
+      // Only genericize standard Supabase errors; preserve our custom Gatekeeper and CAPTCHA messages
+      const isCustomError = err.message.includes("Too many") || err.message.includes("Google") || err.message.includes("CAPTCHA");
       setError(isCustomError ? err.message : 'Invalid email or password.');
       setLoading(false);
+      
+      // Reset Turnstile on error so they can try again
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
     }
   };
 
   const handleGoogleLogin = async () => {
+    // OAuth providers handle their own bot mitigation, so we bypass Turnstile here.
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -201,14 +229,14 @@ export default function LoginPage() {
           <div className={`mb-6 p-4 text-sm rounded-xl border flex items-start gap-3 ${
             error.includes("Google") 
               ? "bg-blue-50 text-blue-700 border-blue-200" 
-              : error.includes("Too many") 
+              : (error.includes("Too many") || error.includes("CAPTCHA"))
                 ? "bg-orange-50 text-orange-700 border-orange-100" 
                 : "bg-red-50 text-red-600 border-red-100"
           }`}>
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {error.includes("Google") ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              ) : error.includes("Too many") ? (
+              ) : (error.includes("Too many") || error.includes("CAPTCHA")) ? (
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               ) : (
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -260,10 +288,22 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+
+          {/* Cloudflare Turnstile Widget */}
+          <div className="flex justify-center py-2">
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
+              onSuccess={(token) => setTurnstileToken(token)}
+              onError={() => setError("CAPTCHA failed to load. Please refresh the page.")}
+              onExpire={() => setTurnstileToken(null)}
+              options={{ theme: 'light' }}
+            />
+          </div>
           
           <button 
             type="submit" 
-            disabled={loading} 
+            disabled={loading || !turnstileToken} 
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center shadow-md hover:shadow-lg transform active:scale-[0.98]"
           >
             {loading ? (
