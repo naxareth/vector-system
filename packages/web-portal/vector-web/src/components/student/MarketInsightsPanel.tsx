@@ -1,0 +1,323 @@
+'use client';
+import { useEffect, useState } from 'react';
+
+// --- Types (mirrors market-insights/route.ts) ---
+
+interface LocationDemand {
+  location: string;
+  count: number;
+}
+
+interface SalaryInsights {
+  min: number | null;
+  max: number | null;
+  avg: number | null;
+  currency: string;
+}
+
+interface SkillInsight {
+  skill_name: string;
+  latest_job_count: number;
+  salary: SalaryInsights;
+  top_locations: LocationDemand[];
+  last_updated: string;
+  history: { date: string; job_count: number }[];
+}
+
+interface Props {
+  userId: string;
+}
+
+// --- Sparkline SVG ---
+
+function Sparkline({ history, color }: { history: SkillInsight['history']; color: string }) {
+  if (history.length < 2) {
+    return (
+      <div className="h-8 flex items-center">
+        <span className="text-xs text-gray-400 italic">No trend data yet</span>
+      </div>
+    );
+  }
+
+  const counts = history.map(h => h.job_count);
+  const max = Math.max(...counts) || 1;
+  const min = Math.min(...counts);
+  const range = (max - min) || 1;
+  const w = 80;
+  const h = 32;
+
+  const points = counts
+    .map((c, i) => {
+      const x = (i / (counts.length - 1)) * w;
+      const y = h - ((c - min) / range) * h;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// --- Salary Bar ---
+
+function SalaryBar({ salary }: { salary: SalaryInsights }) {
+  if (salary.avg === null) {
+    return <span className="text-xs text-gray-400 italic">No salary data</span>;
+  }
+
+  const fmt = (n: number | null) =>
+    n != null ? `$${(n / 1000).toFixed(0)}k` : '—';
+
+  return (
+    <div className="w-full">
+      <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <span>{fmt(salary.min)}</span>
+        <span className="font-semibold text-gray-800">avg {fmt(salary.avg)}</span>
+        <span>{fmt(salary.max)}</span>
+      </div>
+      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-purple-400 to-purple-600 rounded-full"
+          style={{
+            marginLeft: `${((salary.min ?? 0) / (salary.max ?? 1)) * 40}%`,
+            width: '60%',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// --- Trend Badge ---
+
+function TrendBadge({ history }: { history: SkillInsight['history'] }) {
+  if (history.length < 2) return null;
+
+  const first = history[0].job_count;
+  const last = history[history.length - 1].job_count;
+  const delta = first > 0 ? ((last - first) / first) * 100 : 0;
+  const isUp = delta >= 0;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${
+        isUp
+          ? 'bg-green-50 text-green-700 border border-green-200'
+          : 'bg-red-50 text-red-600 border border-red-200'
+      }`}
+    >
+      {isUp ? '▲' : '▼'} {Math.abs(delta).toFixed(0)}%
+    </span>
+  );
+}
+
+// --- Main Component ---
+
+export default function MarketInsightsPanel({ userId }: Props) {
+  const [insights, setInsights] = useState<SkillInsight[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchInsights = async () => {
+      try {
+        const res = await fetch(`/api/student/market-insights?userId=${userId}`);
+        const json = await res.json();
+        if (json.status === 'success') {
+          setInsights(json.data);
+        } else {
+          setError(true);
+        }
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInsights();
+  }, [userId]);
+
+  const colors = ['#9333ea', '#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#06b6d4'];
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Rich Market Intelligence</h2>
+            <p className="text-xs text-gray-500">Salary & location demand per skill</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-400 text-center py-6">Could not load market intelligence.</p>
+      </div>
+    );
+  }
+
+  const withData = insights.filter(s => s.latest_job_count > 0);
+  const noData = insights.filter(s => s.latest_job_count === 0);
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Rich Market Intelligence</h2>
+          <p className="text-xs text-gray-500">Salary & regional demand for your skills</p>
+        </div>
+        <span className="text-xs text-gray-400">{withData.length} skill{withData.length !== 1 ? 's' : ''} tracked</span>
+      </div>
+
+      {/* Skill Rows */}
+      <div className="divide-y divide-gray-50">
+        {withData.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-10 gap-3 text-gray-400">
+            <svg className="w-8 h-8 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <span className="text-sm font-medium">Market data populates after the first daily run.</span>
+          </div>
+        )}
+
+        {withData.map((skill, i) => {
+          const color = colors[i % colors.length];
+          const isOpen = expanded === skill.skill_name;
+
+          return (
+            <div key={skill.skill_name}>
+              {/* Summary Row — always visible */}
+              <button
+                onClick={() => setExpanded(isOpen ? null : skill.skill_name)}
+                className="w-full text-left px-6 py-4 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  {/* Color dot */}
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: color }}
+                  />
+
+                  {/* Skill name + trend badge */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm text-gray-900">{skill.skill_name}</span>
+                      <TrendBadge history={skill.history} />
+                    </div>
+                    <span className="text-xs text-gray-400">
+                      {skill.latest_job_count.toLocaleString()} open jobs
+                    </span>
+                  </div>
+
+                  {/* Sparkline */}
+                  <div className="flex-shrink-0">
+                    <Sparkline history={skill.history} color={color} />
+                  </div>
+
+                  {/* Expand chevron */}
+                  <svg
+                    className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
+
+              {/* Expanded Detail */}
+              {isOpen && (
+                <div className="px-6 pb-5 pt-1 bg-gray-50 border-t border-gray-100 space-y-4">
+                  {/* Salary */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      Salary Range
+                    </p>
+                    <SalaryBar salary={skill.salary} />
+                  </div>
+
+                  {/* Top Locations */}
+                  {skill.top_locations.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                        Top Hiring Locations
+                      </p>
+                      <div className="space-y-1.5">
+                        {skill.top_locations.map((loc, j) => {
+                          const maxCount = skill.top_locations[0].count;
+                          return (
+                            <div key={j} className="flex items-center gap-2">
+                              <span className="text-xs text-gray-600 w-36 truncate">{loc.location}</span>
+                              <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{
+                                    width: `${(loc.count / maxCount) * 100}%`,
+                                    backgroundColor: color,
+                                    opacity: 0.75,
+                                  }}
+                                />
+                              </div>
+                              <span className="text-xs text-gray-400 w-8 text-right">{loc.count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Last updated */}
+                  {skill.last_updated && (
+                    <p className="text-xs text-gray-400">
+                      Last updated:{' '}
+                      {new Date(skill.last_updated).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Skills with no data yet — collapsed, non-interactive */}
+        {noData.length > 0 && (
+          <div className="px-6 py-3">
+            <p className="text-xs text-gray-400">
+              {noData.map(s => s.skill_name).join(', ')}{' '}
+              — awaiting first market scan.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

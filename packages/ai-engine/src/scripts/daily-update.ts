@@ -1,7 +1,8 @@
-import { getMarketData } from '../data/market-provider'; 
+import { getMarketData } from '../data/market-provider';
+import { extractSkillsFromCredential } from '../nlp/skill-extractor';
+import { genAI } from '../nlp/gemini-client';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 // Parse CLI arguments for GitHub Actions manual triggers
@@ -13,46 +14,220 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY!
 );
 
+/**
+ * Asks Gemini to suggest related job-market skills for a given extracted skill.
+ * e.g. "React" → ["Vue.js", "Angular", "Svelte", "Next.js", "TypeScript"]
+ *
+ * This gives the AI a broader market picture — not just what students have,
+ * but the surrounding ecosystem so gap analysis is meaningful.
+ */
+async function expandToRelatedSkills(skill: string): Promise<string[]> {
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+    const prompt = `
+      You are a job market analyst for a tech credentialing platform.
+      
+      Given the skill: "${skill}"
+      
+      Return a JSON object with a "related" array of 3-5 closely related, 
+      in-demand job-market skills that employers frequently list alongside "${skill}".
+      
+      Rules:
+      - Only include real, searchable tech/professional skills (not course titles or degrees)
+      - Each skill must be 1-4 words max
+      - Do not include "${skill}" itself
+      - Return ONLY valid JSON, no markdown
+      
+      Example for "React": {"related": ["Vue.js", "TypeScript", "Next.js", "Angular", "Svelte"]}
+    `;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(text);
+    return parsed.related || [];
+  } catch (err) {
+    console.error(`   ⚠️  Gemini expansion failed for "${skill}":`, err);
+    return [];
+  }
+}
+
+/**
+ * PHASE 5 — W3C Skill Sync + Gemini Expansion
+ *
+ * Step 1: Extract constituent skills from W3C credentials via Gemini + JSON-LD schema
+ * Step 2: For each extracted skill, ask Gemini to suggest related market skills
+ * Step 3: Upsert all new skills into monitored_keywords
+ *
+ * Result: The market tracker automatically widens its scope as new credential
+ * types are issued — no manual intervention required.
+ */
+async function syncExtractedSkillsToMonitored(): Promise<void> {
+  console.log("\n🔗 W3C Sync: Extracting skills from verified credentials...");
+
+  // 1. Fetch credentials that have W3C schema context
+  const { data: credentials, error } = await supabase
+    .from('verified_credentials')
+    .select('id, skill_name, schema_url, credential_data')
+    .not('schema_url', 'is', null)
+    .not('credential_data', 'is', null);
+
+  if (error || !credentials || credentials.length === 0) {
+    console.log("   ℹ️  No W3C credentials with schema context found. Skipping sync.");
+    return;
+  }
+
+  console.log(`   📄 Found ${credentials.length} W3C credential(s) to analyze...`);
+
+  // 2. Load existing monitored keywords to avoid redundant upserts
+  const { data: existingKeywords } = await supabase
+    .from('monitored_keywords')
+    .select('keyword');
+
+  const existingSet = new Set(
+    (existingKeywords || []).map(k => k.keyword.toLowerCase())
+  );
+
+  const toUpsert: { keyword: string; category: string; is_active: boolean }[] = [];
+
+  // 3. Process each W3C credential
+  for (const cred of credentials) {
+    if (!cred.schema_url || cred.schema_url.includes('undefined')) continue;
+
+    let absoluteSchemaUrl = cred.schema_url;
+    if (absoluteSchemaUrl.startsWith('/')) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      absoluteSchemaUrl = `${baseUrl}${absoluteSchemaUrl}`;
+    }
+
+    try {
+      // Step 1: Extract direct skills from the credential's W3C schema
+      const extracted = await extractSkillsFromCredential(
+        cred.credential_data as Record<string, any>,
+        absoluteSchemaUrl
+      );
+
+      const novelDirect = extracted.filter(
+        s => s.length > 1 && !existingSet.has(s.toLowerCase())
+      );
+
+      for (const skill of novelDirect) {
+        toUpsert.push({ keyword: skill, category: 'w3c-extracted', is_active: true });
+        existingSet.add(skill.toLowerCase());
+      }
+
+      if (novelDirect.length > 0) {
+        console.log(`   ✨ "${cred.skill_name}" → extracted: ${novelDirect.join(', ')}`);
+      }
+
+      // Step 2: Gemini expansion — find related market skills for each extracted skill
+      // Run for all extracted skills (not just novel ones) to catch related gaps
+      for (const skill of extracted) {
+        const related = await expandToRelatedSkills(skill);
+
+        const novelRelated = related.filter(
+          s => s.length > 1 && !existingSet.has(s.toLowerCase())
+        );
+
+        for (const relSkill of novelRelated) {
+          toUpsert.push({ keyword: relSkill, category: 'auto-expanded', is_active: true });
+          existingSet.add(relSkill.toLowerCase());
+        }
+
+        if (novelRelated.length > 0) {
+          console.log(`   🔗 "${skill}" related → ${novelRelated.join(', ')}`);
+        }
+      }
+    } catch (err) {
+      console.error(`   ⚠️  Failed processing credential ${cred.id}:`, err);
+    }
+  }
+
+  if (toUpsert.length === 0) {
+    console.log("   ✅ No new skills to sync — monitored_keywords is up to date.");
+    return;
+  }
+
+  // 4. Upsert all discovered + expanded skills
+  const { error: upsertError } = await supabase
+    .from('monitored_keywords')
+    .upsert(toUpsert, { onConflict: 'keyword', ignoreDuplicates: true });
+
+  if (upsertError) {
+    console.error("   ❌ Failed to upsert skills:", upsertError.message);
+  } else {
+    const extracted = toUpsert.filter(r => r.category === 'w3c-extracted').length;
+    const expanded = toUpsert.filter(r => r.category === 'auto-expanded').length;
+    console.log(`   📥 Synced ${toUpsert.length} new skill(s): ${extracted} from W3C extraction, ${expanded} from Gemini expansion`);
+  }
+}
+
+/**
+ * Sanitizes raw skill_name values from verified_credentials.
+ * Only applied to credential-derived skills — monitored_keywords are always trusted.
+ */
+function sanitizeCredentialSkill(raw: string): string | null {
+  const trimmed = raw.trim();
+
+  const academicStopwords = [
+    'bachelor', 'master', 'associate', 'diploma', 'certificate',
+    'bootcamp', 'boot camp', 'information technology', 'computer science',
+    'bs ', 'ms ', 'bsit', 'bscs', 'course', 'program', 'degree',
+    'full-stack', 'full stack', 'web development bootcamp', 'nursing',
+  ];
+
+  const lower = trimmed.toLowerCase();
+  if (academicStopwords.some(stop => lower.includes(stop))) return null;
+  if (trimmed.length > 40) return null;
+
+  return trimmed;
+}
+
 async function runDailyUpdate() {
   console.log(`📅 Starting Market Update: ${new Date().toISOString()}`);
-
   let skillsToTrack: string[] = [];
 
-  // 1. Check for Manual Override (Flexibility for specific re-scans)
+  // Manual override — bypass sync, trust the keyword as-is
   if (manualKeyword && manualKeyword !== "''" && manualKeyword !== "") {
     console.log(`🎯 Manual trigger detected for: "${manualKeyword}"`);
     skillsToTrack = [manualKeyword];
   } else {
-    // 2. Auto-Discovery: Combine monitored keywords + organic skills from W3C credentials
-    console.log("🔍 Discovering skills from database...");
-    
+    // W3C sync runs FIRST so newly discovered skills are included in this same run
+    await syncExtractedSkillsToMonitored();
+
+    console.log("\n🔍 Building skills list from database...");
+
     const [monitoredRes, credentialRes] = await Promise.all([
       supabase.from('monitored_keywords').select('keyword').eq('is_active', true),
-      supabase.from('verified_credentials').select('skill_name')
+      supabase.from('verified_credentials').select('skill_name'),
     ]);
 
     const monitored = monitoredRes.data?.map(k => k.keyword) || [];
-    const fromCredentials = credentialRes.data?.map(c => c.skill_name) || [];
 
-    // Deduplicate to save API credits
-    skillsToTrack = Array.from(new Set([...monitored, ...fromCredentials]));
+    const rawFromCredentials = credentialRes.data?.map(c => c.skill_name) || [];
+    const cleanFromCredentials = rawFromCredentials
+      .map(sanitizeCredentialSkill)
+      .filter((s): s is string => s !== null);
+
+    console.log(`   📌 Monitored keywords (including auto-discovered): ${monitored.length}`);
+    console.log(`   🎓 Credential skills: ${rawFromCredentials.length} raw → ${cleanFromCredentials.length} usable`);
+
+    skillsToTrack = Array.from(new Set([...monitored, ...cleanFromCredentials]));
   }
 
   if (skillsToTrack.length === 0) {
-    console.warn("⚠️ No skills found to track. Update your monitored_keywords table.");
+    console.warn("⚠️ No valid job-market skills to track. Seed the monitored_keywords table.");
     return;
   }
 
-  console.log(`📋 Processing ${skillsToTrack.length} unique skills...`);
+  console.log(`\n📋 Processing ${skillsToTrack.length} unique skills...`);
 
   for (const skill of skillsToTrack) {
     try {
       console.log(`\n🔍 Fetching Intelligence: ${skill}`);
-      
-      // Use the Provider Layer instead of calling the client directly
-      const intelligence = await getMarketData(skill, 'us'); 
 
-      // 3. Store in metadata (JSONB) for W3C-style flexibility
+      const intelligence = await getMarketData(skill, 'us');
+
       const { error } = await supabase
         .from('market_snapshots')
         .insert({
@@ -63,8 +238,8 @@ async function runDailyUpdate() {
           metadata: {
             ...intelligence.raw,
             average_salary: intelligence.mean_salary || null,
-            top_locations: intelligence.locations || []
-          }
+            top_locations: intelligence.locations || [],
+          },
         });
 
       if (error) {
@@ -73,9 +248,8 @@ async function runDailyUpdate() {
         console.log(`   ✅ Recorded: ${intelligence.count} jobs for ${skill}`);
       }
 
-      // 4. Rate Limiting: Be kind to the free-tier API
+      // Rate limiting: free tier courtesy delay
       await new Promise(resolve => setTimeout(resolve, 2000));
-
     } catch (err) {
       console.error(`   ⚠️ Failed to update ${skill}`, err);
     }
@@ -84,7 +258,6 @@ async function runDailyUpdate() {
   console.log("\n✨ Daily Update Complete!");
 }
 
-// Global catch for script-level failures (notifies GitHub Actions)
 runDailyUpdate().catch(err => {
   console.error("💀 Fatal script failure:", err);
   process.exit(1);

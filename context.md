@@ -31,9 +31,9 @@ packages
 packages\ai-engine
 packages\ai-engine\src
 packages\ai-engine\src\data
-packages\ai-engine\src\data\adzuna-client.ts
+packages\ai-engine\src\data\adzuna-client.ts  ← MODIFIED
 packages\ai-engine\src\data\jsearch-client.ts
-packages\ai-engine\src\data\market-provider.ts
+packages\ai-engine\src\data\market-provider.ts  ← MODIFIED
 packages\ai-engine\src\nlp
 packages\ai-engine\src\nlp\gemini-client.ts
 packages\ai-engine\src\nlp\skill-extractor.ts
@@ -42,7 +42,7 @@ packages\ai-engine\src\predictions\decay-forecaster.ts
 packages\ai-engine\src\recommendations
 packages\ai-engine\src\recommendations\course-recommender.ts
 packages\ai-engine\src\scripts
-packages\ai-engine\src\scripts\daily-update.ts
+packages\ai-engine\src\scripts\daily-update.ts  ← MODIFIED
 packages\ai-engine\src\scripts\ingest-job-data.ts
 packages\ai-engine\src\index.ts
 packages\ai-engine\test
@@ -127,6 +127,7 @@ packages\web-portal\vector-web\src\app\api\schemas\[id]\route.ts
 packages\web-portal\vector-web\src\app\api\student
 packages\web-portal\vector-web\src\app\api\student\credentials
 packages\web-portal\vector-web\src\app\api\student\credentials\route.ts
+packages\web-portal\vector-web\src\app\api\student\market-insights\route.ts   ← NEW
 packages\web-portal\vector-web\src\app\api\student\temp.txt
 packages\web-portal\vector-web\src\app\api\verify-registrar
 packages\web-portal\vector-web\src\app\api\verify-registrar\route.ts
@@ -188,6 +189,7 @@ packages\web-portal\vector-web\src\components\shared\RegistrarLoginModal.tsx
 packages\web-portal\vector-web\src\components\shared\RegistrarTour.tsx
 packages\web-portal\vector-web\src\components\shared\SessionTimeout.tsx
 packages\web-portal\vector-web\src\components\shared\Tooltip.tsx
+packages\web-portal\vector-web\src\components\student\MarketInsightsPanel.tsx ← NEW
 packages\web-portal\vector-web\src\contexts
 packages\web-portal\vector-web\src\contexts\ThemeContext.tsx
 packages\web-portal\vector-web\src\hooks
@@ -424,36 +426,71 @@ CREATE TABLE public.verified_credentials (
 * **Error Handling:** Use Zod for all form and API request validation.
 * **Zod Validation:** All z.record definitions must use the z.record(z.string(), z.any()) syntax to avoid runtime parser crashes.
 
-# 6. Current State / Next Steps
+# 6. Current State / Next Steps 
 
 * **Data Changes:** -
 
     Database (Prisma): Created credential_schemas table to store dynamic JSON-LD templates.
 
-    Verified Credentials: Expanded verified_credentials with schema_url, credential_data, issuer_did, and metadata_uri to support flexible W3C payloads.
+    - market_snapshots: metadata JSONB column now fully populated with structured 
+      data — shape is { job_count, salary: { min, max, avg, currency }, 
+      top_locations: [{ location, count }], fetched_at }. All historical rows 
+      prior to this session have metadata: {}.
 
-    Market Intelligence: Modified market_snapshots with a metadata JSONB column for schema-agnostic intelligence storage.
+    - monitored_keywords: Cleared legacy 7-entry list. Re-seeded with 100+ 
+      curated keywords across 12 categories (Frontend, Backend, Database, Cloud, 
+      DevOps, AI, Blockchain, Security, Design, Product, Marketing, Business, IT).
+      New category values introduced: 'w3c-extracted' (skills auto-discovered from 
+      W3C credential schemas via Gemini) and 'auto-expanded' (related skills 
+      suggested by Gemini expansion).
 
-      Added MintCredentialValidator (api/registrar/credentials) to strictly validate incoming student data against dynamic schema keys before W3C JSON-LD payload generation.
-
-      Added resumeSchema (student/cvr) for complex CVR array validation.
+    - No new Prisma schema changes this session. All changes are data-level only.
 
 
-* **Last Completed:** - Phase 5 AI Integration: Refactored skill-extractor.ts to fetch and analyze external W3C schema_url contexts, enabling the AI to understand custom credential fields (e.g., "hours_completed" in a bootcamp cert).
-  - W3C Infrastructure: Verified the full "Registrar Write Layer"—including Schema creation, blockchain minting, and W3C JSON-LD database storage.
-  - Dynamic Job Tracker: Upgraded the daily-update.ts GitHub Action to automatically discover new skills from credentials and fetch rich market metadata into JSONB.
-  - Finalized the SchemaBuilder.tsx template system for quick-start credential designs (Academic, Bootcamp, Event).
+* **Last Completed:**
+  - Rich Market Intelligence Pipeline: Upgraded adzuna-client.ts to fetch 
+    salary (min/max/avg) and top hiring locations per skill, not just job_count. 
+    Fixed 400 errors caused by invalid content_type query param.
+  - market-provider.ts refactored to use fetchRichMarketData and map to typed 
+    MarketIntelligence interface — raw RichMarketData now writes directly to 
+    metadata JSONB.
+  - W3C Skill Sync: Added syncExtractedSkillsToMonitored() to daily-update.ts — 
+    queries verified_credentials with schema_url, runs Gemini + JSON-LD 
+    extraction, then Gemini-expands each extracted skill into related market 
+    keywords. All new skills upsert into monitored_keywords automatically, 
+    tagged as 'w3c-extracted' or 'auto-expanded'.
+  - Sanitization layer added to daily-update.ts — credential titles like 
+    "BS Information Technology" and "Full-Stack Web Development Bootcamp" are 
+    filtered before hitting Adzuna. monitored_keywords entries always bypass 
+    sanitization.
+  - MarketInsightsPanel.tsx built and wired into coach/page.tsx — displays 
+    per-skill salary range bar, top hiring locations, sparkline trend, and 
+    ▲/▼ trend badge. Expandable row UI. Fetches from new 
+    /api/student/market-insights?userId= route.
+  - monitored_keywords seeded with 100+ broad tech/professional keywords to 
+    give the AI comparison points for gap analysis and recommendations.
 
-* **Current Focus:** - Student Dashboard UI Refactor: Updating CredentialCard.tsx and the skills/[id] dynamic pages to iterate over and render custom key-value pairs stored in the credential_data JSONB object.
+* **Current Focus:**
+  - Review decay-forecaster.ts to verify it has sufficient historical 
+    market_snapshots data points to compute meaningful health scores and trend 
+    slopes. Currently most skills have only 1-2 snapshots — decay calculation 
+    requires at minimum 3-5 data points per skill to be reliable.
 
-* **Architecture Changes:** - Shifted from hardcoded credential enums to a flexible JSON-LD Schema Registry.
-  - Implemented DID formatting (`did:polygon:amoy:<address>`) across the Solidity contracts and Next.js backend.
-
-* **Next Steps:** - Market Intelligence Visualization: Update the Student Coach UI to display rich metadata (average salaries and regional demand) extracted by the dynamic tracker.
-
-Public Verification Portal: Build the /verify/[id] route to allow external entities to resolve DIDs and verify cryptographic signatures against the Polygon Amoy testnet.
-
-Rate-Limit Resilience: Implement p-limit or refined setTimeout logic in the ai-engine to handle high-volume Adzuna API calls.
-
+* **Next Steps:**
+  - Decay Forecaster Audit: Share decay-forecaster.ts and verify trend_slope 
+    and status computation logic against the real market_snapshots data shape 
+    (including new metadata JSONB).
+  - Recommendation Engine: Once forecaster is confirmed working, audit 
+    course-recommender.ts to ensure it uses health scores + gap analysis 
+    (high-demand skills the student lacks) to generate specific, actionable 
+    suggestions.
+  - Public Verification Portal: Build /verify/[id] route to allow external 
+    entities to resolve DIDs and verify cryptographic signatures against 
+    Polygon Amoy testnet.
+  - Rate-Limit Resilience: Implement p-limit in daily-update.ts to replace 
+    setTimeout rate limiting — required before the keyword list grows beyond 
+    ~50 skills to avoid GitHub Actions timeouts.
+  - GitHub Actions validation: Trigger daily-tracker.yml manually from the 
+    Actions tab after confirming local run succeeds with full seed list.
 ---
 

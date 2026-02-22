@@ -6,7 +6,11 @@ on:
     - cron: '0 0 * * *'
   # Allows you to run it manually from GitHub tab for testing
   workflow_dispatch:
-
+          inputs:
+            keyword:
+              description: 'Optional skill keyword to manually override discovery'
+              required: false
+              default: ''
 jobs:
   update-market-data:
     runs-on: ubuntu-latest
