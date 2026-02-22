@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import MarketInsightsPanel from '@/components/student/MarketInsightsPanel';
+import RecommendationsPanel, { CourseRecommendation } from '@/components/student/RecommendationsPanel';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 
@@ -30,9 +31,8 @@ interface MarketPoint {
 export default function CoachPage() {
   const router = useRouter();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [studentId, setStudentId] = useState<string>('');
-  // 🆕 UUID for the market insights panel (always a UUID, not student_id)
   const [userId, setUserId] = useState<string>('');
+  const [studentId, setStudentId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -45,6 +45,9 @@ export default function CoachPage() {
   const [skillsList, setSkillsList] = useState<SkillMetric[]>([]);
   const [realHistory, setRealHistory] = useState<MarketPoint[]>([]);
   const [selectedSkillView, setSelectedSkillView] = useState<string>('All');
+  // 🆕 Recommendations state
+  const [recommendations, setRecommendations] = useState<CourseRecommendation[]>([]);
+  const [atRiskSkills, setAtRiskSkills] = useState<any[]>([]);
 
   const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', text: "👋 Hi! I'm connecting to the blockchain to analyze your career data..." }
@@ -60,7 +63,6 @@ export default function CoachPage() {
         return;
       }
 
-      // 🆕 Always store the raw UUID for the market insights panel
       setUserId(session.user.id);
 
       const { data: profile } = await supabase
@@ -141,16 +143,25 @@ export default function CoachPage() {
         setSkillsList(processedSkills);
         if (json.data.history) setRealHistory(json.data.history);
 
+        // 🆕 Store recommendations and at-risk skills
+        if (aiData.recommendations) setRecommendations(aiData.recommendations);
+        if (aiData.atRiskSkills) setAtRiskSkills(aiData.atRiskSkills);
+
+        // 🆕 Build richer initial chat message that references recommendations
         if (allVerifiedNames.length === 0) {
           setMessages([{
             role: 'ai',
             text: `👋 Hi ${firstName}! You don't have any verified skills yet, so I've loaded the **Global Market Trends** for you. Check out what's hot right now!`
           }]);
         } else {
-          const topSkill = processedSkills.sort((a: any, b: any) => b.score - a.score)[0];
+          const topSkill = [...processedSkills].sort((a: any, b: any) => b.score - a.score)[0];
+          const topRec = aiData.recommendations?.[0];
+          const recHint = topRec
+            ? `\n\nBased on current market gaps, I'd suggest looking into **${topRec.courseTitle}** — ${topRec.reason}.`
+            : '';
           setMessages([{
             role: 'ai',
-            text: `👋 Hi ${firstName}! I've analyzed your **${allVerifiedNames.length}** verified credentials. Your **${topSkill?.name}** is looking strong!`
+            text: `👋 Hi ${firstName}! I've analyzed your **${allVerifiedNames.length}** verified credentials. Your **${topSkill?.name}** is looking strong!${recHint}`
           }]);
         }
       }
@@ -184,7 +195,15 @@ export default function CoachPage() {
           message: textToSend,
           context: {
             skills: skillsList,
-            verifiedCount: skillsList.filter(s => s.verified).length
+            verifiedCount: skillsList.filter(s => s.verified).length,
+            // 🆕 Pass recommendations and at-risk skills into chat context
+            // so Gemini can reference specific courses and urgency in replies
+            recommendations: recommendations.slice(0, 3).map(r => ({
+              course: r.courseTitle,
+              reason: r.reason,
+              type: r.reasonType,
+            })),
+            atRiskSkills: atRiskSkills,
           }
         })
       });
@@ -275,7 +294,7 @@ export default function CoachPage() {
       <div className={`grid grid-cols-1 ${chatOpen ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-6 relative transition-all duration-300`}>
         <div className={`${chatOpen ? 'lg:col-span-2' : 'lg:col-span-1'} space-y-6 transition-all duration-300`}>
 
-          {/* Existing: Market Demand Trends */}
+          {/* Market Demand Trends */}
           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -302,10 +321,13 @@ export default function CoachPage() {
             </div>
           </div>
 
-          {/* 🆕 Rich Market Intelligence Panel */}
+          {/* Rich Market Intelligence */}
           {userId && <MarketInsightsPanel userId={userId} />}
 
-          {/* Existing: Rising / Declining Skills */}
+          {/* 🆕 Recommended Actions */}
+          <RecommendationsPanel recommendations={recommendations} loading={loading} />
+
+          {/* Rising / Declining Skills */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl p-6 border border-gray-200">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -338,7 +360,7 @@ export default function CoachPage() {
           </div>
         </div>
 
-        {/* Existing: Chat Panel */}
+        {/* Chat Panel */}
         {chatOpen && (
           <div className="lg:col-span-1">
             <div className="sticky top-6 h-[calc(100vh-theme(spacing.32))] min-h-[500px] flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">

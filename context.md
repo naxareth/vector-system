@@ -26,221 +26,155 @@
 .vscode
 configs
 docs
-node_modules
+  seed-monitored-keywords.sql                          ← NEW
+  seed-courses.sql                                     ← NEW
 packages
-packages\ai-engine
-packages\ai-engine\src
-packages\ai-engine\src\data
-packages\ai-engine\src\data\adzuna-client.ts  ← MODIFIED
-packages\ai-engine\src\data\jsearch-client.ts
-packages\ai-engine\src\data\market-provider.ts  ← MODIFIED
-packages\ai-engine\src\nlp
-packages\ai-engine\src\nlp\gemini-client.ts
-packages\ai-engine\src\nlp\skill-extractor.ts
-packages\ai-engine\src\predictions
-packages\ai-engine\src\predictions\decay-forecaster.ts
-packages\ai-engine\src\recommendations
-packages\ai-engine\src\recommendations\course-recommender.ts
-packages\ai-engine\src\scripts
-packages\ai-engine\src\scripts\daily-update.ts  ← MODIFIED
-packages\ai-engine\src\scripts\ingest-job-data.ts
-packages\ai-engine\src\index.ts
-packages\ai-engine\test
-packages\ai-engine\test\ai-test.ts
-packages\ai-engine\.env
-packages\ai-engine\package.json
-packages\ai-engine\tsconfig.json
-packages\blockchain-core
-packages\blockchain-core\artifacts
-packages\blockchain-core\cache
-packages\blockchain-core\contracts
-packages\blockchain-core\contracts\VectorToken.sol
-packages\blockchain-core\deployments
-packages\blockchain-core\deployments\deployment-31337.json
-packages\blockchain-core\node_modules
-packages\blockchain-core\scripts
-packages\blockchain-core\scripts\deploy.js
-packages\blockchain-core\scripts\manage-registrars.js
-packages\blockchain-core\scripts\mint-skill.js
-packages\blockchain-core\scripts\query.js
-packages\blockchain-core\test
-packages\blockchain-core\test\VectorToken.test.js
-packages\blockchain-core\.env
-packages\blockchain-core\.gitignore
-packages\blockchain-core\hardhat.config.js
-packages\blockchain-core\package.json
-packages\blockchain-core\README.md
-packages\blockchain-core\simple-test.js
-packages\blockchain-core\tsconfig.json
-packages\shared
-packages\shared\.gitkeep
-packages\web-portal
-packages\web-portal\vector-web
-packages\web-portal\vector-web\.next
-packages\web-portal\vector-web\node_modules
-packages\web-portal\vector-web\prisma
-packages\web-portal\vector-web\prisma\schema.prisma
-packages\web-portal\vector-web\public
-packages\web-portal\vector-web\src
-packages\web-portal\vector-web\src\app
-packages\web-portal\vector-web\src\app\(auth)
-packages\web-portal\vector-web\src\app\(auth)\forgot-password
-packages\web-portal\vector-web\src\app\(auth)\forgot-password\page.tsx
-packages\web-portal\vector-web\src\app\(auth)\registrar-register
-packages\web-portal\vector-web\src\app\(auth)\registrar-register\page.tsx
-packages\web-portal\vector-web\src\app\(auth)\login
-packages\web-portal\vector-web\src\app\(auth)\login\page.tsx
-packages\web-portal\vector-web\src\app\(auth)\register
-packages\web-portal\vector-web\src\app\(auth)\register\page.tsx
-packages\web-portal\vector-web\src\app\admin
-packages\web-portal\vector-web\src\app\admin\audit-logs
-packages\web-portal\vector-web\src\app\admin\audit-logs\page.tsx
-packages\web-portal\vector-web\src\app\admin\dashboard
-packages\web-portal\vector-web\src\app\admin\dashboard\page.tsx
-packages\web-portal\vector-web\src\app\api
-packages\web-portal\vector-web\src\app\api\admin\verify-user
-packages\web-portal\vector-web\src\app\api\admin\verify-user\route.ts
-packages\web-portal\vector-web\src\app\api\analyze
-packages\web-portal\vector-web\src\app\api\analyze\route.ts
-packages\web-portal\vector-web\src\app\api\auth
-packages\web-portal\vector-web\src\app\api\auth\callback
-packages\web-portal\vector-web\src\app\api\auth\callback\route.ts
-packages\web-portal\vector-web\src\app\api\auth\confirm-reset
-packages\web-portal\vector-web\src\app\api\auth\confirm-reset\route.ts
-packages\web-portal\vector-web\src\app\api\auth\login-check
-packages\web-portal\vector-web\src\app\api\auth\login-check\route.ts
-packages/web-portal/vector-web/src/app/api/auth/cancel-reset/route.ts
-packages\web-portal\vector-web\src\app\api\auth\request-reset
-packages\web-portal\vector-web\src\app\api\auth\request-reset\route.ts
-packages\web-portal\vector-web\src\app\api\auth\verify-captcha\route.ts
-packages\web-portal\vector-web\src\app\api\chat
-packages\web-portal\vector-web\src\app\api\chat\route.ts
-packages\web-portal\vector-web\src\app\api\mint
-packages\web-portal\vector-web\src\app\api\mint\route.ts
-packages\web-portal\vector-web\src\app\api\registrar
-packages\web-portal\vector-web\src\app\api\registrar\credentials
-packages\web-portal\vector-web\src\app\api\registrar\credentials\route.ts
-packages\web-portal\vector-web\src\app\api\registrar\log-mint
-packages\web-portal\vector-web\src\app\api\registrar\log-mint\route.ts
-packages\web-portal\vector-web\src\app\api\schemas\route.ts
-packages\web-portal\vector-web\src\app\api\schemas\[id]\route.ts
-packages\web-portal\vector-web\src\app\api\student
-packages\web-portal\vector-web\src\app\api\student\credentials
-packages\web-portal\vector-web\src\app\api\student\credentials\route.ts
-packages\web-portal\vector-web\src\app\api\student\market-insights\route.ts   ← NEW
-packages\web-portal\vector-web\src\app\api\student\temp.txt
-packages\web-portal\vector-web\src\app\api\verify-registrar
-packages\web-portal\vector-web\src\app\api\verify-registrar\route.ts
-packages\web-portal\vector-web\src\app\registrar
-packages\web-portal\vector-web\src\app\registrar\dashboard
-packages\web-portal\vector-web\src\app\registrar\dashboard\page.tsx
-packages\web-portal\vector-web\src\app\registrar\students
-packages\web-portal\vector-web\src\app\registrar\students\page.tsx
-packages\web-portal\vector-web\src\app\student
-packages\web-portal\vector-web\src\app\student\coach
-packages\web-portal\vector-web\src\app\student\coach\page.tsx
-packages\web-portal\vector-web\src\app\student\cvr
-packages\web-portal\vector-web\src\app\student\cvr\page.tsx
-packages\web-portal\vector-web\src\app\student\dashboard
-packages\web-portal\vector-web\src\app\student\dashboard\page.tsx
-packages\web-portal\vector-web\src\app\student\profile
-packages\web-portal\vector-web\src\app\student\profile\security
-packages\web-portal\vector-web\src\app\student\profile\security\page.tsx
-packages\web-portal\vector-web\src\app\student\profile\page.tsx
-packages\web-portal\vector-web\src\app\student\skills
-packages\web-portal\vector-web\src\app\student\skills\page.tsx
-packages\web-portal\vector-web\src\app\globals.css
-packages\web-portal\vector-web\src\app\layout.tsx
-packages\web-portal\vector-web\src\app\page.tsx
-packages\web-portal\vector-web\src\components
-packages\web-portal\vector-web\src\components\auth
-packages\web-portal\vector-web\src\components\auth\StudentRegisterForm.tsx
-packages\web-portal\vector-web\src\components\auth\RegistrarRegisterForm.tsx
-packages\web-portal\vector-web\src\components\auth\ChallengeMFA.tsx
-packages\web-portal\vector-web\src\components\auth\EnrollMFA.tsx
-packages\web-portal\vector-web\src\components\cvr
-packages\web-portal\vector-web\src\components\cvr\CVRFormSections.tsx
-packages\web-portal\vector-web\src\components\dashboard
-packages\web-portal\vector-web\src\components\dashboard\AdminLayout.tsx
-packages\web-portal\vector-web\src\components\dashboard\CredentialCard.tsx
-packages\web-portal\vector-web\src\components\dashboard\CVRSuccessModal.tsx
-packages\web-portal\vector-web\src\components\dashboard\DashboardLayout.tsx
-packages\web-portal\vector-web\src\components\dashboard\ExportCVRModal.tsx
-packages\web-portal\vector-web\src\components\dashboard\MetricCards.tsx
-packages\web-portal\vector-web\src\components\dashboard\RecentActivity.tsx
-packages\web-portal\vector-web\src\components\dashboard\RegistrarLayout.tsx
-packages\web-portal\vector-web\src\components\dashboard\SchemaBuilder.tsx
-packages\web-portal\vector-web\src\components\dashboard\Sidebar.tsx
-packages\web-portal\vector-web\src\components\dashboard\TopBar.tsx
-packages\web-portal\vector-web\src\components\features
-packages\web-portal\vector-web\src\components\features\CTASection.tsx
-packages\web-portal\vector-web\src\components\features\FeaturesSection.tsx
-packages\web-portal\vector-web\src\components\features\HeroSection.tsx
-packages\web-portal\vector-web\src\components\features\WorkflowSection.tsx
-packages\web-portal\vector-web\src\components\pages
-packages\web-portal\vector-web\src\components\pages\LandingPage.tsx
-packages\web-portal\vector-web\src\components\pages\LoginPage.tsx
-packages\web-portal\vector-web\src\components\shared
-packages\web-portal\vector-web\src\components\shared\ConnectWalletModal.tsx
-packages\web-portal\vector-web\src\components\shared\DashboardTour.tsx
-packages\web-portal\vector-web\src\components\shared\Footer.tsx
-packages\web-portal\vector-web\src\components\shared\Navbar.tsx
-packages\web-portal\vector-web\src\components\shared\RegistrarLoginModal.tsx
-packages\web-portal\vector-web\src\components\shared\RegistrarTour.tsx
-packages\web-portal\vector-web\src\components\shared\SessionTimeout.tsx
-packages\web-portal\vector-web\src\components\shared\Tooltip.tsx
-packages\web-portal\vector-web\src\components\student\MarketInsightsPanel.tsx ← NEW
-packages\web-portal\vector-web\src\contexts
-packages\web-portal\vector-web\src\contexts\ThemeContext.tsx
-packages\web-portal\vector-web\src\hooks
-packages\web-portal\vector-web\src\hooks\useCVR.ts
-packages\web-portal\vector-web\src\lib
-packages\web-portal\vector-web\src\lib\schemas
-packages\web-portal\vector-web\src\lib\schemas\auth.ts
-packages\web-portal\vector-web\src\lib\schemas\cvr.ts
-packages\web-portal\vector-web\src\lib\turnstile.ts
-packages\web-portal\vector-web\src\lib\audit.ts
-packages\web-portal\vector-web\src\lib\blockchain.ts
-packages\web-portal\vector-web\src\lib\db.ts
-packages\web-portal\vector-web\src\lib\email.ts
-packages\web-portal\vector-web\src\lib\encryption.ts
-packages\web-portal\vector-web\src\lib\supabaseClient.ts
-packages\web-portal\vector-web\src\lib\utils.ts
-packages\web-portal\vector-web\src\lib\wagmi.ts
-packages\web-portal\vector-web\src\middleware.ts
-packages\web-portal\vector-web\src\app\(auth)\verify-email\page.tsx
-packages\web-portal\vector-web\src\app\admin\system-metrics\page.tsx
-packages\web-portal\vector-web\src\app\api\admin\system-logs\route.ts
-packages\web-portal\vector-web\src\app\api\auth\send-verification\route.ts
-packages\web-portal\vector-web\src\app\api\auth\verify-email\route.ts
-packages\web-portal\vector-web\src\lib\email.ts
-packages\web-portal\vector-web\src\lib\logger.ts
-packages\web-portal\vector-web\.env
-packages\web-portal\vector-web\.gitignore
-packages\web-portal\vector-web\eslint.config.mjs
-packages\web-portal\vector-web\MIGRATION_NOTE.md
-packages\web-portal\vector-web\next-env.d.ts
-packages\web-portal\vector-web\next.config.ts
-packages\web-portal\vector-web\package-lock.json
-packages\web-portal\vector-web\package.json
-packages\web-portal\vector-web\postcss.config.mjs
-packages\web-portal\vector-web\README.md
-packages\web-portal\vector-web\tsconfig.json
+│
+├── ai-engine
+│   └── src
+│       ├── data
+│       │   ├── adzuna-client.ts                       ← MODIFIED (rich salary/location fetch)
+│       │   ├── market-provider.ts                     ← MODIFIED (fetchRichMarketData wired)
+│       │   └── jsearch-client.ts
+│       ├── nlp
+│       │   ├── gemini-client.ts
+│       │   └── skill-extractor.ts
+│       ├── predictions
+│       │   └── decay-forecaster.ts                    ← MODIFIED (% slope thresholds + confidence)
+│       ├── recommendations
+│       │   └── course-recommender.ts                  ← MODIFIED (real DB + gap analysis)
+│       ├── scripts
+│       │   ├── daily-update.ts                        ← MODIFIED (W3C sync + Gemini expansion)
+│       │   └── ingest-job-data.ts
+│       └── index.ts                                   ← MODIFIED (await recommendCourses, atRiskSkills)
+│
+├── blockchain-core
+│   ├── contracts
+│   │   └── VectorToken.sol
+│   ├── scripts
+│   │   ├── deploy.js
+│   │   ├── manage-registrars.js
+│   │   ├── mint-skill.js
+│   │   └── query.js
+│   └── test
+│       └── VectorToken.test.js
+│
+├── shared
+│
+└── web-portal
+    └── vector-web
+        ├── prisma
+        │   └── schema.prisma
+        └── src
+            ├── app
+            │   ├── (auth)
+            │   │   ├── forgot-password/page.tsx
+            │   │   ├── login/page.tsx
+            │   │   ├── register/page.tsx
+            │   │   ├── registrar-register/page.tsx
+            │   │   └── verify-email/page.tsx
+            │   ├── admin
+            │   │   ├── audit-logs/page.tsx
+            │   │   ├── dashboard/page.tsx
+            │   │   └── system-metrics/page.tsx
+            │   ├── api
+            │   │   ├── admin
+            │   │   │   ├── system-logs/route.ts
+            │   │   │   └── verify-user/route.ts
+            │   │   ├── analyze/route.ts
+            │   │   ├── auth
+            │   │   │   ├── callback/route.ts
+            │   │   │   ├── cancel-reset/route.ts
+            │   │   │   ├── confirm-reset/route.ts
+            │   │   │   ├── login-check/route.ts
+            │   │   │   ├── request-reset/route.ts
+            │   │   │   ├── send-verification/route.ts
+            │   │   │   ├── verify-captcha/route.ts
+            │   │   │   └── verify-email/route.ts
+            │   │   ├── chat/route.ts
+            │   │   ├── mint/route.ts
+            │   │   ├── registrar
+            │   │   │   ├── credentials/route.ts
+            │   │   │   └── log-mint/route.ts
+            │   │   ├── schemas/route.ts
+            │   │   ├── schemas/[id]/route.ts
+            │   │   ├── student
+            │   │   │   ├── credentials/route.ts
+            │   │   │   └── market-insights/route.ts   ← NEW
+            │   │   └── verify-registrar/route.ts
+            │   ├── registrar
+            │   │   ├── dashboard/page.tsx
+            │   │   └── students/page.tsx
+            │   └── student
+            │       ├── coach/page.tsx                 ← MODIFIED (RecommendationsPanel + chat context)
+            │       ├── cvr/page.tsx
+            │       ├── dashboard/page.tsx
+            │       ├── profile/page.tsx
+            │       ├── profile/security/page.tsx
+            │       └── skills/page.tsx
+            ├── components
+            │   ├── auth
+            │   │   ├── ChallengeMFA.tsx
+            │   │   ├── EnrollMFA.tsx
+            │   │   ├── RegistrarRegisterForm.tsx
+            │   │   └── StudentRegisterForm.tsx
+            │   ├── cvr
+            │   │   └── CVRFormSections.tsx
+            │   ├── dashboard
+            │   │   ├── AdminLayout.tsx
+            │   │   ├── CredentialCard.tsx
+            │   │   ├── CVRSuccessModal.tsx
+            │   │   ├── DashboardLayout.tsx
+            │   │   ├── ExportCVRModal.tsx
+            │   │   ├── MetricCards.tsx
+            │   │   ├── RecentActivity.tsx
+            │   │   ├── RegistrarLayout.tsx
+            │   │   ├── SchemaBuilder.tsx
+            │   │   ├── Sidebar.tsx
+            │   │   └── TopBar.tsx
+            │   ├── features
+            │   │   ├── CTASection.tsx
+            │   │   ├── FeaturesSection.tsx
+            │   │   ├── HeroSection.tsx
+            │   │   └── WorkflowSection.tsx
+            │   ├── pages
+            │   │   ├── LandingPage.tsx
+            │   │   └── LoginPage.tsx
+            │   ├── shared
+            │   │   ├── ConnectWalletModal.tsx
+            │   │   ├── DashboardTour.tsx
+            │   │   ├── Footer.tsx
+            │   │   ├── Navbar.tsx
+            │   │   ├── RegistrarLoginModal.tsx
+            │   │   ├── RegistrarTour.tsx
+            │   │   ├── SessionTimeout.tsx
+            │   │   └── Tooltip.tsx
+            │   └── student
+            │       ├── MarketInsightsPanel.tsx        ← NEW
+            │       └── RecommendationsPanel.tsx       ← NEW
+            ├── contexts
+            │   └── ThemeContext.tsx
+            ├── hooks
+            │   └── useCVR.ts
+            └── lib
+                ├── schemas
+                │   ├── auth.ts
+                │   └── cvr.ts
+                ├── audit.ts
+                ├── blockchain.ts
+                ├── db.ts
+                ├── email.ts
+                ├── encryption.ts
+                ├── logger.ts
+                ├── supabaseClient.ts
+                ├── turnstile.ts
+                ├── utils.ts
+                └── wagmi.ts
 
-packages\web-portal\.gitkeep
-research
 scripts
-scripts\.env
-scripts\.gitkeep
-scripts\seed_market_data.py
+  seed_market_data.py
+research
 testing
-.gitignore
-context.md
-package-lock.json
-package.json
-README.md
-SETUP_GUIDE.md
-verify-setup.js
 
 # 4. Core Database Schema / State Shape
 
@@ -432,65 +366,78 @@ CREATE TABLE public.verified_credentials (
 
     Database (Prisma): Created credential_schemas table to store dynamic JSON-LD templates.
 
-    - market_snapshots: metadata JSONB column now fully populated with structured 
-      data — shape is { job_count, salary: { min, max, avg, currency }, 
-      top_locations: [{ location, count }], fetched_at }. All historical rows 
-      prior to this session have metadata: {}.
+    - market_snapshots: metadata JSONB fully populated. Shape:
+  { job_count, salary: { min, max, avg, currency },
+    top_locations: [{ location, count }], fetched_at }.
+  Historical rows prior to Feb 22 2026 have metadata: {}.
 
-    - monitored_keywords: Cleared legacy 7-entry list. Re-seeded with 100+ 
-      curated keywords across 12 categories (Frontend, Backend, Database, Cloud, 
-      DevOps, AI, Blockchain, Security, Design, Product, Marketing, Business, IT).
-      New category values introduced: 'w3c-extracted' (skills auto-discovered from 
-      W3C credential schemas via Gemini) and 'auto-expanded' (related skills 
-      suggested by Gemini expansion).
+    - monitored_keywords: Cleared legacy 7-entry list. Seeded with 100+
+      curated keywords across 12 categories. Category values:
+      'Frontend', 'Backend', 'Database', 'Cloud', 'DevOps', 'AI',
+      'Blockchain', 'Security', 'Design', 'Product', 'Marketing',
+      'Business', 'IT', 'Healthcare', 'w3c-extracted', 'auto-expanded'.
 
-    - No new Prisma schema changes this session. All changes are data-level only.
+    - courses: Seeded with 57 real courses across all skill categories.
+      Fields: title, provider, skill_tags (matches monitored_keywords),
+      link. Used by course-recommender.ts for gap-based recommendations.
+
+    - No new Prisma schema changes this session. All changes are data-level.
 
 
 * **Last Completed:**
-  - Rich Market Intelligence Pipeline: Upgraded adzuna-client.ts to fetch 
-    salary (min/max/avg) and top hiring locations per skill, not just job_count. 
-    Fixed 400 errors caused by invalid content_type query param.
-  - market-provider.ts refactored to use fetchRichMarketData and map to typed 
-    MarketIntelligence interface — raw RichMarketData now writes directly to 
-    metadata JSONB.
-  - W3C Skill Sync: Added syncExtractedSkillsToMonitored() to daily-update.ts — 
-    queries verified_credentials with schema_url, runs Gemini + JSON-LD 
-    extraction, then Gemini-expands each extracted skill into related market 
-    keywords. All new skills upsert into monitored_keywords automatically, 
-    tagged as 'w3c-extracted' or 'auto-expanded'.
-  - Sanitization layer added to daily-update.ts — credential titles like 
-    "BS Information Technology" and "Full-Stack Web Development Bootcamp" are 
-    filtered before hitting Adzuna. monitored_keywords entries always bypass 
-    sanitization.
-  - MarketInsightsPanel.tsx built and wired into coach/page.tsx — displays 
-    per-skill salary range bar, top hiring locations, sparkline trend, and 
-    ▲/▼ trend badge. Expandable row UI. Fetches from new 
-    /api/student/market-insights?userId= route.
-  - monitored_keywords seeded with 100+ broad tech/professional keywords to 
-    give the AI comparison points for gap analysis and recommendations.
+  - Full Rich Market Intelligence Pipeline: adzuna-client.ts fetches
+    salary (min/max/avg) + top 5 hiring locations per skill. Fixed 400
+    errors caused by invalid content_type query param.
+  - market-provider.ts: Wired fetchRichMarketData → MarketIntelligence
+    interface. Raw RichMarketData writes directly to metadata JSONB.
+  - W3C Skill Sync: syncExtractedSkillsToMonitored() in daily-update.ts
+    queries verified_credentials with schema_url, runs Gemini + JSON-LD
+    extraction, Gemini-expands each skill into related market keywords,
+    upserts all into monitored_keywords tagged 'w3c-extracted' or
+    'auto-expanded'. Runs before fetch loop so new skills are tracked
+    same day they are discovered.
+  - Sanitization layer in daily-update.ts: academic credential titles
+    filtered before hitting Adzuna. monitored_keywords always bypass.
+  - decay-forecaster.ts rewritten: percentage-based slope thresholds
+    (0.5%/day) replace broken absolute thresholds. Added confidence
+    field (low/medium/high based on data point count).
+  - course-recommender.ts rebuilt: queries real courses table, runs
+    gap analysis against market_snapshots, scores courses across 4
+    tiers (decay > gap > growth > complement). Fixed module-level
+    Supabase init crash via lazy getSupabaseClient() factory.
+  - index.ts updated: recommendCourses now awaited, new signature
+    { studentSkills, skillHealthMap }, atRiskSkills replaces gaps: [].
+  - MarketInsightsPanel.tsx: per-skill salary bar, top locations chart,
+    sparkline, ▲/▼ trend badge, expandable rows.
+  - RecommendationsPanel.tsx: ranked course cards with reason type
+    badges (Skill Gap / Urgent Upgrade / Rising Demand / Builds On
+    Skills), relevance score bar, direct course links.
+  - coach/page.tsx: both panels wired in. Recommendations + atRiskSkills
+    passed into chat context so Gemini references specific courses in
+    replies. Initial greeting surfaces top recommendation inline.
+  - 93 skills tracked with real job counts + salary metadata confirmed
+    in market_snapshots. Courses table seeded with 57 entries.
 
 * **Current Focus:**
-  - Review decay-forecaster.ts to verify it has sufficient historical 
-    market_snapshots data points to compute meaningful health scores and trend 
-    slopes. Currently most skills have only 1-2 snapshots — decay calculation 
-    requires at minimum 3-5 data points per skill to be reliable.
+  - GitHub Actions validation: Trigger daily-tracker.yml manually from
+    the Actions tab. Verify secrets resolve, W3C sync runs, and all
+    93 skills are recorded in market_snapshots from the CI environment.
 
 * **Next Steps:**
-  - Decay Forecaster Audit: Share decay-forecaster.ts and verify trend_slope 
-    and status computation logic against the real market_snapshots data shape 
-    (including new metadata JSONB).
-  - Recommendation Engine: Once forecaster is confirmed working, audit 
-    course-recommender.ts to ensure it uses health scores + gap analysis 
-    (high-demand skills the student lacks) to generate specific, actionable 
-    suggestions.
-  - Public Verification Portal: Build /verify/[id] route to allow external 
-    entities to resolve DIDs and verify cryptographic signatures against 
-    Polygon Amoy testnet.
-  - Rate-Limit Resilience: Implement p-limit in daily-update.ts to replace 
-    setTimeout rate limiting — required before the keyword list grows beyond 
-    ~50 skills to avoid GitHub Actions timeouts.
-  - GitHub Actions validation: Trigger daily-tracker.yml manually from the 
-    Actions tab after confirming local run succeeds with full seed list.
+  - GitHub Actions: After successful manual trigger, confirm cron
+    schedule (00:00 UTC) runs automatically and verify no silent
+    failures via log output.
+  - Rate-Limit Resilience: Replace setTimeout in daily-update.ts with
+    p-limit for concurrent but controlled API calls. Required before
+    keyword list exceeds ~100 skills to avoid GitHub Actions timeouts.
+  - Public Verification Portal: Build /verify/[id] route to resolve
+    DIDs and verify cryptographic signatures against Polygon Amoy.
+    Standalone — no dependencies on Phase 5 AI work.
+  - Gemini Context Enrichment: Pass salary and location metadata from
+    market_snapshots into the Gemini prompt in /api/chat so the AI
+    gives salary-aware, location-specific career advice.
+  - Trend Confidence Improvement: Skills currently have confidence:
+    'low' (only 2 snapshots). Forecaster accuracy improves to 'medium'
+    after 4 days, 'high' after 7 days of cron runs.
 ---
 

@@ -6,16 +6,15 @@ interface AIInputParams {
   studentData: {
     id: string;
     name: string;
-    skills: string[]; 
+    skills: string[];
     credentials: any[];
   };
-  marketData: any[]; // Raw Supabase rows
+  marketData: any[]; // Raw Supabase rows from market_snapshots
   resumeText?: string;
 }
 
 export async function analyzeStudentProfile(params: AIInputParams) {
   const { studentData, marketData, resumeText } = params;
-
   console.log("🔍 AI Engine: Processing profile for", studentData?.name);
 
   if (!studentData) {
@@ -34,35 +33,45 @@ export async function analyzeStudentProfile(params: AIInputParams) {
   }
 
   const finalSkills = Array.from(new Set([...studentData.skills, ...extractedSkills]));
-  
+
   // 2. PREDICTION (Skill Decay)
-  // We process each skill one by one
+  // Map Supabase rows (recorded_at/job_count) → forecaster format (date/jobCount)
   const skillHealth = finalSkills.map(skill => {
-    // Find rows in 'marketData' that match this skill (case-insensitive)
-    const rawHistory = marketData.filter(row => 
+    const rawHistory = marketData.filter(row =>
       row.skill_name.toLowerCase() === skill.toLowerCase()
     );
 
-    // ✅ FIX 2: Map Supabase data (recorded_at/job_count) -> Predictor data (date/jobCount)
     const formattedHistory = rawHistory.map(row => ({
-      date: row.recorded_at, 
-      jobCount: row.job_count
+      date: row.recorded_at,
+      jobCount: row.job_count,
     }));
 
-    // Call the correct function
-    return calculateSkillDecay(skill, formattedHistory); 
+    return calculateSkillDecay(skill, formattedHistory);
   });
 
-  // 3. RECOMMENDATION
-  const recommendations = recommendCourses({
-    ...studentData,
-    skills: finalSkills
+  // 3. RECOMMENDATION + GAP ANALYSIS
+  // ✅ Now async — queries real courses table + market_snapshots for gap analysis
+  const recommendations = await recommendCourses({
+    studentSkills: finalSkills,
+    skillHealthMap: skillHealth,
+    topN: 5,
   });
+
+  // 4. Surface skill gaps explicitly for the AI context
+  // Declining or low-confidence skills the student has → flag as at-risk
+  const atRiskSkills = skillHealth
+    .filter(s => s.trend === 'declining' || (s.healthScore < 40 && s.confidence !== 'low'))
+    .map(s => ({
+      skill: s.skillName,
+      healthScore: s.healthScore,
+      trend: s.trend,
+      confidence: s.confidence,
+    }));
 
   return {
     studentId: studentData.id,
-    skillHealth, // This now contains the calculated health/decay scores
+    skillHealth,
     recommendations,
-    gaps: []
+    atRiskSkills, // Replaces hardcoded gaps: []
   };
 }
