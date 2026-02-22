@@ -2,6 +2,7 @@ import { getMarketData } from '../data/market-provider';
 import { extractSkillsFromCredential } from '../nlp/skill-extractor';
 import { genAI } from '../nlp/gemini-client';
 import { createClient } from '@supabase/supabase-js';
+import pLimit from 'p-limit';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -13,6 +14,17 @@ const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_KEY!
 );
+
+// ---------------------------------------------------------------------------
+// Concurrency config
+// ---------------------------------------------------------------------------
+// Max 3 simultaneous Adzuna API calls — safe for the free tier and well within
+// GitHub Actions runner limits. Raise to 5 only if Adzuna confirms higher quota.
+const CONCURRENCY_LIMIT = 3;
+
+// Courtesy delay between each completed task (ms) — prevents burst-spamming
+// Adzuna even when slots free up at the same instant.
+const INTER_TASK_DELAY_MS = 500;
 
 /**
  * Asks Gemini to suggest related job-market skills for a given extracted skill.
@@ -61,6 +73,10 @@ async function expandToRelatedSkills(skill: string): Promise<string[]> {
  *
  * Result: The market tracker automatically widens its scope as new credential
  * types are issued — no manual intervention required.
+ *
+ * NOTE: This section runs serially — Gemini calls are chained per-credential and
+ * per-skill. p-limit is intentionally NOT applied here; the W3C sync is a one-shot
+ * setup pass, not a high-volume loop. Parallelizing it would risk Gemini quota errors.
  */
 async function syncExtractedSkillsToMonitored(): Promise<void> {
   console.log("\n🔗 W3C Sync: Extracting skills from verified credentials...");
@@ -183,6 +199,44 @@ function sanitizeCredentialSkill(raw: string): string | null {
   return trimmed;
 }
 
+/**
+ * Fetches market intelligence for a single skill and writes it to market_snapshots.
+ * Wrapped in a courtesy delay after completion so concurrent slots don't burst-fire.
+ */
+async function processSkill(skill: string): Promise<void> {
+  try {
+    console.log(`\n🔍 Fetching Intelligence: ${skill}`);
+
+    const intelligence = await getMarketData(skill, 'us');
+
+    const { error } = await supabase
+      .from('market_snapshots')
+      .insert({
+        skill_name: skill,
+        job_count: intelligence.count,
+        data_source: 'adzuna',
+        recorded_at: new Date().toISOString(),
+        metadata: {
+          ...intelligence.raw,
+          average_salary: intelligence.mean_salary || null,
+          top_locations: intelligence.locations || [],
+        },
+      });
+
+    if (error) {
+      console.error(`   ❌ DB Error for ${skill}:`, error.message);
+    } else {
+      console.log(`   ✅ Recorded: ${intelligence.count} jobs for ${skill}`);
+    }
+  } catch (err) {
+    console.error(`   ⚠️ Failed to update ${skill}`, err);
+  } finally {
+    // Courtesy delay: applied regardless of success/failure so we don't burst
+    // the next task immediately when this slot frees up.
+    await new Promise(resolve => setTimeout(resolve, INTER_TASK_DELAY_MS));
+  }
+}
+
 async function runDailyUpdate() {
   console.log(`📅 Starting Market Update: ${new Date().toISOString()}`);
   let skillsToTrack: string[] = [];
@@ -220,40 +274,26 @@ async function runDailyUpdate() {
     return;
   }
 
-  console.log(`\n📋 Processing ${skillsToTrack.length} unique skills...`);
+  console.log(`\n📋 Processing ${skillsToTrack.length} unique skills with concurrency limit of ${CONCURRENCY_LIMIT}...`);
 
-  for (const skill of skillsToTrack) {
-    try {
-      console.log(`\n🔍 Fetching Intelligence: ${skill}`);
+  // ---------------------------------------------------------------------------
+  // p-limit controlled batch processing
+  // ---------------------------------------------------------------------------
+  // Previously: serial for-loop with a flat 2000ms setTimeout per skill.
+  //   → 100 skills × 2s = ~3.5 min minimum, wasted waiting even on fast responses.
+  //
+  // Now: up to CONCURRENCY_LIMIT skills run simultaneously.
+  //   → Fast responses immediately free their slot for the next skill.
+  //   → INTER_TASK_DELAY_MS (500ms) is applied per-task after completion,
+  //     not as a global stall — so throughput scales with actual API speed.
+  //   → Estimated time for 100 skills at avg 1.5s/call with concurrency 3:
+  //     ~(100 / 3) × (1.5s + 0.5s) ≈ ~67s vs ~200s serial. ~3× faster.
+  // ---------------------------------------------------------------------------
+  const limit = pLimit(CONCURRENCY_LIMIT);
 
-      const intelligence = await getMarketData(skill, 'us');
+  const tasks = skillsToTrack.map(skill => limit(() => processSkill(skill)));
 
-      const { error } = await supabase
-        .from('market_snapshots')
-        .insert({
-          skill_name: skill,
-          job_count: intelligence.count,
-          data_source: 'adzuna',
-          recorded_at: new Date().toISOString(),
-          metadata: {
-            ...intelligence.raw,
-            average_salary: intelligence.mean_salary || null,
-            top_locations: intelligence.locations || [],
-          },
-        });
-
-      if (error) {
-        console.error(`   ❌ DB Error for ${skill}:`, error.message);
-      } else {
-        console.log(`   ✅ Recorded: ${intelligence.count} jobs for ${skill}`);
-      }
-
-      // Rate limiting: free tier courtesy delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    } catch (err) {
-      console.error(`   ⚠️ Failed to update ${skill}`, err);
-    }
-  }
+  await Promise.all(tasks);
 
   console.log("\n✨ Daily Update Complete!");
 }
