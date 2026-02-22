@@ -1,6 +1,3 @@
-
----
-
 # 1. Project Overview
 
 * **Name:** VECTOR (Decentralized Micro-Credentialing System)
@@ -26,8 +23,8 @@
 .vscode
 configs
 docs
-  seed-monitored-keywords.sql                          ← NEW
-  seed-courses.sql                                     ← NEW
+  seed-monitored-keywords.sql
+  seed-courses.sql
 packages
 │
 ├── ai-engine
@@ -44,7 +41,7 @@ packages
 │       ├── recommendations
 │       │   └── course-recommender.ts                  ← MODIFIED (real DB + gap analysis)
 │       ├── scripts
-│       │   ├── daily-update.ts                        ← MODIFIED (W3C sync + Gemini expansion)
+│       │   ├── daily-update.ts                        ← MODIFIED (p-limit concurrency, W3C sync)
 │       │   └── ingest-job-data.ts
 │       └── index.ts                                   ← MODIFIED (await recommendCourses, atRiskSkills)
 │
@@ -81,7 +78,7 @@ packages
             │   │   ├── admin
             │   │   │   ├── system-logs/route.ts
             │   │   │   └── verify-user/route.ts
-            │   │   ├── analyze/route.ts
+            │   │   ├── analyze/route.ts               ← MODIFIED (14-day history window)
             │   │   ├── auth
             │   │   │   ├── callback/route.ts
             │   │   │   ├── cancel-reset/route.ts
@@ -91,7 +88,7 @@ packages
             │   │   │   ├── send-verification/route.ts
             │   │   │   ├── verify-captcha/route.ts
             │   │   │   └── verify-email/route.ts
-            │   │   ├── chat/route.ts
+            │   │   ├── chat/route.ts                  ← MODIFIED (salary + location Gemini context)
             │   │   ├── mint/route.ts
             │   │   ├── registrar
             │   │   │   ├── credentials/route.ts
@@ -100,18 +97,20 @@ packages
             │   │   ├── schemas/[id]/route.ts
             │   │   ├── student
             │   │   │   ├── credentials/route.ts
-            │   │   │   └── market-insights/route.ts   ← NEW
+            │   │   │   └── market-insights/route.ts
+            │   │   ├── verify/[id]/route.ts           ← NEW (public credential verification API)
             │   │   └── verify-registrar/route.ts
             │   ├── registrar
             │   │   ├── dashboard/page.tsx
             │   │   └── students/page.tsx
-            │   └── student
-            │       ├── coach/page.tsx                 ← MODIFIED (RecommendationsPanel + chat context)
-            │       ├── cvr/page.tsx
-            │       ├── dashboard/page.tsx
-            │       ├── profile/page.tsx
-            │       ├── profile/security/page.tsx
-            │       └── skills/page.tsx
+            │   ├── student
+            │   │   ├── coach/page.tsx                 ← MODIFIED (per-skill chart normalization)
+            │   │   ├── cvr/page.tsx                   ← MODIFIED (slim orchestrator, 8 components)
+            │   │   ├── dashboard/page.tsx
+            │   │   ├── profile/page.tsx
+            │   │   ├── profile/security/page.tsx
+            │   │   └── skills/page.tsx
+            │   └── verify/[id]/page.tsx               ← NEW (public verification portal, no auth)
             ├── components
             │   ├── auth
             │   │   ├── ChallengeMFA.tsx
@@ -119,7 +118,15 @@ packages
             │   │   ├── RegistrarRegisterForm.tsx
             │   │   └── StudentRegisterForm.tsx
             │   ├── cvr
-            │   │   └── CVRFormSections.tsx
+            │   │   ├── CVRFormSections.tsx            ← MODIFIED (barrel export)
+            │   │   ├── PersonalDetailsSection.tsx     ← NEW
+            │   │   ├── EducationSection.tsx           ← NEW
+            │   │   ├── ExperienceSection.tsx          ← NEW
+            │   │   ├── ProjectsSection.tsx            ← NEW
+            │   │   ├── CertificationsSection.tsx      ← NEW
+            │   │   ├── VerifiedCertificationsBlock.tsx ← NEW
+            │   │   ├── SkillsSection.tsx              ← NEW
+            │   │   └── TemplateSelector.tsx           ← NEW
             │   ├── dashboard
             │   │   ├── AdminLayout.tsx
             │   │   ├── CredentialCard.tsx
@@ -150,8 +157,8 @@ packages
             │   │   ├── SessionTimeout.tsx
             │   │   └── Tooltip.tsx
             │   └── student
-            │       ├── MarketInsightsPanel.tsx        ← NEW
-            │       └── RecommendationsPanel.tsx       ← NEW
+            │       ├── MarketInsightsPanel.tsx        ← MODIFIED (rank-based location bars)
+            │       └── RecommendationsPanel.tsx
             ├── contexts
             │   └── ThemeContext.tsx
             ├── hooks
@@ -216,8 +223,9 @@ CREATE TABLE public.market_snapshots (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   skill_name text NOT NULL,
   job_count integer NOT NULL,
-  data_source text DEFAULT 'jsearch'::text,
+  data_source text DEFAULT 'adzuna'::text,
   recorded_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  metadata jsonb DEFAULT '{}',
   CONSTRAINT market_snapshots_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.minting_batches (
@@ -349,6 +357,7 @@ CREATE TABLE public.verified_credentials (
   CONSTRAINT verified_credentials_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT verified_credentials_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.minting_batches(id)
 );
+```
 
 # 5. Global Rules & Conventions
 
@@ -359,85 +368,92 @@ CREATE TABLE public.verified_credentials (
 * **Consistency:** Ensure "De-jargonization" for Registrar UIs (e.g., use "Secure Record" instead of "Mint NFT").
 * **Error Handling:** Use Zod for all form and API request validation.
 * **Zod Validation:** All z.record definitions must use the z.record(z.string(), z.any()) syntax to avoid runtime parser crashes.
+* **Next.js 15 params:** Route params are a Promise in Next.js 15. Always `await params` before accessing properties: `const { id } = await params`.
 
-# 6. Current State / Next Steps 
+# 6. Current State / Next Steps
 
-* **Data Changes:** -
+* **Data Changes:**
 
-    Database (Prisma): Created credential_schemas table to store dynamic JSON-LD templates.
+    - monitored_keywords: Removed 'Nursing' (Healthcare category) — was a
+      degree title, not a job-market skill. Slipped in via seed file.
+      Also deleted all associated market_snapshots rows for 'Nursing'.
 
-    - market_snapshots: metadata JSONB fully populated. Shape:
-  { job_count, salary: { min, max, avg, currency },
-    top_locations: [{ location, count }], fetched_at }.
-  Historical rows prior to Feb 22 2026 have metadata: {}.
-
-    - monitored_keywords: Cleared legacy 7-entry list. Seeded with 100+
-      curated keywords across 12 categories. Category values:
-      'Frontend', 'Backend', 'Database', 'Cloud', 'DevOps', 'AI',
-      'Blockchain', 'Security', 'Design', 'Product', 'Marketing',
-      'Business', 'IT', 'Healthcare', 'w3c-extracted', 'auto-expanded'.
-
-    - courses: Seeded with 57 real courses across all skill categories.
-      Fields: title, provider, skill_tags (matches monitored_keywords),
-      link. Used by course-recommender.ts for gap-based recommendations.
+    - market_snapshots: No schema changes. history query in analyze/route.ts
+      now scoped to last 14 days (was unbounded) to prevent old sparse
+      rows from distorting the trend chart.
 
     - No new Prisma schema changes this session. All changes are data-level.
 
 
 * **Last Completed:**
-  - Full Rich Market Intelligence Pipeline: adzuna-client.ts fetches
-    salary (min/max/avg) + top 5 hiring locations per skill. Fixed 400
-    errors caused by invalid content_type query param.
-  - market-provider.ts: Wired fetchRichMarketData → MarketIntelligence
-    interface. Raw RichMarketData writes directly to metadata JSONB.
-  - W3C Skill Sync: syncExtractedSkillsToMonitored() in daily-update.ts
-    queries verified_credentials with schema_url, runs Gemini + JSON-LD
-    extraction, Gemini-expands each skill into related market keywords,
-    upserts all into monitored_keywords tagged 'w3c-extracted' or
-    'auto-expanded'. Runs before fetch loop so new skills are tracked
-    same day they are discovered.
-  - Sanitization layer in daily-update.ts: academic credential titles
-    filtered before hitting Adzuna. monitored_keywords always bypass.
-  - decay-forecaster.ts rewritten: percentage-based slope thresholds
-    (0.5%/day) replace broken absolute thresholds. Added confidence
-    field (low/medium/high based on data point count).
-  - course-recommender.ts rebuilt: queries real courses table, runs
-    gap analysis against market_snapshots, scores courses across 4
-    tiers (decay > gap > growth > complement). Fixed module-level
-    Supabase init crash via lazy getSupabaseClient() factory.
-  - index.ts updated: recommendCourses now awaited, new signature
-    { studentSkills, skillHealthMap }, atRiskSkills replaces gaps: [].
-  - MarketInsightsPanel.tsx: per-skill salary bar, top locations chart,
-    sparkline, ▲/▼ trend badge, expandable rows.
-  - RecommendationsPanel.tsx: ranked course cards with reason type
-    badges (Skill Gap / Urgent Upgrade / Rising Demand / Builds On
-    Skills), relevance score bar, direct course links.
-  - coach/page.tsx: both panels wired in. Recommendations + atRiskSkills
-    passed into chat context so Gemini references specific courses in
-    replies. Initial greeting surfaces top recommendation inline.
-  - 93 skills tracked with real job counts + salary metadata confirmed
-    in market_snapshots. Courses table seeded with 57 entries.
+  - Phase 6 branch: feature/phase6-rate-limit-resilience
+
+  - Rate-Limit Resilience (Phase 1): Replaced serial for-loop + setTimeout(2000)
+    in daily-update.ts with p-limit (concurrency: 3, inter-task delay: 500ms).
+    Extracted processSkill() as named function. W3C sync section intentionally
+    kept serial (Gemini quota safety). Estimated 3x throughput improvement:
+    100 skills ~67s vs ~200s serial. Install: npm install p-limit@4 in ai-engine.
+
+  - Public Verification Portal (Phase 2):
+    - /api/verify/[id] route: DB lookup via Prisma (credential UUID as ID —
+      not enumerable unlike token_id). On-chain verification via Polygon Amoy
+      public RPC using ethers.JsonRpcProvider. Returns credential details,
+      student identity, issuer info, and onChain { verified, balance, tokenId,
+      error } object. params now awaited (Next.js 15 requirement).
+    - /verify/[id] public page: Standalone, no auth, no DashboardLayout.
+      Shows green/amber verification status banner, credential details card,
+      blockchain record (token ID, transaction hash → Polygonscan link, issuer
+      DID, network), student identity (name, student ID, wallet), QR code
+      (generated via qrcode library), copy link button.
+      Install: npm install qrcode @types/qrcode in web-portal/vector-web.
+
+  - CVR Separation of Concerns (Phase 2 bonus):
+    - Split 500-line cvr/page.tsx into 8 focused components in components/cvr/:
+      PersonalDetailsSection, EducationSection, ExperienceSection,
+      ProjectsSection, CertificationsSection, VerifiedCertificationsBlock,
+      SkillsSection, TemplateSelector.
+    - CVRFormSections.tsx updated as barrel export for clean imports.
+    - cvr/page.tsx reduced to slim orchestrator (~200 lines).
+
+  - Gemini Context Enrichment (Phase 3): /api/chat/route.ts updated to
+    deduplicate market_snapshots to most recent per skill, then extract
+    salary (avg/min/max/currency) and top 3 hiring locations from metadata
+    JSONB. Gemini prompt now includes salary-aware, location-specific context.
+    Graceful fallback to job count only for skills with empty metadata (pre-Feb 22).
+    Verified working: Gemini correctly cited Python avg $118k, React avg $103k,
+    and gave HealthTech crossover advice based on student's skill combo.
+
+  - MarketInsightsPanel location bars fix: Adzuna returns locations as plain
+    string array (no counts). Switched from count-based to rank-based bar
+    widths: 100/80/60/45/30%. Extracted LocationBars component with auto-detect
+    logic — falls back to count-based automatically if real counts arrive.
+
+  - Trend chart normalization fix (coach/page.tsx): Per-skill y-axis
+    normalization prevents high-count skills (Python 134k) from flattening
+    low-count skills (React 4k) to zero. Added amber low-data warning when
+    < 4 snapshots exist. Added legend with actual job counts. analyze/route.ts
+    history query scoped to last 14 days.
+
 
 * **Current Focus:**
-  - GitHub Actions validation: Trigger daily-tracker.yml manually from
-    the Actions tab. Verify secrets resolve, W3C sync runs, and all
-    93 skills are recorded in market_snapshots from the CI environment.
+  - Merge feature/phase6-rate-limit-resilience PR into main.
+  - Confirm cron schedule (00:00 UTC) runs automatically tomorrow and verify
+    no silent failures via GitHub Actions log output.
+
 
 * **Next Steps:**
-  - GitHub Actions: After successful manual trigger, confirm cron
-    schedule (00:00 UTC) runs automatically and verify no silent
-    failures via log output.
-  - Rate-Limit Resilience: Replace setTimeout in daily-update.ts with
-    p-limit for concurrent but controlled API calls. Required before
-    keyword list exceeds ~100 skills to avoid GitHub Actions timeouts.
-  - Public Verification Portal: Build /verify/[id] route to resolve
-    DIDs and verify cryptographic signatures against Polygon Amoy.
-    Standalone — no dependencies on Phase 5 AI work.
-  - Gemini Context Enrichment: Pass salary and location metadata from
-    market_snapshots into the Gemini prompt in /api/chat so the AI
-    gives salary-aware, location-specific career advice.
-  - Trend Confidence Improvement: Skills currently have confidence:
-    'low' (only 2 snapshots). Forecaster accuracy improves to 'medium'
-    after 4 days, 'high' after 7 days of cron runs.
+  - Trend Confidence Improvement: Skills currently have confidence: 'low'
+    (only 2-3 snapshots). Forecaster accuracy improves to 'medium' after
+    4 days, 'high' after 7 days of cron runs. No code needed — passive.
+  - Trend Chart Polish: Chart still looks sparse with only 2-3 data points.
+    Will improve naturally as cron accumulates data. Revisit chart UX
+    (e.g. Recharts migration) once 7+ days of data are available.
+  - Student Notifications: Use the existing notifications table to alert
+    students when a skill they hold starts decaying (trend: 'declining').
+    Trigger from daily-update.ts after market snapshot insert.
+  - Registrar Portal Polish: SchemaBuilder.tsx and batch minting UX
+    improvements based on any registrar feedback.
+  - Production Readiness: Swap Polygon Amoy testnet → Polygon mainnet,
+    set NEXT_PUBLIC_APP_URL correctly so schema_url stops writing
+    'undefined/api/schemas/...' for new credentials.
 ---
-

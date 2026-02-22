@@ -121,6 +121,65 @@ function TrendBadge({ history }: { history: SkillInsight['history'] }) {
   );
 }
 
+// --- Location Bars ---
+// Adzuna returns locations as a plain string array with no count values.
+// We use rank-based widths: 1st = 100%, 2nd = 80%, 3rd = 60%, 4th = 45%, 5th = 30%
+// This gives a natural descending visual without needing real count data.
+
+const RANK_WIDTHS = [100, 80, 60, 45, 30];
+
+function LocationBars({
+  locations,
+  color,
+}: {
+  locations: LocationDemand[];
+  color: string;
+}) {
+  if (locations.length === 0) return null;
+
+  // Normalize: handle both string arrays and {location, count} objects from Adzuna
+  const normalized = locations.map((loc) =>
+    typeof loc === 'string' ? { location: loc, count: 0 } : loc
+  );
+
+  // If all counts are identical (including 0), fall back to rank-based widths
+  const counts = normalized.map((l) => l.count);
+  const allSame = counts.every((c) => c === counts[0]);
+  const maxCount = Math.max(...counts) || 1;
+
+  return (
+    <div className="space-y-1.5">
+      {normalized.map((loc, j) => {
+        const width = allSame
+          ? RANK_WIDTHS[j] ?? 20
+          : Math.round((loc.count / maxCount) * 100);
+
+        return (
+          <div key={j} className="flex items-center gap-2">
+            <span className="text-xs text-gray-600 w-36 truncate" title={loc.location}>
+              {loc.location}
+            </span>
+            <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${width}%`,
+                  backgroundColor: color,
+                  opacity: 0.75,
+                }}
+              />
+            </div>
+            {/* Only show count if it's meaningful (non-zero) */}
+            {loc.count > 0 && (
+              <span className="text-xs text-gray-400 w-8 text-right">{loc.count}</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // --- Main Component ---
 
 export default function MarketInsightsPanel({ userId }: Props) {
@@ -190,7 +249,9 @@ export default function MarketInsightsPanel({ userId }: Props) {
           <h2 className="text-lg font-semibold text-gray-900">Rich Market Intelligence</h2>
           <p className="text-xs text-gray-500">Salary & regional demand for your skills</p>
         </div>
-        <span className="text-xs text-gray-400">{withData.length} skill{withData.length !== 1 ? 's' : ''} tracked</span>
+        <span className="text-xs text-gray-400">
+          {withData.length} skill{withData.length !== 1 ? 's' : ''} tracked
+        </span>
       </div>
 
       {/* Skill Rows */}
@@ -210,19 +271,16 @@ export default function MarketInsightsPanel({ userId }: Props) {
 
           return (
             <div key={skill.skill_name}>
-              {/* Summary Row — always visible */}
+              {/* Summary Row */}
               <button
                 onClick={() => setExpanded(isOpen ? null : skill.skill_name)}
                 className="w-full text-left px-6 py-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  {/* Color dot */}
                   <span
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: color }}
                   />
-
-                  {/* Skill name + trend badge */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm text-gray-900">{skill.skill_name}</span>
@@ -232,13 +290,9 @@ export default function MarketInsightsPanel({ userId }: Props) {
                       {skill.latest_job_count.toLocaleString()} open jobs
                     </span>
                   </div>
-
-                  {/* Sparkline */}
                   <div className="flex-shrink-0">
                     <Sparkline history={skill.history} color={color} />
                   </div>
-
-                  {/* Expand chevron */}
                   <svg
                     className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
                     fill="none"
@@ -253,7 +307,6 @@ export default function MarketInsightsPanel({ userId }: Props) {
               {/* Expanded Detail */}
               {isOpen && (
                 <div className="px-6 pb-5 pt-1 bg-gray-50 border-t border-gray-100 space-y-4">
-                  {/* Salary */}
                   <div>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                       Salary Range
@@ -261,37 +314,15 @@ export default function MarketInsightsPanel({ userId }: Props) {
                     <SalaryBar salary={skill.salary} />
                   </div>
 
-                  {/* Top Locations */}
                   {skill.top_locations.length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                         Top Hiring Locations
                       </p>
-                      <div className="space-y-1.5">
-                        {skill.top_locations.map((loc, j) => {
-                          const maxCount = skill.top_locations[0].count;
-                          return (
-                            <div key={j} className="flex items-center gap-2">
-                              <span className="text-xs text-gray-600 w-36 truncate">{loc.location}</span>
-                              <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full rounded-full"
-                                  style={{
-                                    width: `${(loc.count / maxCount) * 100}%`,
-                                    backgroundColor: color,
-                                    opacity: 0.75,
-                                  }}
-                                />
-                              </div>
-                              <span className="text-xs text-gray-400 w-8 text-right">{loc.count}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <LocationBars locations={skill.top_locations} color={color} />
                     </div>
                   )}
 
-                  {/* Last updated */}
                   {skill.last_updated && (
                     <p className="text-xs text-gray-400">
                       Last updated:{' '}
@@ -308,12 +339,10 @@ export default function MarketInsightsPanel({ userId }: Props) {
           );
         })}
 
-        {/* Skills with no data yet — collapsed, non-interactive */}
         {noData.length > 0 && (
           <div className="px-6 py-3">
             <p className="text-xs text-gray-400">
-              {noData.map(s => s.skill_name).join(', ')}{' '}
-              — awaiting first market scan.
+              {noData.map(s => s.skill_name).join(', ')} — awaiting first market scan.
             </p>
           </div>
         )}

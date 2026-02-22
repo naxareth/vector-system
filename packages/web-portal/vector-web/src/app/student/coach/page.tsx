@@ -45,7 +45,6 @@ export default function CoachPage() {
   const [skillsList, setSkillsList] = useState<SkillMetric[]>([]);
   const [realHistory, setRealHistory] = useState<MarketPoint[]>([]);
   const [selectedSkillView, setSelectedSkillView] = useState<string>('All');
-  // 🆕 Recommendations state
   const [recommendations, setRecommendations] = useState<CourseRecommendation[]>([]);
   const [atRiskSkills, setAtRiskSkills] = useState<any[]>([]);
 
@@ -58,10 +57,7 @@ export default function CoachPage() {
   useEffect(() => {
     const initPage = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
+      if (!session) { router.push('/login'); return; }
 
       setUserId(session.user.id);
 
@@ -88,26 +84,17 @@ export default function CoachPage() {
             if (typeof skillId !== 'number' || processedIds.has(skillId)) continue;
             try {
               const balance = await contract.balanceOf(profile.wallet_address, skillId);
-              if (balance > 0n) {
-                processedIds.add(skillId);
-                foundSkills.push(skillName);
-              }
+              if (balance > 0n) { processedIds.add(skillId); foundSkills.push(skillName); }
             } catch (e) { console.error(e); }
           }
-        } catch (error) {
-          console.warn("Wallet read failed.");
-        }
+        } catch { console.warn("Wallet read failed."); }
       }
 
       // 2. Fetch AI Analysis
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentId: activeIdentifier,
-          resumeText: "",
-          skillsOverride: foundSkills
-        })
+        body: JSON.stringify({ studentId: activeIdentifier, resumeText: "", skillsOverride: foundSkills })
       });
 
       const json = await res.json();
@@ -124,7 +111,6 @@ export default function CoachPage() {
           totalScore += s.healthScore;
           if (s.trend === 'growing') overallTrendValue += 1;
           if (s.trend === 'declining') overallTrendValue -= 1;
-
           return {
             name: s.skillName,
             category: 'Tech',
@@ -142,27 +128,16 @@ export default function CoachPage() {
         setMetrics({ portfolioScore: avgScore, marketAlignment: alignment, projectedGrowth: parseInt(growth) });
         setSkillsList(processedSkills);
         if (json.data.history) setRealHistory(json.data.history);
-
-        // 🆕 Store recommendations and at-risk skills
         if (aiData.recommendations) setRecommendations(aiData.recommendations);
         if (aiData.atRiskSkills) setAtRiskSkills(aiData.atRiskSkills);
 
-        // 🆕 Build richer initial chat message that references recommendations
         if (allVerifiedNames.length === 0) {
-          setMessages([{
-            role: 'ai',
-            text: `👋 Hi ${firstName}! You don't have any verified skills yet, so I've loaded the **Global Market Trends** for you. Check out what's hot right now!`
-          }]);
+          setMessages([{ role: 'ai', text: `👋 Hi ${firstName}! You don't have any verified skills yet, so I've loaded the **Global Market Trends** for you. Check out what's hot right now!` }]);
         } else {
           const topSkill = [...processedSkills].sort((a: any, b: any) => b.score - a.score)[0];
           const topRec = aiData.recommendations?.[0];
-          const recHint = topRec
-            ? `\n\nBased on current market gaps, I'd suggest looking into **${topRec.courseTitle}** — ${topRec.reason}.`
-            : '';
-          setMessages([{
-            role: 'ai',
-            text: `👋 Hi ${firstName}! I've analyzed your **${allVerifiedNames.length}** verified credentials. Your **${topSkill?.name}** is looking strong!${recHint}`
-          }]);
+          const recHint = topRec ? `\n\nBased on current market gaps, I'd suggest looking into **${topRec.courseTitle}** — ${topRec.reason}.` : '';
+          setMessages([{ role: 'ai', text: `👋 Hi ${firstName}! I've analyzed your **${allVerifiedNames.length}** verified credentials. Your **${topSkill?.name}** is looking strong!${recHint}` }]);
         }
       }
       setLoading(false);
@@ -196,69 +171,193 @@ export default function CoachPage() {
           context: {
             skills: skillsList,
             verifiedCount: skillsList.filter(s => s.verified).length,
-            // 🆕 Pass recommendations and at-risk skills into chat context
-            // so Gemini can reference specific courses and urgency in replies
             recommendations: recommendations.slice(0, 3).map(r => ({
               course: r.courseTitle,
               reason: r.reason,
               type: r.reasonType,
             })),
-            atRiskSkills: atRiskSkills,
+            atRiskSkills,
           }
         })
       });
 
       const data = await res.json();
       setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
-    } catch (error) {
+    } catch {
       setMessages(prev => [...prev, { role: 'ai', text: "Connection error. Please try again." }]);
     } finally {
       setChatLoading(false);
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // renderTrendGraph
+  //
+  // Previous issues:
+  //   1. Global min/max: Python at 134k dominated the y-axis, making React (4k)
+  //      and others render as a flat line at the bottom.
+  //   2. Only 2 data points stretched across full SVG width looked broken.
+  //
+  // Fixes:
+  //   1. Per-skill normalization — each skill line uses its own min/max so all
+  //      lines fill the vertical space regardless of their absolute scale.
+  //      A legend shows actual job counts so the context isn't lost.
+  //   2. Low-data warning shown when fewer than 4 snapshots exist.
+  //   3. Points constrained to actual data range on x-axis — no more stretching
+  //      2 points across the full width. Chart width scales to point count.
+  // ---------------------------------------------------------------------------
   const renderTrendGraph = () => {
     if (realHistory.length === 0) return null;
-    const allValues = realHistory.flatMap(d => Object.keys(d).filter(k => k !== 'date').map(k => Number(d[k])));
-    const maxVal = allValues.length ? Math.max(...allValues) * 1.1 : 100;
-    const minVal = allValues.length ? Math.min(...allValues) * 0.9 : 0;
-    const range = (maxVal - minVal) || 1;
-    const activeSkills = skillsList.map(s => s.name);
+
+    const activeSkills = selectedSkillView === 'All'
+      ? skillsList.map(s => s.name)
+      : [selectedSkillView];
+
     const colors = ['#9333ea', '#22c55e', '#ef4444', '#3b82f6', '#f59e0b'];
+    const W = 100; // viewBox width (percentage units)
+    const H = 100; // viewBox height (percentage units)
+    const hasEnoughData = realHistory.length >= 4;
+
+    // Build per-skill value arrays for normalization
+    const skillRanges: Record<string, { min: number; max: number; latest: number }> = {};
+    activeSkills.forEach(skill => {
+      const values = realHistory.map(d => Number(d[skill] || 0)).filter(v => v > 0);
+      if (values.length === 0) return;
+      skillRanges[skill] = {
+        min: Math.min(...values),
+        max: Math.max(...values),
+        latest: values[values.length - 1],
+      };
+    });
+
+    const visibleSkills = activeSkills.filter(s => skillRanges[s]);
 
     return (
-      <div className="relative h-64 w-full">
-        <div className="absolute inset-0 flex flex-col justify-between text-xs text-gray-300 pointer-events-none z-0">
-          <span>{Math.round(maxVal)} jobs</span>
-          <span className="border-b border-dashed border-gray-100 w-full"></span>
-          <span>{Math.round(minVal)} jobs</span>
+      <div className="space-y-3">
+        {/* Low data notice */}
+        {!hasEnoughData && (
+          <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Only {realHistory.length} snapshot{realHistory.length !== 1 ? 's' : ''} available.
+            Trend lines improve after 4+ daily cron runs. Check back tomorrow!
+          </div>
+        )}
+
+        {/* Chart */}
+        <div className="relative" style={{ height: '200px' }}>
+          {/* Y-axis label */}
+          <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[10px] text-gray-300 pointer-events-none w-6">
+            <span>100%</span>
+            <span>50%</span>
+            <span>0%</span>
+          </div>
+
+          <svg
+            className="absolute inset-0 h-full w-full overflow-visible"
+            viewBox={`0 0 ${W} ${H}`}
+            preserveAspectRatio="none"
+            style={{ paddingLeft: '24px' }}
+          >
+            {/* Grid lines */}
+            {[0, 50, 100].map(y => (
+              <line
+                key={y}
+                x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`}
+                stroke="#f3f4f6"
+                strokeWidth="0.5"
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+
+            {visibleSkills.map((skill, index) => {
+              const { min, max } = skillRanges[skill];
+              const range = (max - min) || 1;
+              const color = colors[index % colors.length];
+
+              // Only use history points where this skill has data
+              const dataPoints = realHistory
+                .map((point, i) => ({ i, val: Number(point[skill] || 0), date: point.date }))
+                .filter(p => p.val > 0);
+
+              if (dataPoints.length < 1) return null;
+
+              // X positions spread across full width based on index within dataPoints
+              const pts = dataPoints.map((p, j) => {
+                const x = dataPoints.length === 1 ? 50 : (j / (dataPoints.length - 1)) * W;
+                // Per-skill normalization: maps this skill's own range to 0–100% height
+                const y = H - ((p.val - min) / range) * H;
+                return { x, y, val: p.val, date: p.date };
+              });
+
+              const pointsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
+
+              return (
+                <g key={skill}>
+                  <polyline
+                    points={pointsStr}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="2.5"
+                    vectorEffect="non-scaling-stroke"
+                    className="drop-shadow-sm"
+                  />
+                  {pts.map((p, j) => (
+                    <g key={j}>
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r="3"
+                        fill="white"
+                        stroke={color}
+                        strokeWidth="2"
+                        vectorEffect="non-scaling-stroke"
+                        className="cursor-pointer"
+                      />
+                      {/* Tooltip on hover via title */}
+                      <title>{`${skill}: ${p.val.toLocaleString()} jobs (${p.date})`}</title>
+                    </g>
+                  ))}
+                </g>
+              );
+            })}
+          </svg>
+
+          {/* X-axis date labels */}
+          <div className="absolute bottom-0 left-6 right-0 flex justify-between text-[10px] text-gray-400">
+            {realHistory.length === 1 ? (
+              <span className="mx-auto">{realHistory[0].date}</span>
+            ) : (
+              (() => {
+                const step = Math.ceil(realHistory.length / 5);
+                return realHistory
+                  .filter((_, i) => i === 0 || i === realHistory.length - 1 || i % step === 0)
+                  .map((d, i) => <span key={i}>{d.date}</span>);
+              })()
+            )}
+          </div>
         </div>
-        <svg className="absolute inset-0 h-full w-full overflow-visible z-10" preserveAspectRatio="none">
-          {activeSkills.map((skill, index) => {
-            if (selectedSkillView !== 'All' && selectedSkillView !== skill) return null;
-            const points = realHistory.map((point, i) => {
-              const x = (i / (realHistory.length - 1)) * 100;
-              const val = Number(point[skill] || 0);
-              const y = 100 - ((val - minVal) / range) * 100;
-              return `${x},${y}`;
-            }).join(' ');
-            const color = colors[index % colors.length];
-            return (
-              <g key={skill}>
-                <polyline points={points} fill="none" stroke={color} strokeWidth="3" vectorEffect="non-scaling-stroke" className="drop-shadow-sm transition-all duration-500 ease-in-out" />
-                {realHistory.map((point, i) => {
-                  const x = (i / (realHistory.length - 1)) * 100;
-                  const val = Number(point[skill] || 0);
-                  const y = 100 - ((val - minVal) / range) * 100;
-                  return <circle key={i} cx={`${x}%`} cy={`${y}%`} r="4" fill="white" stroke={color} strokeWidth="2" className="cursor-pointer hover:r-6 transition-all" />;
-                })}
-              </g>
-            );
-          })}
-        </svg>
-        <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] text-gray-400 mt-2">
-          {realHistory.length > 1 && realHistory.filter((_, i) => i === 0 || i === realHistory.length - 1 || i % Math.ceil(realHistory.length / 5) === 0).map((d, i) => <span key={i}>{d.date}</span>)}
-        </div>
+
+        {/* Legend with actual job counts */}
+        {visibleSkills.length > 1 && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+            {visibleSkills.map((skill, index) => (
+              <div key={skill} className="flex items-center gap-1.5">
+                <span
+                  className="w-3 h-0.5 rounded-full inline-block"
+                  style={{ backgroundColor: colors[index % colors.length] }}
+                />
+                <span className="text-xs text-gray-500">
+                  {skill}
+                  <span className="text-gray-400 ml-1">
+                    ({skillRanges[skill]?.latest.toLocaleString()} jobs)
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -301,30 +400,47 @@ export default function CoachPage() {
                 <h2 className="text-lg font-semibold text-gray-900">Market Demand Trends</h2>
                 <p className="text-xs text-gray-500">Real-time job postings</p>
               </div>
-              <select value={selectedSkillView} onChange={(e) => setSelectedSkillView(e.target.value)} className="text-xs border border-gray-300 rounded-lg px-2 py-1 bg-white outline-none focus:ring-1 focus:ring-purple-500">
+              <select
+                value={selectedSkillView}
+                onChange={(e) => setSelectedSkillView(e.target.value)}
+                className="text-xs border border-gray-300 rounded-lg px-2 py-1 bg-white outline-none focus:ring-1 focus:ring-purple-500"
+              >
                 <option value="All">All Skills</option>
                 {skillsList.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
               </select>
             </div>
+
             <div className="mb-8 px-2">
               {realHistory.length > 0 ? renderTrendGraph() : (
                 <div className="flex flex-col items-center justify-center h-56 gap-4 text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                  <svg className="w-10 h-10 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                  <svg className="w-10 h-10 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
                   <span className="text-sm font-medium">Gathering Data... Check back tomorrow!</span>
                 </div>
               )}
             </div>
+
             <div className="grid grid-cols-3 gap-4 border-t border-gray-100 pt-6">
-              <div className="text-center"><div className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Score</div><div className="text-2xl font-bold text-gray-900">{metrics.portfolioScore}</div></div>
-              <div className="text-center"><div className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Alignment</div><div className={`text-2xl font-bold ${metrics.portfolioScore > 75 ? 'text-green-600' : 'text-purple-600'}`}>{metrics.marketAlignment}</div></div>
-              <div className="text-center"><div className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Growth</div><div className={`text-2xl font-bold ${metrics.projectedGrowth >= 0 ? 'text-green-600' : 'text-red-500'}`}>{metrics.projectedGrowth}%</div></div>
+              <div className="text-center">
+                <div className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Score</div>
+                <div className="text-2xl font-bold text-gray-900">{metrics.portfolioScore}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Alignment</div>
+                <div className={`text-2xl font-bold ${metrics.portfolioScore > 75 ? 'text-green-600' : 'text-purple-600'}`}>{metrics.marketAlignment}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Growth</div>
+                <div className={`text-2xl font-bold ${metrics.projectedGrowth >= 0 ? 'text-green-600' : 'text-red-500'}`}>{metrics.projectedGrowth}%</div>
+              </div>
             </div>
           </div>
 
           {/* Rich Market Intelligence */}
           {userId && <MarketInsightsPanel userId={userId} />}
 
-          {/* 🆕 Recommended Actions */}
+          {/* Recommended Actions */}
           <RecommendationsPanel recommendations={recommendations} loading={loading} />
 
           {/* Rising / Declining Skills */}
@@ -337,8 +453,13 @@ export default function CoachPage() {
               <div className="space-y-4">
                 {skillsList.filter(s => s.trend === 'growing').map((skill, i) => (
                   <div key={i}>
-                    <div className="flex justify-between text-sm mb-1"><span className="font-medium">{skill.name}</span><span className="text-green-600">+{Math.round(skill.growthRate * 100)}%</span></div>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5"><div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }}></div></div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">{skill.name}</span>
+                      <span className="text-green-600">+{Math.round(skill.growthRate * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -351,8 +472,13 @@ export default function CoachPage() {
               <div className="space-y-4">
                 {skillsList.filter(s => s.trend === 'declining').map((skill, i) => (
                   <div key={i}>
-                    <div className="flex justify-between text-sm mb-1"><span className="font-medium">{skill.name}</span><span className="text-red-500">{Math.round(skill.growthRate * 100)}%</span></div>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5"><div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }}></div></div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">{skill.name}</span>
+                      <span className="text-red-500">{Math.round(skill.growthRate * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -365,7 +491,10 @@ export default function CoachPage() {
           <div className="lg:col-span-1">
             <div className="sticky top-6 h-[calc(100vh-theme(spacing.32))] min-h-[500px] flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
               <div className="p-4 bg-gradient-to-r from-purple-700 to-purple-600 text-white flex items-center justify-between">
-                <div><h2 className="font-bold">Vector Co-Pilot</h2><p className="text-xs font-medium text-purple-100">Analyzing your context...</p></div>
+                <div>
+                  <h2 className="font-bold">Vector Co-Pilot</h2>
+                  <p className="text-xs font-medium text-purple-100">Analyzing your context...</p>
+                </div>
                 <button onClick={() => setChatOpen(false)} className="hover:bg-white/20 rounded p-1">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
@@ -373,7 +502,9 @@ export default function CoachPage() {
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
                 {messages.map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${msg.role === 'user' ? 'bg-purple-600 text-white rounded-br-none' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none whitespace-pre-wrap'}`}>{msg.text}</div>
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${msg.role === 'user' ? 'bg-purple-600 text-white rounded-br-none' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none whitespace-pre-wrap'}`}>
+                      {msg.text}
+                    </div>
                   </div>
                 ))}
                 {chatLoading && (
@@ -392,8 +523,21 @@ export default function CoachPage() {
                   ))}
                 </div>
                 <div className="flex gap-2 relative">
-                  <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Ask Vector anything..." className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-                  <button onClick={() => handleSend()} disabled={chatLoading} className="bg-purple-600 text-white px-4 rounded-xl hover:bg-purple-700 transition-colors shadow-sm disabled:opacity-50">Send</button>
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                    placeholder="Ask Vector anything..."
+                    className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <button
+                    onClick={() => handleSend()}
+                    disabled={chatLoading}
+                    className="bg-purple-600 text-white px-4 rounded-xl hover:bg-purple-700 transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    Send
+                  </button>
                 </div>
               </div>
             </div>
@@ -402,7 +546,10 @@ export default function CoachPage() {
       </div>
 
       {!chatOpen && (
-        <button onClick={() => setChatOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-50 hover:bg-purple-700 active:scale-95">
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-6 right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-50 hover:bg-purple-700 active:scale-95"
+        >
           💬
         </button>
       )}
