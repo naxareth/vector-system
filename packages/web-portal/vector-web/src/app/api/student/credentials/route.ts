@@ -15,7 +15,19 @@ export async function GET(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!, 
     {
       cookies: {
-        get(name: string) { return cookieStore.get(name)?.value },
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch (error) {
+            // Safe to ignore in a GET handler: happens if Next.js tries to set 
+            // a session cookie in a context where headers are already sent.
+          }
+        },
       },
     }
   );
@@ -38,13 +50,13 @@ export async function GET(req: Request) {
     if (error) throw error;
 
     // 4. 🔓 Server-Side Decryption (Category 3)
-    const processedData = credentials.map(cred => {
+    const processedData = (credentials || []).map(cred => {
         let decryptedNote = null;
         if (cred.private_notes) {
             try {
                 decryptedNote = decryptData(cred.private_notes);
             } catch (e) {
-                console.error("Decryption failed for cred:", cred.id);
+                console.error(`Decryption failed for cred: ${cred.id}`);
             }
         }
         return {

@@ -121,6 +121,8 @@ packages\web-portal\vector-web\src\app\api\registrar\credentials
 packages\web-portal\vector-web\src\app\api\registrar\credentials\route.ts
 packages\web-portal\vector-web\src\app\api\registrar\log-mint
 packages\web-portal\vector-web\src\app\api\registrar\log-mint\route.ts
+packages\web-portal\vector-web\src\app\api\schemas\route.ts
+packages\web-portal\vector-web\src\app\api\schemas\[id]\route.ts
 packages\web-portal\vector-web\src\app\api\student
 packages\web-portal\vector-web\src\app\api\student\credentials
 packages\web-portal\vector-web\src\app\api\student\credentials\route.ts
@@ -165,6 +167,7 @@ packages\web-portal\vector-web\src\components\dashboard\ExportCVRModal.tsx
 packages\web-portal\vector-web\src\components\dashboard\MetricCards.tsx
 packages\web-portal\vector-web\src\components\dashboard\RecentActivity.tsx
 packages\web-portal\vector-web\src\components\dashboard\RegistrarLayout.tsx
+packages\web-portal\vector-web\src\components\dashboard\SchemaBuilder.tsx
 packages\web-portal\vector-web\src\components\dashboard\Sidebar.tsx
 packages\web-portal\vector-web\src\components\dashboard\TopBar.tsx
 packages\web-portal\vector-web\src\components\features
@@ -263,14 +266,14 @@ CREATE TABLE public.courses (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   CONSTRAINT courses_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.credential_definitions (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  name text NOT NULL UNIQUE,
-  category text,
-  type text CHECK (type = ANY (ARRAY['Academic'::text, 'Seminar'::text, 'Certification'::text, 'Soft Skill'::text])),
+CREATE TABLE public.credential_schemas (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  issuer_id uuid NOT NULL,
+  title text NOT NULL,
+  json_schema jsonb NOT NULL,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  code text,
-  CONSTRAINT credential_definitions_pkey PRIMARY KEY (id)
+  CONSTRAINT credential_schemas_pkey PRIMARY KEY (id),
+  CONSTRAINT credential_schemas_issuer_id_fkey FOREIGN KEY (issuer_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.market_snapshots (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -357,6 +360,17 @@ CREATE TABLE public.student_course_enrollments (
   CONSTRAINT student_course_enrollments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT student_course_enrollments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
 );
+CREATE TABLE public.system_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  method text NOT NULL,
+  path text NOT NULL,
+  status integer NOT NULL,
+  ip_address text,
+  duration integer,
+  user_agent text,
+  created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT system_logs_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.users (
   id uuid NOT NULL,
   student_id text UNIQUE,
@@ -371,15 +385,13 @@ CREATE TABLE public.users (
   location text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
-CREATE TYPE public.verification_type AS ENUM ('EMAIL_VERIFICATION', 'PASSWORD_RESET');
-
 CREATE TABLE public.verification_codes (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   email text NOT NULL,
   code text NOT NULL,
-  type public.verification_type DEFAULT 'EMAIL_VERIFICATION'::public.verification_type,
   expires_at timestamp with time zone NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
+  type USER-DEFINED NOT NULL DEFAULT 'EMAIL_VERIFICATION'::verification_type,
   CONSTRAINT verification_codes_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.verified_credentials (
@@ -394,24 +406,12 @@ CREATE TABLE public.verified_credentials (
   issued_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   private_notes text,
   certificate_number text,
+  credential_data jsonb,
+  schema_url text,
   CONSTRAINT verified_credentials_pkey PRIMARY KEY (id),
   CONSTRAINT verified_credentials_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT verified_credentials_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.minting_batches(id)
 );
-
-CREATE TABLE public.system_logs (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  method text NOT NULL,
-  path text NOT NULL,
-  status integer NOT NULL,
-  ip_address text,
-  duration integer,
-  user_agent text,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT system_logs_pkey PRIMARY KEY (id)
-);
-
-```
 
 # 5. Global Rules & Conventions
 
@@ -424,21 +424,35 @@ CREATE TABLE public.system_logs (
 
 # 6. Current State / Next Steps
 
-* **Last Completed:** - Implemented Cloudflare Turnstile CAPTCHA across all auth forms (Student Register, Registrar Register, Login, and Forgot Password) and secured the backend API routes.
- - Fixed the OTP expiration bug by actively shredding the PASSWORD_RESET token in confirm-reset/route.ts upon success, and in request-reset/route.ts and cancel-reset/route.ts when a user cancels or requests a new code.
-* **Current Focus:** - Testing the end-to-end flow of setting a local password for a Google account (OAuth linking).
-  
- - Verifying edge cases in the registrar registration flow.
+* **Data Changes:** -
 
-* **Architecture Changes:** - Added `lucide-react` to `package.json` for UI icons.
-  - Split registration UI logic into `StudentRegisterForm.tsx` and `RegistrarRegisterForm.tsx` components.
-  - Added `turnstile.ts` utility for server-side CAPTCHA validation.
+    Database (Prisma): Created credential_schemas table to store dynamic JSON-LD templates. Expanded verified_credentials with schema_url, credential_data, issuer_did, and metadata_uri to support flexible W3C payloads.
 
-* **Data Changes:** - Split a unified auth schema into `studentSchema` and `registrarSchema` in `lib/schemas/auth.ts`.
+    Smart Contracts (VectorToken.sol): Added addressToDID() to format Polygon Amoy W3C DIDs. Overrode the uri() function to point directly to the Next.js backend W3C JSON-LD registry without .json extensions.
 
-* **Next Steps:** - Run comprehensive local testing on OAuth to Local credential linking.
-  - Finalize the unified authentication error handling UI.
+    Zod Schemas: * Added CreateSchemaValidator (api/schemas) for validating dynamic template creation.
 
+      Added MintCredentialValidator (api/registrar/credentials) to strictly validate incoming student data against dynamic schema keys before W3C JSON-LD payload generation.
+
+      Added resumeSchema (student/cvr) for complex CVR array validation.
+
+
+* **Last Completed:** - Finished Phase 2 (Student Portal & Read Layer) including the CVR Builder and hybrid dynamic skill pages (`skills/[id]`).
+  - Executed Phase 1 & 2 of the W3C Integration Plan.
+  - Overhauled Prisma schema: added `credential_schemas` and W3C dynamic payload fields to `verified_credentials`.
+  - Built the Schema API Registry (`POST /api/schemas`, `GET /api/schemas/[id]`).
+  - Refactored `POST /api/registrar/credentials` to validate against dynamic schemas, encrypt private notes, and generate standard W3C JSON-LD payloads (`@context`, `credentialSubject`).
+  - Built the `SchemaBuilder.tsx` UI for registrars to visually construct custom credential templates.
+  - Updated `VectorToken.sol` to support Decentralized Identifiers (DIDs) and dynamic registry routing.
+
+* **Current Focus:** - Integrating `SchemaBuilder.tsx` directly into the Registrar Dashboard UI (`registrar/dashboard/page.tsx`).
+  - Implementing the Registrar "Write Layer" UI to allow institutions to select a schema and mint credentials to a student's DID.
+
+* **Architecture Changes:** - Shifted from hardcoded credential enums to a flexible JSON-LD Schema Registry.
+  - Implemented DID formatting (`did:polygon:amoy:<address>`) across the Solidity contracts and Next.js backend.
+
+* **Next Steps:** - Refactor `CredentialCard.tsx` on the Student Dashboard to dynamically iterate and render the new custom `credential_data` JSONB key-value pairs.
+  - Update the AI Engine (`skill-extractor.ts`) to fetch and comprehend dynamic `schema_url` context before comparing to JSearch market data.
 
 ---
 

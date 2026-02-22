@@ -1,3 +1,952 @@
+packages\web-portal\vector-web\src\app\api\student\credentials\route.ts
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { decryptData } from '@/lib/encryption';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: Request) {
+  const cookieStore = await cookies();
+
+  // 1. Init Supabase with Service Role to ensure we can fetch data securely
+  // independent of restrictive RLS that might block the anon key
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!, 
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch (error) {
+            // Safe to ignore in a GET handler: happens if Next.js tries to set 
+            // a session cookie in a context where headers are already sent.
+          }
+        },
+      },
+    }
+  );
+
+  try {
+    // 2. 🛡️ Auth Check: Who is asking?
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 3. 🛡️ Data Fetch: Only fetch for THIS user's ID
+    // We strictly use the session ID, ignoring any client inputs
+    const { data: credentials, error } = await supabase
+      .from('verified_credentials')
+      .select('*')
+      .eq('user_id', user.id) 
+      .order('issued_at', { ascending: false });
+
+    if (error) throw error;
+
+    // 4. 🔓 Server-Side Decryption (Category 3)
+    const processedData = (credentials || []).map(cred => {
+        let decryptedNote = null;
+        if (cred.private_notes) {
+            try {
+                decryptedNote = decryptData(cred.private_notes);
+            } catch (e) {
+                console.error(`Decryption failed for cred: ${cred.id}`);
+            }
+        }
+        return {
+            ...cred,
+            private_notes: decryptedNote
+        };
+    });
+
+    return NextResponse.json(processedData);
+
+  } catch (err: any) {
+    console.error("Credential Fetch Error:", err);
+    return NextResponse.json({ error: 'Failed to fetch credentials' }, { status: 500 });
+  }
+}
+packages\web-portal\vector-web\src\app\api\schemas\route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { db } from "@/lib/db";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+// Validate the incoming JSON-LD schema payload
+const CreateSchemaValidator = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  json_schema: z.record(z.any(), "A valid JSON object is required for the schema"),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    // 1. Authenticate the session via Supabase
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll() },
+          setAll(cookiesToSet) {
+            try { 
+              cookiesToSet.forEach(({ name, value, options }) => 
+                cookieStore.set(name, value, options)
+              ) 
+            } catch {}
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 2. Verify the user is a Registrar
+    const dbUser = await db.users.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    });
+
+    if (dbUser?.role !== "registrar") {
+      return NextResponse.json({ error: "Forbidden: Registrars only" }, { status: 403 });
+    }
+
+    // 3. Parse and Validate the W3C template payload
+    const body = await req.json();
+    const { title, json_schema } = CreateSchemaValidator.parse(body);
+
+    // 4. Save the schema to the database registry
+    const newSchema = await db.credential_schemas.create({
+      data: {
+        issuer_id: user.id,
+        title,
+        json_schema,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Schema published successfully",
+        data: newSchema,
+      },
+      { status: 201 }
+    );
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", details: error.errors }, 
+        { status: 400 }
+      );
+    }
+    
+    console.error("POST /api/schemas error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" }, 
+      { status: 500 }
+    );
+  }
+}
+packages\web-portal\vector-web\src\app\api\schemas\[id]\route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    // Fetch the schema from the database
+    const schemaRecord = await db.credential_schemas.findUnique({
+      where: { id },
+      select: {
+        title: true,
+        json_schema: true,
+        issuer_id: true,
+        created_at: true,
+      },
+    });
+
+    // Return a 404 if the schema ID doesn't exist
+    if (!schemaRecord) {
+      return NextResponse.json(
+        { error: "Schema not found" },
+        { status: 404 }
+      );
+    }
+
+    // Serve the raw W3C JSON-LD schema
+    return NextResponse.json(schemaRecord.json_schema, {
+      status: 200,
+      headers: {
+        // Set standard caching headers for public schemas
+        "Cache-Control": "public, max-age=3600, s-maxage=86400",
+        "Content-Type": "application/ld+json",
+      },
+    });
+
+  } catch (error) {
+    console.error("GET /api/schemas/[id] error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+
+packages\web-portal\vector-web\prisma\schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model users {
+  id                   String                       @id @db.Uuid
+  student_id           String?                      @unique
+  full_name            String?
+  role                 user_role?                   @default(student)
+  wallet_address       String?                      @unique
+  avatar_url           String?
+  created_at           DateTime?                    @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  email                String                       @unique
+  status               account_status?              @default(pending_verification)
+  updated_at           DateTime?                    @default(now()) @updatedAt @db.Timestamptz(6)
+  location             String?
+  audit_logs_actor     audit_logs[]                 @relation("AuditActor")
+  audit_logs_target    audit_logs[]                 @relation("AuditTarget")
+  minting_batches      minting_batches[]
+  notifications        notifications[]
+  profiles             profiles?
+  self_reported_skills self_reported_skills[]
+  enrollments          student_course_enrollments[]
+  verified_credentials verified_credentials[]
+  credential_schemas   credential_schemas[]
+}
+
+model audit_logs {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  actor_id    String?   @db.Uuid
+  target_id   String?   @db.Uuid
+  action_type String
+  description String?
+  metadata    Json?
+  actor       users?    @relation("AuditActor", fields: [actor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  target      users?    @relation("AuditTarget", fields: [target_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model minting_batches {
+  id             String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  registrar_id   String?                @db.Uuid
+  batch_name     String?
+  total_students Int?
+  created_at     DateTime?              @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  registrar      users?                 @relation(fields: [registrar_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  credentials    verified_credentials[]
+}
+
+model credential_schemas {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  issuer_id   String    @db.Uuid
+  title       String
+  json_schema Json
+  created_at  DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  issuer      users     @relation(fields: [issuer_id], references: [id], onDelete: Cascade)
+}
+
+model verified_credentials {
+  id                 String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id            String           @db.Uuid
+  batch_id           String?          @db.Uuid
+  skill_name         String
+  token_id           String
+  transaction_hash   String?
+  issuer_did         String?
+  metadata_uri       String?
+  schema_url         String?
+  credential_data    Json?
+  issued_at          DateTime?        @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  private_notes      String?
+  certificate_number String?
+  batch              minting_batches? @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  student            users            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_verified_credentials_user")
+}
+
+model self_reported_skills {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id       String    @db.Uuid
+  skill_name    String
+  proficiency   String?
+  evidence_link String?
+  created_at    DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  student       users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_self_reported_skills_user")
+}
+
+model market_snapshots {
+  id          BigInt    @id @default(autoincrement())
+  skill_name  String
+  job_count   Int
+  data_source String?   @default("jsearch")
+  recorded_at DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+
+  @@index([skill_name, recorded_at(sort: Desc)], map: "idx_market_snapshots_skill_date")
+}
+
+model skill_health_cache {
+  skill_name         String             @id
+  trend_slope        Float?
+  status             String?
+  last_updated       DateTime?          @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  monitored_keywords monitored_keywords @relation(fields: [skill_name], references: [keyword], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model courses {
+  id          String                       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title       String
+  provider    String?
+  skill_tags  String[]
+  link        String?
+  created_at  DateTime?                    @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  enrollments student_course_enrollments[]
+}
+
+model student_course_enrollments {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id      String    @db.Uuid
+  course_id    String    @db.Uuid
+  status       String?
+  completed_at DateTime? @db.Timestamptz(6)
+  created_at   DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  course       courses   @relation(fields: [course_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  student      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model monitored_keywords {
+  keyword            String              @id
+  category           String?
+  is_active          Boolean?            @default(true)
+  skill_health_cache skill_health_cache?
+}
+
+model notifications {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String    @db.Uuid
+  title      String
+  message    String?
+  type       String?   @default("info")
+  is_read    Boolean?  @default(false)
+  link_url   String?
+  created_at DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model profiles {
+  id              String    @id @db.Uuid
+  bio             String?
+  phone           String?
+  university      String?   @default("PHINMA University")
+  major           String?
+  graduation_year String?
+  linkedin_url    String?
+  github_url      String?
+  updated_at      DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  portfolio_links Json?     @default("{\"github\": \"\", \"linkedin\": \"\", \"portfolio\": \"\"}")
+  users           users     @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model rate_limits {
+  ip           String
+  endpoint     String
+  attempts     Int?      @default(1)
+  last_attempt DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@id([ip, endpoint])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model verification_codes {
+  id         BigInt            @id @default(autoincrement())
+  email      String
+  code       String
+  type       verification_type @default(EMAIL_VERIFICATION)
+  expires_at DateTime          @db.Timestamptz(6)
+  created_at DateTime?         @default(now()) @db.Timestamptz(6)
+}
+
+enum verification_type {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum user_role {
+  student
+  registrar
+  super_admin
+}
+
+enum account_status {
+  active
+  pending_verification
+  suspended
+}
+
+model system_logs {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  method     String   
+  path       String   
+  status     Int      
+  ip_address String?  
+  duration   Int?     
+  user_agent String?  
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([status]) 
+  @@index([created_at(sort: Desc)]) 
+}
+
+
+packages\blockchain-core\contracts\VectorToken.sol
+// packages/blockchain-core/contracts/VectorToken.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+
+contract VectorToken is ERC1155, AccessControl {
+    using Strings for uint256;
+
+    bytes32 public constant REGISTRAR_ROLE = keccak256("REGISTRAR_ROLE");
+    
+    string private _baseURI;
+    
+    event SkillMinted(address indexed student, uint256 tokenId, uint256 amount, string studentDID);
+    event BatchSkillsMinted(address[] students, uint256[] tokenIds, uint256[] amounts);
+    event RegistrarAdded(address indexed registrar);
+    event RegistrarRemoved(address indexed registrar);
+    
+    constructor(string memory baseURI_) 
+        // Base URI should be the Next.js API endpoint (e.g., https://yourdomain.com/api/credentials/)
+        ERC1155(baseURI_)
+    {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(REGISTRAR_ROLE, msg.sender);
+        _baseURI = baseURI_;
+    }
+    
+    // ========== DYNAMIC MINTING FUNCTIONS ==========
+    function mintSkill(address student, uint256 tokenId, uint256 amount) 
+        public 
+        onlyRole(REGISTRAR_ROLE) 
+        returns (bool)
+    {
+        _mint(student, tokenId, amount, "");
+        
+        // Emitting the DID in the event for off-chain indexing
+        emit SkillMinted(student, tokenId, amount, addressToDID(student));
+        return true;
+    }
+    
+    function batchMintSkills(
+        address[] calldata students,
+        uint256[] calldata tokenIds,
+        uint256[] calldata amounts
+    ) public onlyRole(REGISTRAR_ROLE) returns (bool) {
+        require(
+            students.length == tokenIds.length && 
+            tokenIds.length == amounts.length,
+            "Array length mismatch"
+        );
+        
+        for (uint256 i = 0; i < students.length; i++) {
+            _mint(students[i], tokenIds[i], amounts[i], "");
+        }
+        
+        emit BatchSkillsMinted(students, tokenIds, amounts);
+        return true;
+    }
+    
+    // ========== REGISTRAR MANAGEMENT ==========
+    function addRegistrar(address registrar) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        grantRole(REGISTRAR_ROLE, registrar);
+        emit RegistrarAdded(registrar);
+    }
+    
+    function removeRegistrar(address registrar) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        revokeRole(REGISTRAR_ROLE, registrar);
+        emit RegistrarRemoved(registrar);
+    }
+    
+    function isRegistrar(address account) public view returns (bool) {
+        return hasRole(REGISTRAR_ROLE, account);
+    }
+    
+    // ========== W3C METADATA & UTILITIES ==========
+    
+    /**
+     * @dev Formats a standard wallet address into a Polygon Amoy W3C DID.
+     */
+    function addressToDID(address wallet) public pure returns (string memory) {
+        return string(abi.encodePacked("did:polygon:amoy:", Strings.toHexString(uint160(wallet), 20)));
+    }
+
+    /**
+     * @dev Overrides the standard ERC1155 uri function. 
+     * Points directly to the backend W3C JSON-LD registry without appending ".json".
+     */
+    function uri(uint256 tokenId) public view override returns (string memory) {
+        return string(abi.encodePacked(_baseURI, tokenId.toString()));
+    }
+    
+    function setBaseURI(string memory newBaseURI) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _baseURI = newBaseURI;
+    }
+    
+    // ========== OVERRIDES ==========
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC1155, AccessControl)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+}
+
+
+packages\web-portal\vector-web\src\components\dashboard\SchemaBuilder.tsx
+'use client';
+
+import { useState } from 'react';
+import { Plus, Trash2, Save, Loader2, AlertCircle } from 'lucide-react';
+import { z } from 'zod';
+
+// Define the shape of our dynamic schema builder state
+interface SchemaField {
+  id: string;
+  keyName: string; // The JSON key (e.g., 'hours_completed')
+  displayName: string; // The human-readable label (e.g., 'Hours Completed')
+  type: 'string' | 'number' | 'boolean' | 'date';
+  required: boolean;
+}
+
+export default function SchemaBuilder() {
+  const [title, setTitle] = useState('');
+  const [fields, setFields] = useState<SchemaField[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const addField = () => {
+    setFields([
+      ...fields,
+      {
+        id: crypto.randomUUID(),
+        keyName: '',
+        displayName: '',
+        type: 'string',
+        required: true,
+      },
+    ]);
+  };
+
+  const removeField = (id: string) => {
+    setFields(fields.filter((f) => f.id !== id));
+  };
+
+  const updateField = (id: string, updates: Partial<SchemaField>) => {
+    setFields(fields.map((f) => (f.id === id ? { ...f, ...updates } : f)));
+  };
+
+  const generateJsonSchema = () => {
+    const schemaProperties: Record<string, any> = {};
+    const requiredFields: string[] = [];
+
+    fields.forEach((field) => {
+      // Ensure valid JSON keys (lowercase, no spaces)
+      const safeKey = field.keyName.trim().toLowerCase().replace(/\s+/g, '_');
+      if (!safeKey) return;
+
+      schemaProperties[safeKey] = {
+        type: field.type,
+        title: field.displayName,
+      };
+
+      if (field.required) {
+        requiredFields.push(safeKey);
+      }
+    });
+
+    return {
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "object",
+      properties: schemaProperties,
+      required: requiredFields,
+    };
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+
+    if (!title.trim()) {
+      setError("Please provide a title for this credential template.");
+      return;
+    }
+
+    if (fields.length === 0) {
+      setError("You must add at least one field to the schema.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const finalSchema = generateJsonSchema();
+
+      const response = await fetch('/api/schemas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          json_schema: finalSchema,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to publish schema');
+      }
+
+      setSuccess(true);
+      setTitle('');
+      setFields([]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
+      <div className="mb-8 border-b pb-4">
+        <h2 className="text-2xl font-bold text-gray-900">Credential Template Builder</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Design the custom fields that will be attached to this verifiable credential.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Schema Title */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Template Name (e.g., Bootcamp Completion Certificate)
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter template name..."
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            required
+          />
+        </div>
+
+        {/* Dynamic Fields List */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-800">Custom Fields</h3>
+            <button
+              type="button"
+              onClick={addField}
+              className="flex items-center gap-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Add Field
+            </button>
+          </div>
+
+          {fields.length === 0 ? (
+            <div className="text-center py-8 bg-gray-50 border-2 border-dashed rounded-lg text-gray-400">
+              No fields added yet. Click "Add Field" to start building your template.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {fields.map((field) => (
+                <div key={field.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border">
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Display Name</label>
+                      <input
+                        type="text"
+                        value={field.displayName}
+                        onChange={(e) => updateField(field.id, { displayName: e.target.value, keyName: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+                        placeholder="e.g., Course Link"
+                        className="w-full px-3 py-1.5 text-sm border rounded-md"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Data Type</label>
+                      <select
+                        value={field.type}
+                        onChange={(e) => updateField(field.id, { type: e.target.value as any })}
+                        className="w-full px-3 py-1.5 text-sm border rounded-md bg-white"
+                      >
+                        <option value="string">Text (String)</option>
+                        <option value="number">Number</option>
+                        <option value="boolean">Yes/No (Boolean)</option>
+                        <option value="date">Date</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col justify-center pt-5">
+                      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={field.required}
+                          onChange={(e) => updateField(field.id, { required: e.target.checked })}
+                          className="rounded text-blue-600"
+                        />
+                        Required Field
+                      </label>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeField(field.id)}
+                    className="p-2 text-gray-400 hover:text-red-500 transition-colors mt-4"
+                    title="Remove field"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Status Messages */}
+        {error && (
+          <div className="p-3 rounded-lg bg-red-50 text-red-600 flex items-center gap-2 text-sm">
+            <AlertCircle className="w-4 h-4" /> {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="p-3 rounded-lg bg-green-50 text-green-700 flex items-center gap-2 text-sm">
+            Template published to the W3C registry successfully!
+          </div>
+        )}
+
+        {/* Submit Action */}
+        <div className="pt-4 border-t flex justify-end">
+          <button
+            type="submit"
+            disabled={isSubmitting || fields.length === 0}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+          >
+            {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            Publish Schema Template
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+packages\web-portal\vector-web\src\app\student\skills\[id]\page.tsx
+'use client';
+import { useState, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import Link from 'next/link';
+import { SKILL_MAP } from '@/lib/blockchain'; // ✅ Added to decode bc- IDs
+
+export default function SkillDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+  const [credential, setCredential] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDetail = async () => {
+      try {
+        // 1. 🛡️ Handle Blockchain-Only Credentials (IDs starting with 'bc-')
+        if (id.startsWith('bc-')) {
+          const skillId = parseInt(id.replace('bc-', ''));
+          // Find the skill name by matching the ID in the SKILL_MAP
+          const skillName = Object.keys(SKILL_MAP).find(key => (SKILL_MAP as any)[key] === skillId);
+          
+          if (skillName) {
+            setCredential({
+              id: id,
+              skill_name: skillName,
+              certificate_number: 'ON-CHAIN-ONLY',
+              issued_at: new Date().toISOString(), // Fallback for pure blockchain reads
+              transaction_hash: 'verified_on_chain', 
+              private_notes: null
+            });
+            return; // Exit early, no need to query DB
+          }
+        }
+
+        // 2. 🛡️ Fetching from our secure API for University-Issued credentials
+        const res = await fetch('/api/student/credentials');
+        if (!res.ok) throw new Error("Failed to fetch");
+        
+        const allCreds = await res.json();
+        const found = allCreds.find((c: any) => c.id === id);
+        
+        if (!found) {
+          router.push('/student/skills');
+          return;
+        }
+        setCredential(found);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDetail();
+  }, [id, router]);
+
+  if (loading) return <div className="p-10 text-center animate-pulse text-purple-600">Verifying Proof...</div>;
+  if (!credential) return null; // Safety catch
+
+  return (
+    <DashboardLayout>
+      <div className="max-w-4xl mx-auto">
+        {/* Breadcrumbs */}
+        <nav className="flex mb-8 text-sm text-gray-500">
+          <Link href="/student/dashboard" className="hover:text-purple-600">Dashboard</Link>
+          <span className="mx-2">/</span>
+          <Link href="/student/skills" className="hover:text-purple-600">Skills</Link>
+          <span className="mx-2">/</span>
+          <span className="text-gray-900 font-medium">{credential.skill_name}</span>
+        </nav>
+
+        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-700 px-8 py-10 text-white text-center">
+            <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/30">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            </div>
+            <h1 className="text-3xl font-bold mb-2">{credential.skill_name}</h1>
+            <p className="text-purple-100 opacity-90">
+              {id.startsWith('bc-') ? 'Decentralized Smart Contract Proof' : 'University Verified Micro-Credential'}
+            </p>
+          </div>
+
+          <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Verification Metadata */}
+            <div className="space-y-6">
+              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Verification Details</h2>
+              
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Status</label>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full border border-green-100 text-sm font-bold">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Verified
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Certificate Serial Number</label>
+                <p className="font-mono text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">{credential.certificate_number || 'N/A'}</p>
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Issue Date</label>
+                <p className="text-gray-900 font-medium">
+                  {id.startsWith('bc-') ? 'Real-time via Smart Contract' : new Date(credential.issued_at).toLocaleDateString('en-US', { dateStyle: 'long' })}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Blockchain Receipt</label>
+                {/* Check if it's a real tx hash or just our placeholder */}
+                {credential.transaction_hash?.startsWith('0x') ? (
+                  <a 
+                    href={`https://amoy.polygonscan.com/tx/${credential.transaction_hash}`} 
+                    target="_blank" 
+                    className="text-purple-600 text-sm break-all hover:underline flex items-center gap-1"
+                  >
+                    {credential.transaction_hash?.slice(0, 24)}...
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  </a>
+                ) : (
+                   <p className="text-gray-900 text-sm font-medium">Verified via Polygon Contract State</p>
+                )}
+              </div>
+            </div>
+
+            {/* The Vault Section (Decrypted Data) */}
+            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+              <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+                The Vault: Registrar Notes
+              </h2>
+              <div className="bg-white p-4 rounded-xl border border-slate-100 text-slate-700 text-sm min-h-[150px] italic">
+                {credential.private_notes ? (
+                  `"${credential.private_notes}"`
+                ) : (
+                  <span className="text-slate-400">No confidential notes recorded for this credential.</span>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400 mt-4 leading-relaxed">
+                Notice: These notes are end-to-end encrypted. Only you and the issuing registrar can view this data. It is not included in the public blockchain metadata.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 px-8 py-6 border-t border-gray-100 flex justify-between items-center">
+             <button onClick={() => window.print()} className="text-gray-600 hover:text-gray-900 text-sm font-medium flex items-center gap-2">
+               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+               Print Official Receipt
+             </button>
+             <Link href="/student/dashboard" className="px-6 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition-colors shadow-lg">
+               Back to Dashboard
+             </Link>
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
+
+packages\web-portal\vector-web\src\app\student\cvr\page.tsx
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -854,4 +1803,213 @@ export default function CVRPage() {
       />
     </DashboardLayout>
   );
+}
+packages\web-portal\vector-web\src\app\api\registrar\credentials\route.ts
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { decryptData, encryptData } from '@/lib/encryption'; 
+import { db } from '@/lib/db';
+import { z } from 'zod';
+
+export const dynamic = 'force-dynamic'; 
+
+export async function GET(req: Request) {
+  const cookieStore = await cookies();
+
+  // 1. Initialize Supabase with the MASTER KEY (Service Role)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!, 
+    {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value },
+      },
+    }
+  );
+
+  try {
+    // 2. 🛡️ VERIFY AUTHENTICATION
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error("API Auth Error:", authError);
+      return NextResponse.json({ error: 'Unauthorized: Session invalid' }, { status: 401 });
+    }
+
+    // 3. 🛡️ VERIFY AUTHORIZATION (RBAC)
+    const { data: userRecord, error: roleError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (roleError || !userRecord) {
+      return NextResponse.json({ error: 'Forbidden: User record not found' }, { status: 403 });
+    }
+
+    if (userRecord.role !== 'registrar' && userRecord.role !== 'super_admin') {
+      return NextResponse.json({ 
+        error: `Forbidden: Access restricted for role ${userRecord.role}` 
+      }, { status: 403 });
+    }
+
+    // 4. FETCH CREDENTIAL DATA (Updated to include W3C fields)
+    const { data: credentials, error: fetchError } = await supabase
+      .from('verified_credentials')
+      .select(`
+        id,
+        skill_name,
+        issued_at,
+        transaction_hash,
+        certificate_number,
+        private_notes,
+        schema_url,
+        credential_data,
+        user:users!user_id (
+          full_name,
+          wallet_address
+        )
+      `)
+      .order('issued_at', { ascending: false });
+
+    if (fetchError) throw fetchError;
+
+    // 5. 🔓 DECRYPT ON SERVER
+    const processedData = credentials.map(cred => {
+      let decryptedNote = null;
+      if (cred.private_notes) {
+        try {
+          decryptedNote = decryptData(cred.private_notes);
+        } catch (e) {
+          console.error(`Failed to decrypt note for ID: ${cred.id}`);
+          decryptedNote = "[Decryption Failed]";
+        }
+      }
+
+      return {
+        ...cred,
+        private_notes: decryptedNote 
+      };
+    });
+
+    return NextResponse.json(processedData);
+
+  } catch (error: any) {
+    console.error('Fatal API Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+// Validation schema for incoming mint requests
+const MintCredentialValidator = z.object({
+  user_id: z.string().uuid("Invalid student ID"),
+  schema_id: z.string().uuid("Invalid schema ID"),
+  skill_name: z.string().min(1, "Skill name is required"),
+  credential_data: z.record(z.any(), "Credential data must be an object"),
+  private_notes: z.string().optional(),
+  certificate_number: z.string().optional(),
+  token_id: z.string().min(1, "Token ID is required"),
+  transaction_hash: z.string().optional()
+});
+
+export async function POST(req: Request) {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet) {
+          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } catch {}
+        },
+      },
+    }
+  );
+
+  try {
+    // 1. Verify Authentication & Authorization
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const dbUser = await db.users.findUnique({ where: { id: user.id }, select: { role: true, wallet_address: true } });
+    if (dbUser?.role !== 'registrar') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    // 2. Parse and validate base request
+    const body = await req.json();
+    const validatedData = MintCredentialValidator.parse(body);
+
+    // 3. Fetch the requested schema template
+    const schemaTemplate = await db.credential_schemas.findUnique({
+      where: { id: validatedData.schema_id }
+    });
+
+    if (!schemaTemplate) {
+      return NextResponse.json({ error: 'Schema template not found' }, { status: 404 });
+    }
+
+    // 4. Validate incoming student data against the specific schema (Basic Key Match)
+    const requiredKeys = Object.keys(schemaTemplate.json_schema as object);
+    const providedKeys = Object.keys(validatedData.credential_data);
+    const missingKeys = requiredKeys.filter(key => !providedKeys.includes(key));
+
+    if (missingKeys.length > 0) {
+      return NextResponse.json({ 
+        error: 'Credential data does not match W3C schema requirements',
+        missing_fields: missingKeys 
+      }, { status: 400 });
+    }
+
+    // 5. Generate standard W3C JSON-LD payload
+    const issuerDid = dbUser.wallet_address ? `did:polygon:amoy:${dbUser.wallet_address}` : `did:web:yourdomain.com:registrar:${user.id}`;
+    const schemaUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/schemas/${schemaTemplate.id}`;
+
+    const w3cPayload = {
+      "@context": [
+        "https://www.w3.org/2018/credentials/v1",
+        schemaUrl
+      ],
+      "type": ["VerifiableCredential", schemaTemplate.title.replace(/\s+/g, '')],
+      "issuer": issuerDid,
+      "issuanceDate": new Date().toISOString(),
+      "credentialSubject": {
+        "id": `did:vector:student:${validatedData.user_id}`,
+        ...validatedData.credential_data
+      }
+    };
+
+    // 6. Encrypt private notes if present
+    const encryptedNotes = validatedData.private_notes 
+      ? encryptData(validatedData.private_notes) 
+      : null;
+
+    // 7. Save to database
+    const newCredential = await db.verified_credentials.create({
+      data: {
+        user_id: validatedData.user_id,
+        skill_name: validatedData.skill_name,
+        token_id: validatedData.token_id,
+        transaction_hash: validatedData.transaction_hash,
+        issuer_did: issuerDid,
+        schema_url: schemaUrl,
+        credential_data: w3cPayload.credentialSubject,
+        private_notes: encryptedNotes,
+        certificate_number: validatedData.certificate_number
+      }
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      data: newCredential,
+      w3c_document: w3cPayload 
+    }, { status: 201 });
+
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Validation failed', details: error.errors }, { status: 400 });
+    }
+    console.error('POST /api/registrar/credentials error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
