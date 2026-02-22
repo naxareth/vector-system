@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { analyzeStudentProfile } from '../../../../../../ai-engine/src/index'; 
+import { extractSkillsFromCredential } from '../../../../../../ai-engine/src/nlp/skill-extractor';
 import { z } from 'zod';
 
 // 🛡️ API Schema Validation: Define the expected shape of the request
@@ -53,13 +54,45 @@ export async function POST(req: Request) {
       }
     });
 
-    const verifiedNames = student?.verified_credentials.map(c => c.skill_name) || [];
+    const dbCredentials = student?.verified_credentials || [];
+
+    // --- PHASE 5: AI Dynamic Schema Extraction ---
+// Extract deeper context from any W3C credentials concurrently
+    const dynamicSkillsPromises = dbCredentials
+      .filter(cred => 
+        cred.schema_url && 
+        cred.credential_data && 
+        !cred.schema_url.includes('undefined') // 🛡️ Skip broken legacy records
+      )
+      .map(cred => {
+        // 🛠️ Construct Absolute URL if relative, and ensure protocol exists
+        let absoluteSchemaUrl = cred.schema_url!;
+        
+        if (absoluteSchemaUrl.startsWith('/')) {
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          absoluteSchemaUrl = `${baseUrl}${absoluteSchemaUrl}`;
+        }
+
+        return extractSkillsFromCredential(
+          cred.credential_data as Record<string, any>, 
+          absoluteSchemaUrl
+        );
+      });
+
+    const dynamicSkillsArrays = await Promise.all(dynamicSkillsPromises);
+    const dynamicW3CSkills = dynamicSkillsArrays.flat();
+    // ---------------------------------------------
+
+    const verifiedNames = dbCredentials.map(c => c.skill_name);
     const selfReportedNames = student?.self_reported_skills.map(s => s.skill_name) || [];
     
-    // Use validated skillsOverride
-    let allSkills = skillsOverride.length > 0 
-      ? skillsOverride 
-      : Array.from(new Set([...verifiedNames, ...selfReportedNames]));
+    // Merge standard skill names, override parameters, and the deep W3C extractions
+    let allSkills = Array.from(new Set([
+      ...skillsOverride,
+      ...verifiedNames,
+      ...selfReportedNames,
+      ...dynamicW3CSkills
+    ]));
 
     // Fallback logic
     if (allSkills.length === 0) {
@@ -88,7 +121,7 @@ export async function POST(req: Request) {
         id: student?.student_id || identifier,
         name: student?.full_name || "Guest Student",
         skills: allSkills, 
-        credentials: student?.verified_credentials || []
+        credentials: dbCredentials
       }, 
       marketData: marketHistoryRaw, 
       resumeText: resumeText 
@@ -99,7 +132,7 @@ export async function POST(req: Request) {
       data: {
         ...analysisResult,
         history: Object.values(chartDataMap),
-        credentials: student?.verified_credentials || [] 
+        credentials: dbCredentials 
       }
     });
 

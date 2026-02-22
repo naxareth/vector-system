@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { decryptData, encryptData } from '@/lib/encryption'; 
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db'; 
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic'; 
@@ -99,7 +99,7 @@ const MintCredentialValidator = z.object({
   user_id: z.string().uuid("Invalid student ID"),
   schema_id: z.string().uuid("Invalid schema ID"),
   skill_name: z.string().min(1, "Skill name is required"),
-  credential_data: z.record(z.any(), "Credential data must be an object"),
+  credential_data: z.record(z.string(), z.any()), // ✅ Fixed Zod syntax
   private_notes: z.string().optional(),
   certificate_number: z.string().optional(),
   token_id: z.string().min(1, "Token ID is required"),
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const dbUser = await db.users.findUnique({ where: { id: user.id }, select: { role: true, wallet_address: true } });
+    const dbUser = await prisma.users.findUnique({ where: { id: user.id }, select: { role: true, wallet_address: true } });
     if (dbUser?.role !== 'registrar') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     // 2. Parse and validate base request
@@ -134,7 +134,7 @@ export async function POST(req: Request) {
     const validatedData = MintCredentialValidator.parse(body);
 
     // 3. Fetch the requested schema template
-    const schemaTemplate = await db.credential_schemas.findUnique({
+    const schemaTemplate = await prisma.credential_schemas.findUnique({
       where: { id: validatedData.schema_id }
     });
 
@@ -142,15 +142,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Schema template not found' }, { status: 404 });
     }
 
-    // 4. Validate incoming student data against the specific schema (Basic Key Match)
-    const requiredKeys = Object.keys(schemaTemplate.json_schema as object);
-    const providedKeys = Object.keys(validatedData.credential_data);
-    const missingKeys = requiredKeys.filter(key => !providedKeys.includes(key));
+    // 4. Validate incoming student data against the specific schema fields
+    const schemaObj = schemaTemplate.json_schema as any;
+    // We want to validate against the 'properties' defined in the schema, not the schema metadata itself
+    const definedProperties = schemaObj.properties || {};
+    const requiredKeys = schemaObj.required || [];
 
-    if (missingKeys.length > 0) {
+    const providedData = validatedData.credential_data;
+    const providedKeys = Object.keys(providedData);
+
+    // Check if any truly REQUIRED fields are missing
+    const missingFields = requiredKeys.filter(key => !providedKeys.includes(key));
+
+    if (missingFields.length > 0) {
       return NextResponse.json({ 
         error: 'Credential data does not match W3C schema requirements',
-        missing_fields: missingKeys 
+        missing_fields: missingFields 
       }, { status: 400 });
     }
 
@@ -178,7 +185,7 @@ export async function POST(req: Request) {
       : null;
 
     // 7. Save to database
-    const newCredential = await db.verified_credentials.create({
+    const newCredential = await prisma.verified_credentials.create({
       data: {
         user_id: validatedData.user_id,
         skill_name: validatedData.skill_name,

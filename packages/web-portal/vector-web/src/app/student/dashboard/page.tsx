@@ -33,13 +33,14 @@ interface UserProfile {
 }
 
 interface CredentialItem {
-  id: string; // ✅ Now mandatory for routing
+  id: string;
   category: string;
   title: string;
   issueDate: string;
   marketRelevance: number;
   verified: boolean;
   certificateNumber?: string;
+  credentialData?: Record<string, any>; // ✅ Add this line
 }
 
 export default function StudentDashboard() {
@@ -139,13 +140,14 @@ export default function StudentDashboard() {
       dbCreds.forEach((dbC: any) => {
         const analysis = json.data?.skillHealth?.find((s:any) => s.skillName === dbC.skill_name);
         mergedCreds.push({
-            id: dbC.id, // ✅ This is the UUID from public.verified_credentials
+            id: dbC.id, 
             category: 'University Issued',
             title: dbC.skill_name,
             issueDate: new Date(dbC.issued_at).toLocaleDateString(),
             marketRelevance: analysis ? analysis.healthScore : 70,
             verified: true,
-            certificateNumber: dbC.certificate_number
+            certificateNumber: dbC.certificate_number,
+            credentialData: dbC.credential_data // ✅ Pass the dynamic payload here
         });
       });
 

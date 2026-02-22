@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db"; 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-// Validate the incoming JSON-LD schema payload
+// Corrected: z.record() requires the key type and value type.
 const CreateSchemaValidator = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
-  json_schema: z.record(z.any(), "A valid JSON object is required for the schema"),
+  json_schema: z.record(z.string(), z.any()),
 });
 
 export async function POST(req: NextRequest) {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Verify the user is a Registrar
-    const dbUser = await db.users.findUnique({
+    const dbUser = await prisma.users.findUnique({
       where: { id: user.id },
       select: { role: true }
     });
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     const { title, json_schema } = CreateSchemaValidator.parse(body);
 
     // 4. Save the schema to the database registry
-    const newSchema = await db.credential_schemas.create({
+    const newSchema = await prisma.credential_schemas.create({
       data: {
         issuer_id: user.id,
         title,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db"; // ✅ Changed 'db' to 'prisma'
 
 export async function GET(
   req: NextRequest,
@@ -9,7 +9,8 @@ export async function GET(
     const { id } = await params;
 
     // Fetch the schema from the database
-    const schemaRecord = await db.credential_schemas.findUnique({
+    // ✅ Changed db.credential_schemas to prisma.credential_schemas
+    const schemaRecord = await prisma.credential_schemas.findUnique({
       where: { id },
       select: {
         title: true,
