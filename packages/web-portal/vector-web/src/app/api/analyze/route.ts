@@ -81,7 +81,7 @@ export async function POST(req: Request) {
 
     const dynamicSkillsArrays = await Promise.all(dynamicSkillsPromises);
     const dynamicW3CSkills = dynamicSkillsArrays.flat();
-    // ---------------------------------------------
+    // ----------------------------------------------
 
     const verifiedNames = dbCredentials.map(c => c.skill_name);
     const selfReportedNames = student?.self_reported_skills.map(s => s.skill_name) || [];
