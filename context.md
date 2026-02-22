@@ -33,6 +33,7 @@ packages\ai-engine\src
 packages\ai-engine\src\data
 packages\ai-engine\src\data\adzuna-client.ts
 packages\ai-engine\src\data\jsearch-client.ts
+packages\ai-engine\src\data\market-provider.ts
 packages\ai-engine\src\nlp
 packages\ai-engine\src\nlp\gemini-client.ts
 packages\ai-engine\src\nlp\skill-extractor.ts
@@ -421,38 +422,38 @@ CREATE TABLE public.verified_credentials (
 * **Code Integrity:** Do not remove existing comments or TODO markers. Use `async/await` for all database and blockchain calls.
 * **Consistency:** Ensure "De-jargonization" for Registrar UIs (e.g., use "Secure Record" instead of "Mint NFT").
 * **Error Handling:** Use Zod for all form and API request validation.
+* **Zod Validation:** All z.record definitions must use the z.record(z.string(), z.any()) syntax to avoid runtime parser crashes.
 
 # 6. Current State / Next Steps
 
 * **Data Changes:** -
 
-    Database (Prisma): Created credential_schemas table to store dynamic JSON-LD templates. Expanded verified_credentials with schema_url, credential_data, issuer_did, and metadata_uri to support flexible W3C payloads.
+    Database (Prisma): Created credential_schemas table to store dynamic JSON-LD templates.
 
-    Smart Contracts (VectorToken.sol): Added addressToDID() to format Polygon Amoy W3C DIDs. Overrode the uri() function to point directly to the Next.js backend W3C JSON-LD registry without .json extensions.
+    Verified Credentials: Expanded verified_credentials with schema_url, credential_data, issuer_did, and metadata_uri to support flexible W3C payloads.
 
-    Zod Schemas: * Added CreateSchemaValidator (api/schemas) for validating dynamic template creation.
+    Market Intelligence: Modified market_snapshots with a metadata JSONB column for schema-agnostic intelligence storage.
 
       Added MintCredentialValidator (api/registrar/credentials) to strictly validate incoming student data against dynamic schema keys before W3C JSON-LD payload generation.
 
       Added resumeSchema (student/cvr) for complex CVR array validation.
 
 
-* **Last Completed:** - Finished Phase 2 (Student Portal & Read Layer) including the CVR Builder and hybrid dynamic skill pages (`skills/[id]`).
-  - Executed Phase 1 & 2 of the W3C Integration Plan.
-  - Overhauled Prisma schema: added `credential_schemas` and W3C dynamic payload fields to `verified_credentials`.
-  - Built the Schema API Registry (`POST /api/schemas`, `GET /api/schemas/[id]`).
-  - Refactored `POST /api/registrar/credentials` to validate against dynamic schemas, encrypt private notes, and generate standard W3C JSON-LD payloads (`@context`, `credentialSubject`).
-  - Built the `SchemaBuilder.tsx` UI for registrars to visually construct custom credential templates.
-  - Updated `VectorToken.sol` to support Decentralized Identifiers (DIDs) and dynamic registry routing.
+* **Last Completed:** - Phase 5 AI Integration: Refactored skill-extractor.ts to fetch and analyze external W3C schema_url contexts, enabling the AI to understand custom credential fields (e.g., "hours_completed" in a bootcamp cert).
+  - W3C Infrastructure: Verified the full "Registrar Write Layer"—including Schema creation, blockchain minting, and W3C JSON-LD database storage.
+  - Dynamic Job Tracker: Upgraded the daily-update.ts GitHub Action to automatically discover new skills from credentials and fetch rich market metadata into JSONB.
+  - Finalized the SchemaBuilder.tsx template system for quick-start credential designs (Academic, Bootcamp, Event).
 
-* **Current Focus:** - Integrating `SchemaBuilder.tsx` directly into the Registrar Dashboard UI (`registrar/dashboard/page.tsx`).
-  - Implementing the Registrar "Write Layer" UI to allow institutions to select a schema and mint credentials to a student's DID.
+* **Current Focus:** - Student Dashboard UI Refactor: Updating CredentialCard.tsx and the skills/[id] dynamic pages to iterate over and render custom key-value pairs stored in the credential_data JSONB object.
 
 * **Architecture Changes:** - Shifted from hardcoded credential enums to a flexible JSON-LD Schema Registry.
   - Implemented DID formatting (`did:polygon:amoy:<address>`) across the Solidity contracts and Next.js backend.
 
-* **Next Steps:** - Refactor `CredentialCard.tsx` on the Student Dashboard to dynamically iterate and render the new custom `credential_data` JSONB key-value pairs.
-  - Update the AI Engine (`skill-extractor.ts`) to fetch and comprehend dynamic `schema_url` context before comparing to JSearch market data.
+* **Next Steps:** - Market Intelligence Visualization: Update the Student Coach UI to display rich metadata (average salaries and regional demand) extracted by the dynamic tracker.
+
+Public Verification Portal: Build the /verify/[id] route to allow external entities to resolve DIDs and verify cryptographic signatures against the Polygon Amoy testnet.
+
+Rate-Limit Resilience: Implement p-limit or refined setTimeout logic in the ai-engine to handle high-volume Adzuna API calls.
 
 ---
 

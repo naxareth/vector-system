@@ -1,8 +1,12 @@
-import { fetchJobCount } from '../data/adzuna-client'; 
+import { getMarketData } from '../data/market-provider'; 
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+// Parse CLI arguments for GitHub Actions manual triggers
+const args = process.argv.slice(2);
+const manualKeyword = args.find(arg => arg.startsWith('--keyword='))?.split('=')[1];
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -10,45 +14,67 @@ const supabase = createClient(
 );
 
 async function runDailyUpdate() {
-  console.log(`📅 Starting Daily Job Market Update (via Adzuna): ${new Date().toISOString()}`);
+  console.log(`📅 Starting Market Update: ${new Date().toISOString()}`);
 
-  const { data: keywords, error: fetchError } = await supabase
-    .from('monitored_keywords')
-    .select('keyword')
-    .eq('is_active', true);
+  let skillsToTrack: string[] = [];
 
-  if (fetchError || !keywords) {
-    console.error("❌ Failed to fetch keywords:", fetchError);
+  // 1. Check for Manual Override (Flexibility for specific re-scans)
+  if (manualKeyword && manualKeyword !== "''" && manualKeyword !== "") {
+    console.log(`🎯 Manual trigger detected for: "${manualKeyword}"`);
+    skillsToTrack = [manualKeyword];
+  } else {
+    // 2. Auto-Discovery: Combine monitored keywords + organic skills from W3C credentials
+    console.log("🔍 Discovering skills from database...");
+    
+    const [monitoredRes, credentialRes] = await Promise.all([
+      supabase.from('monitored_keywords').select('keyword').eq('is_active', true),
+      supabase.from('verified_credentials').select('skill_name')
+    ]);
+
+    const monitored = monitoredRes.data?.map(k => k.keyword) || [];
+    const fromCredentials = credentialRes.data?.map(c => c.skill_name) || [];
+
+    // Deduplicate to save API credits
+    skillsToTrack = Array.from(new Set([...monitored, ...fromCredentials]));
+  }
+
+  if (skillsToTrack.length === 0) {
+    console.warn("⚠️ No skills found to track. Update your monitored_keywords table.");
     return;
   }
 
-  const skillsToTrack = keywords.map(k => k.keyword);
-  console.log(`📋 Tracking ${skillsToTrack.length} skills:`, skillsToTrack.join(', '));
+  console.log(`📋 Processing ${skillsToTrack.length} unique skills...`);
 
   for (const skill of skillsToTrack) {
     try {
-      console.log(`\n🔍 Checking Adzuna for: ${skill}...`);
+      console.log(`\n🔍 Fetching Intelligence: ${skill}`);
       
-      // 🚀 CHANGED: Fetch count directly
-      const liveCount = await fetchJobCount(skill, 'us'); 
+      // Use the Provider Layer instead of calling the client directly
+      const intelligence = await getMarketData(skill, 'us'); 
 
+      // 3. Store in metadata (JSONB) for W3C-style flexibility
       const { error } = await supabase
         .from('market_snapshots')
         .insert({
           skill_name: skill,
-          job_count: liveCount,
-          data_source: 'adzuna', // 🚀 Update source label
-          recorded_at: new Date().toISOString()
+          job_count: intelligence.count,
+          data_source: 'adzuna',
+          recorded_at: new Date().toISOString(),
+          metadata: {
+            ...intelligence.raw,
+            average_salary: intelligence.mean_salary || null,
+            top_locations: intelligence.locations || []
+          }
         });
 
       if (error) {
         console.error(`   ❌ DB Error for ${skill}:`, error.message);
       } else {
-        console.log(`   ✅ Recorded: ${liveCount} jobs for ${skill}`);
+        console.log(`   ✅ Recorded: ${intelligence.count} jobs for ${skill}`);
       }
 
-      // Adzuna allows ~1 call per second on free tier
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // 4. Rate Limiting: Be kind to the free-tier API
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
     } catch (err) {
       console.error(`   ⚠️ Failed to update ${skill}`, err);
@@ -58,4 +84,8 @@ async function runDailyUpdate() {
   console.log("\n✨ Daily Update Complete!");
 }
 
-runDailyUpdate();
+// Global catch for script-level failures (notifies GitHub Actions)
+runDailyUpdate().catch(err => {
+  console.error("💀 Fatal script failure:", err);
+  process.exit(1);
+});
