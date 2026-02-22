@@ -2,12 +2,13 @@
 import Link from 'next/link';
 
 interface CredentialCardProps {
-  id: string; // ✅ Added ID for routing
+  id: string; 
   category: string;
   title: string;
   issueDate: string;
   marketRelevance: number;
   verified: boolean;
+  credentialData?: Record<string, any>; // ✅ New prop for dynamic W3C payload
 }
 
 export default function CredentialCard({
@@ -17,10 +18,17 @@ export default function CredentialCard({
   issueDate,
   marketRelevance,
   verified,
+  credentialData,
 }: CredentialCardProps) {
+
+  // Helper to format JSON keys nicely (e.g., "hours_completed" -> "Hours Completed")
+  const formatKey = (key: string) => {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
   return (
     <Link href={`/student/skills/${id}`}>
-      <div className="group bg-white rounded-xl p-6 border border-gray-200 hover:border-purple-300 hover:shadow-xl transition-all duration-300 cursor-pointer relative overflow-hidden">
+      <div className="group bg-white rounded-xl p-6 border border-gray-200 hover:border-purple-300 hover:shadow-xl transition-all duration-300 cursor-pointer relative overflow-hidden flex flex-col h-full">
         {/* Subtle Hover Effect Background */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-full -mr-16 -mt-16 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -37,15 +45,34 @@ export default function CredentialCard({
         </div>
 
         {/* Title */}
-        <h3 className="text-gray-900 font-bold mb-1 text-lg group-hover:text-purple-700 transition-colors">
+        <h3 className="text-gray-900 font-bold mb-1 text-lg group-hover:text-purple-700 transition-colors relative z-10">
           {title}
         </h3>
 
         {/* Issue Date */}
-        <p className="text-sm text-gray-500 mb-6">Issued: {issueDate}</p>
+        <p className="text-sm text-gray-500 mb-4 relative z-10">Issued: {issueDate}</p>
+
+        {/* ✅ DYNAMIC FIELDS RENDERER */}
+        {credentialData && Object.keys(credentialData).length > 0 && (
+          <div className="mb-6 pt-4 border-t border-gray-100 grid grid-cols-2 gap-x-4 gap-y-3 relative z-10 flex-grow">
+            {Object.entries(credentialData).map(([key, value]) => {
+              if (key === 'id') return null; // Skip rendering the internal student DID subject ID
+              return (
+                <div key={key} className="min-w-0">
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-tight truncate">
+                    {formatKey(key)}
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900 truncate" title={String(value)}>
+                    {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Footer */}
-        <div className="flex items-end justify-between relative z-10">
+        <div className="mt-auto pt-4 border-t border-gray-50 flex items-end justify-between relative z-10">
           <div>
             <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-tight">Market Relevance</p>
             <div className="flex items-center gap-2">
@@ -69,7 +96,7 @@ export default function CredentialCard({
         </div>
         
         {/* Hover Hint */}
-        <div className="mt-4 pt-4 border-t border-gray-50 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-purple-500 font-bold flex items-center gap-1">
+        <div className="absolute bottom-4 left-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-purple-500 font-bold flex items-center gap-1 justify-center bg-white/90 backdrop-blur-sm pt-2">
            CLICK TO VIEW BLOCKCHAIN PROOF 
            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
         </div>

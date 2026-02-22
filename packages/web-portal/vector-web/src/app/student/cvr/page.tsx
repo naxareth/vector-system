@@ -7,19 +7,17 @@ import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain'
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import CVRSuccessModal from '@/components/dashboard/CVRSuccessModal';
-import { z } from 'zod'; // 1. Import Zod
+import { z } from 'zod';
 
-// 2. Define Validation Schema for the Resume
 const resumeSchema = z.object({
   fullName: z.string().min(2, "Full Name is required (min 2 chars)"),
   title: z.string().min(2, "Professional Title is required"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().optional().or(z.literal('')), // Allow empty or valid string
+  phone: z.string().optional().or(z.literal('')),
   linkedin: z.string().url("Must be a valid URL (https://...)").optional().or(z.literal('')),
   portfolio: z.string().url("Must be a valid URL (https://...)").optional().or(z.literal('')),
   summary: z.string().max(600, "Summary must be under 600 characters").optional(),
   
-  // Validate Arrays (Ensure they aren't empty objects)
   education: z.array(z.object({
     degree: z.string().optional(),
     school: z.string().optional(),
@@ -50,9 +48,7 @@ export default function CVRPage() {
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
   const [selectedColor, setSelectedColor] = useState('#6d28d9');
   
-  // 3. Add Error State
   const [errors, setErrors] = useState<Record<string, string>>({});
-
   const [availableSkills, setAvailableSkills] = useState<SkillItem[]>([]);
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [customSkill, setCustomSkill] = useState('');
@@ -69,52 +65,18 @@ export default function CVRPage() {
     linkedin: '',
     title: '',
     summary: '',
-    education: [] as {
-      degree: string;
-      school: string;
-      location: string;
-      year: string;
-      honors: string;
-    }[],
-    experience: [] as {
-      title: string;
-      company: string;
-      dates: string;
-      description: string;
-    }[],
-    projects: [] as {
-      title: string;
-      description: string;
-      technologies: string;
-      role: string;
-    }[],
-    certifications: [] as {
-      name: string;
-      issuer: string;
-      date: string;
-      verified: boolean;
-    }[],
-    awards: [] as {
-      title: string;
-      description: string;
-    }[],
+    education: [] as { degree: string; school: string; location: string; year: string; honors: string; }[],
+    experience: [] as { title: string; company: string; dates: string; description: string; }[],
+    projects: [] as { title: string; description: string; technologies: string; role: string; }[],
+    certifications: [] as { name: string; issuer: string; date: string; verified: boolean; }[],
+    awards: [] as { title: string; description: string; }[],
   });
 
-  const addEducation = () => setFormData(prev => ({ 
-    ...prev, education: [...prev.education, { degree: '', school: '', location: '', year: '', honors: '' }] 
-  }));
-  const addExperience = () => setFormData(prev => ({
-    ...prev, experience: [...prev.experience, { title: '', company: '', dates: '', description: '' }]
-  }));
-  const addProject = () => setFormData(prev => ({
-    ...prev, projects: [...prev.projects, { title: '', description: '', technologies: '', role: '' }]
-  }));
-  const addCertification = () => setFormData(prev => ({
-    ...prev, certifications: [...prev.certifications, { name: '', issuer: '', date: '', verified: false }]
-  }));
-  const addAward = () => setFormData(prev => ({
-    ...prev, awards: [...prev.awards, { title: '', description: '' }]
-  }));
+  const addEducation = () => setFormData(prev => ({ ...prev, education: [...prev.education, { degree: '', school: '', location: '', year: '', honors: '' }] }));
+  const addExperience = () => setFormData(prev => ({ ...prev, experience: [...prev.experience, { title: '', company: '', dates: '', description: '' }] }));
+  const addProject = () => setFormData(prev => ({ ...prev, projects: [...prev.projects, { title: '', description: '', technologies: '', role: '' }] }));
+  const addCertification = () => setFormData(prev => ({ ...prev, certifications: [...prev.certifications, { name: '', issuer: '', date: '', verified: false }] }));
+  const addAward = () => setFormData(prev => ({ ...prev, awards: [...prev.awards, { title: '', description: '' }] }));
 
   const removeItem = (section: keyof typeof formData, index: number) => {
     setFormData((prev: any) => ({
@@ -131,7 +93,6 @@ export default function CVRPage() {
      });
   };
 
-  // Clear specific error on change
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -176,8 +137,6 @@ export default function CVRPage() {
 
         if (userRecord?.wallet_address) {
           await fetchVerifiedSkills(userRecord.wallet_address);
-        } else {
-          setAvailableSkills([]); 
         }
 
         const { data: certs } = await supabase
@@ -185,9 +144,7 @@ export default function CVRPage() {
           .select('*')
           .eq('user_id', session.user.id);
 
-        if (certs) {
-          setAvailableCertifications(certs);
-        }
+        if (certs) setAvailableCertifications(certs);
 
       } catch (error) {
         console.error("CVR Data Error:", error);
@@ -201,14 +158,16 @@ export default function CVRPage() {
 
   const fetchVerifiedSkills = async (walletAddress: string) => {
     try {
-      const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
+      // ✅ Fallback to Public RPC if MetaMask is not installed so reading skills still works
+      const provider = (typeof window !== 'undefined' && (window as any).ethereum)
+        ? new ethers.BrowserProvider((window as any).ethereum, "any")
+        : new ethers.JsonRpcProvider('https://rpc-amoy.polygon.technology/');
+
       const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
-      
       const foundSkills: SkillItem[] = [];
 
       for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
         if (typeof skillId !== 'number') continue;
-
         try {
           const balance = await contract.balanceOf(walletAddress, skillId);
           if (balance > 0) {
@@ -223,7 +182,6 @@ export default function CVRPage() {
       
       setAvailableSkills(foundSkills);
       setSelectedSkillIds(foundSkills.map(s => s.id));
-
     } catch (error) {
       console.error("Blockchain Scan Failed:", error);
     }
@@ -231,9 +189,7 @@ export default function CVRPage() {
 
   const handleSkillToggle = (skillId: string) => {
     setSelectedSkillIds(prev =>
-      prev.includes(skillId)
-        ? prev.filter(id => id !== skillId)
-        : [...prev, skillId]
+      prev.includes(skillId) ? prev.filter(id => id !== skillId) : [...prev, skillId]
     );
   };
 
@@ -248,9 +204,8 @@ export default function CVRPage() {
 
   const handleGenerateCVR = (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors({}); // Reset errors
+    setErrors({}); 
 
-    // 4. Run Zod Validation
     const validation = resumeSchema.safeParse(formData);
 
     if (!validation.success) {
@@ -259,13 +214,10 @@ export default function CVRPage() {
             if (issue.path[0]) newErrors[issue.path[0].toString()] = issue.message;
         });
         setErrors(newErrors);
-        
-        // Alert user to scroll up
         alert("Please fix the errors in the form before generating.");
         return;
     }
     
-    // Filter the full skill objects based on selection
     const finalSkills = availableSkills.filter(s => selectedSkillIds.includes(s.id));
     const sanitizeArray = (arr: any[]) => arr.filter(item => Object.values(item).some((v: any) => v !== null && v !== undefined && String(v).trim() !== ''));
 
@@ -274,11 +226,9 @@ export default function CVRPage() {
       template: selectedTemplate,
       color: selectedColor,
       skills: finalSkills,
+      fullName: formData.fullName,
+      email: formData.email,
     };
-
-    // Use validated data
-    cvrData.fullName = formData.fullName;
-    cvrData.email = formData.email;
 
     if (formData.phone) cvrData.phone = formData.phone;
     if (formData.portfolio) cvrData.portfolio = formData.portfolio;
@@ -464,7 +414,7 @@ export default function CVRPage() {
             </div>
           </div>
 
-          {/* 3. Education Section */}
+          {/* Education Section */}
           <div className="pt-6 border-t border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex justify-between items-center">
               Education
@@ -485,7 +435,7 @@ export default function CVRPage() {
              {formData.education.length === 0 && <p className="text-sm text-gray-500 italic">No education added yet.</p>}
           </div>
 
-          {/* 4. Work Experience Section */}
+          {/* Work Experience Section */}
           <div className="pt-6 border-t border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex justify-between items-center">
               Work Experience
@@ -505,7 +455,7 @@ export default function CVRPage() {
             {formData.experience.length === 0 && <p className="text-sm text-gray-500 italic">No work experience added yet.</p>}
           </div>
 
-           {/* 5. Projects Section */}
+           {/* Projects Section */}
            <div className="pt-6 border-t border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex justify-between items-center">
               Projects
@@ -561,7 +511,7 @@ export default function CVRPage() {
             </div>
           )}
 
-           {/* 6. Certifications & Awards Section */}
+           {/* Certifications & Awards Section */}
            <div className="pt-6 border-t border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex justify-between items-center">
               Certifications & Awards
@@ -618,7 +568,6 @@ export default function CVRPage() {
                       />
                       <div className="flex-1 flex justify-between items-center">
                         <span className="font-medium text-gray-900">{skill.name}</span>
-                        {/* Subtle verified badge inline */}
                         <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                       </div>
                     </label>
@@ -631,7 +580,7 @@ export default function CVRPage() {
               )}
             </div>
 
-            {/* Custom Skills (Previously "Add Custom Skill") */}
+            {/* Custom Skills */}
             <div>
               <p className="text-sm text-gray-600 mb-3">Add Custom Skills</p>
               <div className="flex gap-2">
@@ -639,7 +588,7 @@ export default function CVRPage() {
                   type="text"
                   value={customSkill}
                   onChange={(e) => setCustomSkill(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCustomSkill())}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCustomSkill())}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                   placeholder="Enter skill name"
                 />
@@ -676,7 +625,7 @@ export default function CVRPage() {
             </div>
           </div>
 
-          {/* Template Selection Section (unchanged from original) */}
+          {/* Template Selection Section */}
           <div className="pt-6 border-t border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Choose Template</h2>
