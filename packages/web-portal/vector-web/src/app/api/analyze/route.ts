@@ -104,10 +104,12 @@ export async function POST(req: Request) {
     }
 
     const marketHistoryRaw = await prisma.market_snapshots.findMany({
-      where: { skill_name: { in: allSkills } },
+      where: {
+        skill_name: { in: allSkills },
+        recorded_at: { gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) }
+      },
       orderBy: { recorded_at: 'asc' }
     });
-
     const chartDataMap: Record<string, any> = {};
     marketHistoryRaw.forEach(record => {
       const dateKey = new Date(record.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
