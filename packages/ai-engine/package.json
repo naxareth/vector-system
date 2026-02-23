@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "ts-node src/index.ts",
     "ingest": "ts-node src/scripts/ingest-job-data.ts",
-    "daily-update": "ts-node src/scripts/daily-update.ts"
+    "daily-update": "ts-node src/scripts/daily-update.ts",
+    "daily-update:full": "ts-node src/scripts/daily-update.ts --with-gemini"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -16,7 +17,7 @@
     "axios": "^1.6.2",
     "dotenv": "^16.3.1",
     "ml-matrix": "^6.10.4",
-    "p-limit": "^7.3.0",
+    "p-limit": "^4.0.0",
     "simple-statistics": "^7.8.3"
   },
   "devDependencies": {
