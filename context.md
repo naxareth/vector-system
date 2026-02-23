@@ -9,7 +9,7 @@
 * **Backend:** Next.js API Routes (Edge/Node.js), Supabase Auth/Middleware.
 * **Database:** PostgreSQL (Supabase) with Prisma ORM for schema management.
 * **Blockchain:** Ethereum/EVM compatible (Polygon Amoy Testnet), Hardhat, Ethers.js, Wagmi.
-* **AI/NLP:** Google Gemini API (NLP for skill extraction), Custom Decay/Health Forecasting algorithms.
+* **AI/NLP:** Google Gemini API (NLP for skill extraction + dynamic course generation), Custom Decay/Health Forecasting algorithms.
 
 # 3. Directory Structure
 
@@ -32,16 +32,16 @@ packages
 │       │   ├── market-provider.ts                     ← MODIFIED (fetchRichMarketData wired)
 │       │   └── jsearch-client.ts
 │       ├── nlp
-│       │   ├── gemini-client.ts
-│       │   └── skill-extractor.ts
+│       │   ├── gemini-client.ts                       ← MODIFIED (GEMINI_MODEL constant, generateCoursesForTag export)
+│       │   └── skill-extractor.ts                     ← MODIFIED (uses GEMINI_MODEL constant)
 │       ├── predictions
 │       │   └── decay-forecaster.ts                    ← MODIFIED (% slope thresholds + confidence)
 │       ├── recommendations
-│       │   └── course-recommender.ts                  ← MODIFIED (real DB + gap analysis) ← NEXT TARGET
+│       │   └── course-recommender.ts                  ← MODIFIED (Tier 1/Tier 2 domain filter, normalize, explore fallback)
 │       ├── scripts
 │       │   ├── daily-update.ts                        ← MODIFIED (p-limit concurrency, W3C sync)
 │       │   └── ingest-job-data.ts
-│       └── index.ts                                   ← MODIFIED (await recommendCourses, atRiskSkills)
+│       └── index.ts                                   ← MODIFIED (studentDomainTags extraction, passes to recommendCourses)
 │
 ├── blockchain-core
 │   ├── contracts
@@ -91,7 +91,7 @@ packages
             │   │   ├── chat/route.ts                  ← MODIFIED (salary + location Gemini context)
             │   │   ├── mint/route.ts
             │   │   ├── registrar
-            │   │   │   ├── credentials/route.ts       ← MODIFIED (skill_tags[], skill_tags excluded from schema validation)
+            │   │   │   ├── credentials/route.ts       ← MODIFIED (inline Gemini course gen, dynamic course pipeline, skill_tags validation)
             │   │   │   └── log-mint/route.ts          ← MODIFIED (notification insert after mint)
             │   │   ├── schemas/route.ts
             │   │   ├── schemas/[id]/route.ts
@@ -138,8 +138,8 @@ packages
             │   │   ├── RecentActivity.tsx
             │   │   ├── RegistrarLayout.tsx
             │   │   ├── SchemaBuilder.tsx              ← MODIFIED (skill_tags field locked, undeletable, on all templates)
-            │   │   ├── Sidebar.tsx
-            │   │   └── TopBar.tsx                     ← MODIFIED (click-to-read, redirect on click)
+            │   │   ├── Sidebar.tsx                    ← MODIFIED (active link hydration fix — mounted guard)
+            │   │   └── TopBar.tsx                     ← MODIFIED (date hydration fix — client-only render)
             │   ├── features
             │   │   ├── CTASection.tsx
             │   │   ├── FeaturesSection.tsx
@@ -159,7 +159,7 @@ packages
             │   │   └── Tooltip.tsx
             │   └── student
             │       ├── MarketInsightsPanel.tsx        ← MODIFIED (rank-based location bars)
-            │       └── RecommendationsPanel.tsx
+            │       └── RecommendationsPanel.tsx       ← MODIFIED (explore reasonType, FALLBACK_CONFIG crash guard, contextual banners)
             ├── contexts
             │   └── ThemeContext.tsx
             ├── hooks
@@ -181,7 +181,7 @@ packages
 
 scripts
 
-# 4. Database Schema (Current — post Phase 8)
+# 4. Database Schema (Current — post Phase 9)
 
 ```sql
 CREATE TABLE public.audit_logs (
@@ -368,57 +368,89 @@ CREATE TABLE public.verified_credentials (
 * **Next.js 15 cookies:** `cookies()` returns a Promise — always `await cookies()` before accessing properties.
 * **skill_tags exclusion:** `skill_tags` is a top-level DB column on verified_credentials, NOT a credential_data field. Always exclude it from W3C schema required-field validation in registrar/credentials/route.ts using `key !== 'skill_tags'`.
 * **NEXT_PUBLIC_APP_URL:** Must be set in .env or schema_url will be stored as "undefined/api/schemas/...". Set to http://localhost:3000 in dev.
+* **Gemini model:** Use `gemini-flash-latest` in web portal routes (chat/route.ts, credentials/route.ts). In ai-engine, use the `GEMINI_MODEL` constant exported from `gemini-client.ts`. Never hardcode model strings outside these two locations.
+* **Cross-package imports:** Never import from `ai-engine/src` inside web portal API routes — Turbopack cannot resolve cross-package relative paths. Inline any shared logic using the web portal's own dependencies instead.
+* **Course generation:** generateCoursesForTag is inlined in credentials/route.ts (not imported from ai-engine). If the same logic is needed elsewhere in the web portal, inline it again rather than importing across packages.
+* **Hydration safety:** Never use `new Date()`, `Date.now()`, `Math.random()`, or `usePathname()`-dependent class names in initial render. Gate them behind `useState(null)` + `useEffect` or a `mounted` boolean to avoid SSR/client mismatch.
 
 # 6. Current State / Next Steps
 
-* **Data Changes (Phase 8):**
+* **Data Changes (Phase 8 & 9):**
   - verified_credentials: added `skill_tags text[] DEFAULT '{}'` column (migrated + generated).
   - monitored_keywords: auto-populated with skill tags on every credential issue and analyze call.
   - skill_health_cache: populated as fire-and-forget side effect of /api/analyze calls.
+  - courses: dynamically populated by Gemini on every mint when a new skill_tag has zero course coverage.
   - All old test credentials deleted (DELETE FROM verified_credentials) — clean slate.
   - SQL seed applied to baseline all monitored_keywords into skill_health_cache as Stable/0.0.
 
 * **Last Completed:**
-  - Phase 8 — Student Skills Page + Pipeline Fixes (complete):
+  - Phase 9 — Domain-Aware Recommendation Engine + Dynamic Course Generation (complete):
 
-    analyze/route.ts (3 fixes):
-      1. verifiedNames flatMaps skill_tags instead of skill_name.
-         Falls back to skill_name only if skill_tags is empty.
-      2. Removed random monitored_keywords fallback when allSkills is empty.
-         Now returns early with empty state — coach page shows proper empty UI
-         instead of misleading generic networking/DevOps recommendations.
-      3. Fire-and-forget cache persist after every analyze call.
+    course-recommender.ts (full rewrite):
+      1. Added studentDomainTags: string[] to RecommendationContext.
+      2. normalize() helper — lowercase + whitespace collapse, used consistently for tag comparison.
+      3. hasOverlap() helper — clean intersection check between two tag arrays.
+      4. scoreCourse() extracted as pure function, reused by both tiers.
+      5. Tier 1: filters courses to domain overlap with student's credential tags.
+         Gap analysis scoped to domain courses only — no cross-field gaps surfaced.
+      6. Tier 2 (explore fallback): fills remaining slots from non-domain courses.
+         reasonType = 'explore', neutral reason text — never implies field relevance.
+      7. Early return if Tier 1 fills topN — Tier 2 query never runs.
 
-    registrar/credentials/route.ts (2 fixes):
-      1. Added skill_tags: z.array(z.string()).default([]) to MintCredentialValidator.
-      2. Excluded skill_tags from W3C required-field check with key !== 'skill_tags'.
+    index.ts:
+      1. Extracts studentDomainTags from studentData.credentials (deduplicated flatMap).
+      2. Passes studentDomainTags to recommendCourses context.
+      3. Logs resolved domain tags for debugging.
 
-    skills/page.tsx:
-      - 26 skills fanning out from 6 credentials (now deleted, clean slate).
-      - Two-phase load working. Velocity badges working.
-      - React +0.26 Growing, Data Analysis +0.28 Growing confirmed real signals.
+    credentials/route.ts (Step 9 added — fire-and-forget after mint):
+      1. Checks which incoming skill_tags have zero course coverage (single hasSome query).
+      2. Calls inline generateCoursesForTag (Gemini) for each uncovered tag in parallel.
+      3. Bulk inserts generated courses into courses table.
+      4. Inlined Gemini function uses web portal's own GoogleGenerativeAI instance
+         (avoids Turbopack cross-package import error).
+
+    gemini-client.ts (ai-engine):
+      1. Added GEMINI_MODEL constant as single source of truth for model name.
+      2. generateCoursesForTag exported (used by ai-engine scripts if needed).
+
+    skill-extractor.ts:
+      1. Uses GEMINI_MODEL constant instead of hardcoded model string.
+
+    RecommendationsPanel.tsx:
+      1. Added 'explore' to reasonType union and REASON_CONFIG.
+      2. Added FALLBACK_CONFIG — prevents crash on unknown reasonType from API.
+      3. Contextual banners: all-explore banner, mixed Tier1+Tier2 banner.
+
+    TopBar.tsx:
+      1. Fixed hydration mismatch — date rendered client-only via useState(null) + useEffect.
+
+    Sidebar.tsx:
+      1. Fixed active link hydration mismatch — isActive gated behind mounted boolean.
+
+  - Verified end-to-end:
+    - Accounting student sees Financial Accounting, Taxation, Cost Accounting courses (Tier 1).
+    - No Docker/Kubernetes/Agile appearing for domain-specific students.
+    - Gemini generated 3 courses each for Financial Accounting, Cost Accounting, Taxation on first mint.
+    - Explore banner shown correctly when no domain courses exist yet.
 
 * **Known Pending Issues:**
-  - Recommendation engine is not field-aware: a nursing student sees networking/
-    DevOps/Agile courses because course-recommender.ts gaps against ALL monitored
-    keywords regardless of field relevance. Fix: in course-recommender.ts, filter
-    candidate courses by skill_tag overlap with the student's actual tags before
-    scoring by market demand. Need to paste course-recommender.ts to diagnose.
   - trend_slope is still synthetic. Replace deriveTrendSlope() with real linear
     regression from market_snapshots once data density is sufficient per tag.
-  - NEXT_PUBLIC_APP_URL missing from .env — set to http://localhost:3000.
+  - NEXT_PUBLIC_APP_URL missing from .env — set to http://localhost:3000 in dev.
   - Verify api/student/credentials/route.ts selects skill_tags column.
+  - Generated course links are unverified (Gemini-generated slugs). Add a
+    link-validation pass in a future phase. Marked with TODO in credentials/route.ts.
+  - Cron job issue — pending diagnosis (next item).
 
 * **Next Steps (in order):**
-  1. Fix recommendation engine field-awareness — paste course-recommender.ts
-     and packages/ai-engine/src/index.ts to diagnose and fix.
+  1. Diagnose and fix daily cron job issue (daily-update.ts).
 
-  2. Phase 9 — CVR QR Code → Verified Ledger:
+  2. Phase 10 — CVR QR Code → Verified Ledger:
      Add QR code to generated/exported CVR encoding /verify/[credential-uuid].
      Employer scans → lands on public verification portal.
      Tie into ExportCVRModal or CVR preview step.
 
-  3. Phase 10 — AI CVR Analysis:
+  3. Phase 11 — AI CVR Analysis:
      Pass student CVR data through Gemini. Return structured feedback:
      skill strength, market alignment, missing keywords, improvements.
      Display as panel on CVR or coach page.
@@ -430,6 +462,6 @@ CREATE TABLE public.verified_credentials (
      Polygon Amoy → mainnet. Fix NEXT_PUBLIC_APP_URL for schema_url.
 
 * **Git:**
-  - Branch: feature/phase8-skill-tags-market-health
-  - Commit: "fix: analyze empty state + registrar skill_tags validation"
+  - Branch: feature/phase9-domain-recommendations
+  - Commit: "fix: domain-aware course recommendations + dynamic course generation"
 ---
