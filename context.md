@@ -14,8 +14,6 @@
 
 # 3. Directory Structure
 
-*(Refer to the provided file list in the prompt for the comprehensive structure)*
-
 * **`packages/blockchain-core`**: Smart contracts (Solidity) and deployment scripts.
 * **`packages/ai-engine`**: Standalone service for market data ingestion, skill extraction, and health score calculations.
 * **`packages/web-portal/vector-web`**: The main Next.js application containing the Student, Registrar, and Admin portals.
@@ -93,7 +91,7 @@ packages
             │   │   ├── mint/route.ts
             │   │   ├── registrar
             │   │   │   ├── credentials/route.ts
-            │   │   │   └── log-mint/route.ts
+            │   │   │   └── log-mint/route.ts          ← MODIFIED (notification insert after mint)
             │   │   ├── schemas/route.ts
             │   │   ├── schemas/[id]/route.ts
             │   │   ├── student
@@ -110,7 +108,7 @@ packages
             │   │   ├── dashboard/page.tsx
             │   │   ├── profile/page.tsx
             │   │   ├── profile/security/page.tsx
-            │   │   └── skills/page.tsx
+            │   │   └── skills/page.tsx                ← NEXT TARGET (Phase 8)
             │   └── verify/[id]/page.tsx               ← NEW (public verification portal, no auth)
             ├── components
             │   ├── auth
@@ -139,7 +137,7 @@ packages
             │   │   ├── RegistrarLayout.tsx
             │   │   ├── SchemaBuilder.tsx
             │   │   ├── Sidebar.tsx
-            │   │   └── TopBar.tsx
+            │   │   └── TopBar.tsx                     ← MODIFIED (click-to-read, redirect on click)
             │   ├── features
             │   │   ├── CTASection.tsx
             │   │   ├── FeaturesSection.tsx
@@ -188,7 +186,6 @@ testing
 
 ```sql
 -- WARNING: This schema is for context only and is not meant to be run.
--- Table order and constraints may not be valid for execution.
 
 CREATE TABLE public.audit_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -374,43 +371,33 @@ CREATE TABLE public.verified_credentials (
 # 6. Current State / Next Steps
 
 * **Data Changes:**
-
-    - monitored_keywords: Removed 'Nursing' (Healthcare category) — degree
-      title not a job-market skill. Also deleted associated market_snapshots rows.
-
-    - market_snapshots: history query in analyze/route.ts scoped to last 14
-      days (was unbounded) to prevent old sparse rows distorting trend chart.
-
-    - No new Prisma schema changes. All changes are data-level.
-
+    - monitored_keywords: Removed 'Nursing' — degree title not a job-market skill.
+    - market_snapshots: history query in analyze/route.ts scoped to last 14 days.
+    - No Prisma schema changes this session.
 
 * **Last Completed:**
-  - Phase 6 (feature/phase6-rate-limit-resilience) — fully merged.
-  - p-limit concurrency in daily-update.ts (3 concurrent, 500ms delay).
-  - Public /verify/[id] portal + /api/verify/[id] route (UUID-based, on-chain check).
-  - CVR split into 8 section components + barrel export.
-  - Gemini chat enriched with salary + location from market_snapshots metadata.
-  - MarketInsightsPanel location bars switched to rank-based widths.
-  - Trend chart per-skill normalization + low-data warning + 14-day history window.
-
+  - Phase 7 — Mint Notifications (complete):
+    - log-mint/route.ts: after verified_credentials insert, captures new UUID
+      via .select('id').single(), then inserts notification row for the student
+      with title, message (includes issuer name), type: 'success', is_read: false,
+      link_url: /verify/[credential-uuid]. Non-fatal — mint succeeds even if
+      notification insert fails.
+    - TopBar.tsx: removed mark-all-on-open behavior. Each notification is now
+      marked read individually on click via handleNotificationClick(). If
+      notification has a link_url, closes dropdown and redirects via router.push().
+      Bell badge now shows numeric unread count (capped at 9+) instead of dot.
+      Notifications with link_url show "· View →" hint. Added link_url field
+      to NotificationItem interface.
 
 * **Current Focus:**
-  - Phase 7 — Mint Notifications:
-    Trigger: when registrar mints → insert into notifications table with
-    link_url = /verify/[credential-uuid].
-    UI: notification bell in TopBar with unread badge, dropdown list,
-    mark-as-read on click, redirect to /verify/[id].
-    Files to paste when ready: registrar/log-mint/route.ts, TopBar.tsx,
-    DashboardLayout.tsx.
-
-
-* **Next Steps (in order):**
-  - Phase 7 — Mint Notifications (current, see above)
-
   - Phase 8 — Student Skills Page Refinement:
     Paste skills/page.tsx to assess current state. Goals: better layout,
-    skill health indicators from skill_health_cache, self-reported skill
+    skill health indicators pulled from skill_health_cache
+    (Rising/Stable/Decaying status + trend_slope), self-reported skill
     management (add/edit/delete with proficiency + evidence link).
+
+* **Next Steps (in order):**
+  - Phase 8 — Skills Page Refinement (current, see above)
 
   - Phase 9 — CVR QR Code → Verified Ledger:
     Add QR code to generated/exported CVR encoding /verify/[credential-uuid].
