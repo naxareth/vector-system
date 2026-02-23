@@ -1,3 +1,4 @@
+
 # 1. Project Overview
 
 * **Name:** VECTOR (Decentralized Micro-Credentialing System)
@@ -12,8 +13,6 @@
 * **AI/NLP:** Google Gemini API (NLP for skill extraction), Custom Decay/Health Forecasting algorithms.
 
 # 3. Directory Structure
-
-*(Refer to the provided file list in the prompt for the comprehensive structure)*
 
 * **`packages/blockchain-core`**: Smart contracts (Solidity) and deployment scripts.
 * **`packages/ai-engine`**: Standalone service for market data ingestion, skill extraction, and health score calculations.
@@ -92,7 +91,7 @@ packages
             │   │   ├── mint/route.ts
             │   │   ├── registrar
             │   │   │   ├── credentials/route.ts
-            │   │   │   └── log-mint/route.ts
+            │   │   │   └── log-mint/route.ts          ← MODIFIED (notification insert after mint)
             │   │   ├── schemas/route.ts
             │   │   ├── schemas/[id]/route.ts
             │   │   ├── student
@@ -109,7 +108,7 @@ packages
             │   │   ├── dashboard/page.tsx
             │   │   ├── profile/page.tsx
             │   │   ├── profile/security/page.tsx
-            │   │   └── skills/page.tsx
+            │   │   └── skills/page.tsx                ← NEXT TARGET (Phase 8)
             │   └── verify/[id]/page.tsx               ← NEW (public verification portal, no auth)
             ├── components
             │   ├── auth
@@ -119,14 +118,14 @@ packages
             │   │   └── StudentRegisterForm.tsx
             │   ├── cvr
             │   │   ├── CVRFormSections.tsx            ← MODIFIED (barrel export)
-            │   │   ├── PersonalDetailsSection.tsx     ← NEW
-            │   │   ├── EducationSection.tsx           ← NEW
-            │   │   ├── ExperienceSection.tsx          ← NEW
-            │   │   ├── ProjectsSection.tsx            ← NEW
-            │   │   ├── CertificationsSection.tsx      ← NEW
-            │   │   ├── VerifiedCertificationsBlock.tsx ← NEW
-            │   │   ├── SkillsSection.tsx              ← NEW
-            │   │   └── TemplateSelector.tsx           ← NEW
+            │   │   ├── PersonalDetailsSection.tsx
+            │   │   ├── EducationSection.tsx
+            │   │   ├── ExperienceSection.tsx
+            │   │   ├── ProjectsSection.tsx
+            │   │   ├── CertificationsSection.tsx
+            │   │   ├── VerifiedCertificationsBlock.tsx
+            │   │   ├── SkillsSection.tsx
+            │   │   └── TemplateSelector.tsx
             │   ├── dashboard
             │   │   ├── AdminLayout.tsx
             │   │   ├── CredentialCard.tsx
@@ -138,7 +137,7 @@ packages
             │   │   ├── RegistrarLayout.tsx
             │   │   ├── SchemaBuilder.tsx
             │   │   ├── Sidebar.tsx
-            │   │   └── TopBar.tsx
+            │   │   └── TopBar.tsx                     ← MODIFIED (click-to-read, redirect on click)
             │   ├── features
             │   │   ├── CTASection.tsx
             │   │   ├── FeaturesSection.tsx
@@ -187,7 +186,6 @@ testing
 
 ```sql
 -- WARNING: This schema is for context only and is not meant to be run.
--- Table order and constraints may not be valid for execution.
 
 CREATE TABLE public.audit_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -373,87 +371,47 @@ CREATE TABLE public.verified_credentials (
 # 6. Current State / Next Steps
 
 * **Data Changes:**
-
-    - monitored_keywords: Removed 'Nursing' (Healthcare category) — was a
-      degree title, not a job-market skill. Slipped in via seed file.
-      Also deleted all associated market_snapshots rows for 'Nursing'.
-
-    - market_snapshots: No schema changes. history query in analyze/route.ts
-      now scoped to last 14 days (was unbounded) to prevent old sparse
-      rows from distorting the trend chart.
-
-    - No new Prisma schema changes this session. All changes are data-level.
-
+    - monitored_keywords: Removed 'Nursing' — degree title not a job-market skill.
+    - market_snapshots: history query in analyze/route.ts scoped to last 14 days.
+    - No Prisma schema changes this session.
 
 * **Last Completed:**
-  - Phase 6 branch: feature/phase6-rate-limit-resilience
-
-  - Rate-Limit Resilience (Phase 1): Replaced serial for-loop + setTimeout(2000)
-    in daily-update.ts with p-limit (concurrency: 3, inter-task delay: 500ms).
-    Extracted processSkill() as named function. W3C sync section intentionally
-    kept serial (Gemini quota safety). Estimated 3x throughput improvement:
-    100 skills ~67s vs ~200s serial. Install: npm install p-limit@4 in ai-engine.
-
-  - Public Verification Portal (Phase 2):
-    - /api/verify/[id] route: DB lookup via Prisma (credential UUID as ID —
-      not enumerable unlike token_id). On-chain verification via Polygon Amoy
-      public RPC using ethers.JsonRpcProvider. Returns credential details,
-      student identity, issuer info, and onChain { verified, balance, tokenId,
-      error } object. params now awaited (Next.js 15 requirement).
-    - /verify/[id] public page: Standalone, no auth, no DashboardLayout.
-      Shows green/amber verification status banner, credential details card,
-      blockchain record (token ID, transaction hash → Polygonscan link, issuer
-      DID, network), student identity (name, student ID, wallet), QR code
-      (generated via qrcode library), copy link button.
-      Install: npm install qrcode @types/qrcode in web-portal/vector-web.
-
-  - CVR Separation of Concerns (Phase 2 bonus):
-    - Split 500-line cvr/page.tsx into 8 focused components in components/cvr/:
-      PersonalDetailsSection, EducationSection, ExperienceSection,
-      ProjectsSection, CertificationsSection, VerifiedCertificationsBlock,
-      SkillsSection, TemplateSelector.
-    - CVRFormSections.tsx updated as barrel export for clean imports.
-    - cvr/page.tsx reduced to slim orchestrator (~200 lines).
-
-  - Gemini Context Enrichment (Phase 3): /api/chat/route.ts updated to
-    deduplicate market_snapshots to most recent per skill, then extract
-    salary (avg/min/max/currency) and top 3 hiring locations from metadata
-    JSONB. Gemini prompt now includes salary-aware, location-specific context.
-    Graceful fallback to job count only for skills with empty metadata (pre-Feb 22).
-    Verified working: Gemini correctly cited Python avg $118k, React avg $103k,
-    and gave HealthTech crossover advice based on student's skill combo.
-
-  - MarketInsightsPanel location bars fix: Adzuna returns locations as plain
-    string array (no counts). Switched from count-based to rank-based bar
-    widths: 100/80/60/45/30%. Extracted LocationBars component with auto-detect
-    logic — falls back to count-based automatically if real counts arrive.
-
-  - Trend chart normalization fix (coach/page.tsx): Per-skill y-axis
-    normalization prevents high-count skills (Python 134k) from flattening
-    low-count skills (React 4k) to zero. Added amber low-data warning when
-    < 4 snapshots exist. Added legend with actual job counts. analyze/route.ts
-    history query scoped to last 14 days.
-
+  - Phase 7 — Mint Notifications (complete):
+    - log-mint/route.ts: after verified_credentials insert, captures new UUID
+      via .select('id').single(), then inserts notification row for the student
+      with title, message (includes issuer name), type: 'success', is_read: false,
+      link_url: /verify/[credential-uuid]. Non-fatal — mint succeeds even if
+      notification insert fails.
+    - TopBar.tsx: removed mark-all-on-open behavior. Each notification is now
+      marked read individually on click via handleNotificationClick(). If
+      notification has a link_url, closes dropdown and redirects via router.push().
+      Bell badge now shows numeric unread count (capped at 9+) instead of dot.
+      Notifications with link_url show "· View →" hint. Added link_url field
+      to NotificationItem interface.
 
 * **Current Focus:**
-  - Merge feature/phase6-rate-limit-resilience PR into main.
-  - Confirm cron schedule (00:00 UTC) runs automatically tomorrow and verify
-    no silent failures via GitHub Actions log output.
+  - Phase 8 — Student Skills Page Refinement:
+    Paste skills/page.tsx to assess current state. Goals: better layout,
+    skill health indicators pulled from skill_health_cache
+    (Rising/Stable/Decaying status + trend_slope), self-reported skill
+    management (add/edit/delete with proficiency + evidence link).
 
+* **Next Steps (in order):**
+  - Phase 8 — Skills Page Refinement (current, see above)
 
-* **Next Steps:**
-  - Trend Confidence Improvement: Skills currently have confidence: 'low'
-    (only 2-3 snapshots). Forecaster accuracy improves to 'medium' after
-    4 days, 'high' after 7 days of cron runs. No code needed — passive.
-  - Trend Chart Polish: Chart still looks sparse with only 2-3 data points.
-    Will improve naturally as cron accumulates data. Revisit chart UX
-    (e.g. Recharts migration) once 7+ days of data are available.
-  - Student Notifications: Use the existing notifications table to alert
-    students when a skill they hold starts decaying (trend: 'declining').
-    Trigger from daily-update.ts after market snapshot insert.
-  - Registrar Portal Polish: SchemaBuilder.tsx and batch minting UX
-    improvements based on any registrar feedback.
-  - Production Readiness: Swap Polygon Amoy testnet → Polygon mainnet,
-    set NEXT_PUBLIC_APP_URL correctly so schema_url stops writing
-    'undefined/api/schemas/...' for new credentials.
+  - Phase 9 — CVR QR Code → Verified Ledger:
+    Add QR code to generated/exported CVR encoding /verify/[credential-uuid].
+    Employer scans → lands on public verification portal.
+    Tie into ExportCVRModal or CVR preview step.
+
+  - Phase 10 — AI CVR Analysis:
+    Pass student CVR data through Gemini. Return structured feedback:
+    skill strength, market alignment, missing keywords, improvements.
+    Display as panel on CVR or coach page.
+
+  - Passive — Trend Confidence: auto-improves to 'medium' after 4 days,
+    'high' after 7 days of cron runs. No code needed.
+
+  - Future — Production Readiness:
+    Polygon Amoy → mainnet. Fix NEXT_PUBLIC_APP_URL for schema_url.
 ---
