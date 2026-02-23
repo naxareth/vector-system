@@ -8,6 +8,7 @@ import MarketInsightsPanel from '@/components/student/MarketInsightsPanel';
 import RecommendationsPanel, { CourseRecommendation } from '@/components/student/RecommendationsPanel';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   role: 'user' | 'ai';
@@ -502,8 +503,16 @@ export default function CoachPage() {
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
                 {messages.map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${msg.role === 'user' ? 'bg-purple-600 text-white rounded-br-none' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none whitespace-pre-wrap'}`}>
-                      {msg.text}
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                      msg.role === 'user'
+                        ? 'bg-purple-600 text-white rounded-br-none'
+                        : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
+                    }`}>
+                     {msg.role === 'user' ? msg.text : (
+                        <div className="prose prose-sm prose-purple max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0">
+                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -18,6 +18,8 @@
 * **`packages/web-portal/vector-web`**: The main Next.js application containing the Student, Registrar, and Admin portals.
 
 .github
+  workflows
+    daily-market-tracker.yml                          ← MODIFIED (Node 18→20, --with-gemini dropdown, smart run step)
 .vscode
 configs
 docs
@@ -39,7 +41,7 @@ packages
 │       ├── recommendations
 │       │   └── course-recommender.ts                  ← MODIFIED (Tier 1/Tier 2 domain filter, normalize, explore fallback)
 │       ├── scripts
-│       │   ├── daily-update.ts                        ← MODIFIED (p-limit concurrency, W3C sync)
+│       │   ├── daily-update.ts                        ← MODIFIED (--with-gemini flag gates all Gemini calls)
 │       │   └── ingest-job-data.ts
 │       └── index.ts                                   ← MODIFIED (studentDomainTags extraction, passes to recommendCourses)
 │
@@ -133,7 +135,7 @@ packages
             │   │   ├── CredentialCard.tsx
             │   │   ├── CVRSuccessModal.tsx
             │   │   ├── DashboardLayout.tsx
-            │   │   ├── ExportCVRModal.tsx
+            │   │   ├── ExportCVRModal.tsx             ← NEXT TARGET (Phase 10 QR code goes here)
             │   │   ├── MetricCards.tsx
             │   │   ├── RecentActivity.tsx
             │   │   ├── RegistrarLayout.tsx
@@ -372,6 +374,9 @@ CREATE TABLE public.verified_credentials (
 * **Cross-package imports:** Never import from `ai-engine/src` inside web portal API routes — Turbopack cannot resolve cross-package relative paths. Inline any shared logic using the web portal's own dependencies instead.
 * **Course generation:** generateCoursesForTag is inlined in credentials/route.ts (not imported from ai-engine). If the same logic is needed elsewhere in the web portal, inline it again rather than importing across packages.
 * **Hydration safety:** Never use `new Date()`, `Date.now()`, `Math.random()`, or `usePathname()`-dependent class names in initial render. Gate them behind `useState(null)` + `useEffect` or a `mounted` boolean to avoid SSR/client mismatch.
+* **p-limit version:** ai-engine uses p-limit@4 (last CJS-compatible version). Do NOT upgrade to v5+ — those are ESM-only and will break ts-node with ERR_REQUIRE_ESM.
+* **GitHub Actions Node version:** Always Node 20. Never 18 — Supabase and Hardhat deps require >=20.
+* **Gemini quota:** Free tier is 20 RPD on gemini-flash-latest. Daily cron runs with zero Gemini calls by default (no --with-gemini flag). Only pass --with-gemini for weekly/manual runs needing W3C skill sync.
 
 # 6. Current State / Next Steps
 
@@ -380,88 +385,56 @@ CREATE TABLE public.verified_credentials (
   - monitored_keywords: auto-populated with skill tags on every credential issue and analyze call.
   - skill_health_cache: populated as fire-and-forget side effect of /api/analyze calls.
   - courses: dynamically populated by Gemini on every mint when a new skill_tag has zero course coverage.
-  - All old test credentials deleted (DELETE FROM verified_credentials) — clean slate.
+  - All old test credentials deleted — clean slate. Accounting credential minted for testing.
   - SQL seed applied to baseline all monitored_keywords into skill_health_cache as Stable/0.0.
 
 * **Last Completed:**
   - Phase 9 — Domain-Aware Recommendation Engine + Dynamic Course Generation (complete):
+    - Accounting student sees Financial Accounting, Taxation, Cost Accounting courses (Tier 1 only).
+    - No Docker/Kubernetes/Agile showing for domain-specific students.
+    - Gemini generated 3 courses per tag on first accounting credential mint.
+    - Explore banner shown when no domain courses exist yet (Tier 2 fallback).
 
-    course-recommender.ts (full rewrite):
-      1. Added studentDomainTags: string[] to RecommendationContext.
-      2. normalize() helper — lowercase + whitespace collapse, used consistently for tag comparison.
-      3. hasOverlap() helper — clean intersection check between two tag arrays.
-      4. scoreCourse() extracted as pure function, reused by both tiers.
-      5. Tier 1: filters courses to domain overlap with student's credential tags.
-         Gap analysis scoped to domain courses only — no cross-field gaps surfaced.
-      6. Tier 2 (explore fallback): fills remaining slots from non-domain courses.
-         reasonType = 'explore', neutral reason text — never implies field relevance.
-      7. Early return if Tier 1 fills topN — Tier 2 query never runs.
-
-    index.ts:
-      1. Extracts studentDomainTags from studentData.credentials (deduplicated flatMap).
-      2. Passes studentDomainTags to recommendCourses context.
-      3. Logs resolved domain tags for debugging.
-
-    credentials/route.ts (Step 9 added — fire-and-forget after mint):
-      1. Checks which incoming skill_tags have zero course coverage (single hasSome query).
-      2. Calls inline generateCoursesForTag (Gemini) for each uncovered tag in parallel.
-      3. Bulk inserts generated courses into courses table.
-      4. Inlined Gemini function uses web portal's own GoogleGenerativeAI instance
-         (avoids Turbopack cross-package import error).
-
-    gemini-client.ts (ai-engine):
-      1. Added GEMINI_MODEL constant as single source of truth for model name.
-      2. generateCoursesForTag exported (used by ai-engine scripts if needed).
-
-    skill-extractor.ts:
-      1. Uses GEMINI_MODEL constant instead of hardcoded model string.
-
-    RecommendationsPanel.tsx:
-      1. Added 'explore' to reasonType union and REASON_CONFIG.
-      2. Added FALLBACK_CONFIG — prevents crash on unknown reasonType from API.
-      3. Contextual banners: all-explore banner, mixed Tier1+Tier2 banner.
-
-    TopBar.tsx:
-      1. Fixed hydration mismatch — date rendered client-only via useState(null) + useEffect.
-
-    Sidebar.tsx:
-      1. Fixed active link hydration mismatch — isActive gated behind mounted boolean.
-
-  - Verified end-to-end:
-    - Accounting student sees Financial Accounting, Taxation, Cost Accounting courses (Tier 1).
-    - No Docker/Kubernetes/Agile appearing for domain-specific students.
-    - Gemini generated 3 courses each for Financial Accounting, Cost Accounting, Taxation on first mint.
-    - Explore banner shown correctly when no domain courses exist yet.
+  - Cron job fixes (complete):
+    - daily-update.ts: all Gemini calls gated behind --with-gemini flag.
+    - package.json: added daily-update:full script.
+    - GitHub Actions workflow: Node 18 → 20, added with_gemini dropdown input,
+      smart run step handles keyword / gemini / standard modes.
+    - p-limit downgraded to v4 in ai-engine — fixes ERR_REQUIRE_ESM in CI.
+    - Workflow only installs inside packages/ai-engine — never at monorepo root
+      (root install would hoist p-limit@7 and shadow the ai-engine's v4).
 
 * **Known Pending Issues:**
   - trend_slope is still synthetic. Replace deriveTrendSlope() with real linear
-    regression from market_snapshots once data density is sufficient per tag.
-  - NEXT_PUBLIC_APP_URL missing from .env — set to http://localhost:3000 in dev.
+    regression from market_snapshots once sufficient data density exists per tag.
+  - NEXT_PUBLIC_APP_URL must be set in .env (http://localhost:3000 in dev).
   - Verify api/student/credentials/route.ts selects skill_tags column.
-  - Generated course links are unverified (Gemini-generated slugs). Add a
-    link-validation pass in a future phase. Marked with TODO in credentials/route.ts.
-  - Cron job issue — pending diagnosis (next item).
+  - Generated course links are Gemini-generated slugs — unverified. TODO marked
+    in credentials/route.ts for a future link-validation pass.
 
 * **Next Steps (in order):**
-  1. Diagnose and fix daily cron job issue (daily-update.ts).
+  1. Phase 10 — CVR QR Code → Verified Ledger:
+     Add QR code to the exported CVR that encodes /verify/[credential-uuid].
+     Employer scans → lands on the public verification portal (already built at
+     /verify/[id]/page.tsx and /api/verify/[id]/route.ts).
+     Implementation: ExportCVRModal.tsx or CVR preview step.
+     Note: `qrcode` npm package is already installed in web portal package.json.
+     To start: paste ExportCVRModal.tsx and cvr/page.tsx.
 
-  2. Phase 10 — CVR QR Code → Verified Ledger:
-     Add QR code to generated/exported CVR encoding /verify/[credential-uuid].
-     Employer scans → lands on public verification portal.
-     Tie into ExportCVRModal or CVR preview step.
-
-  3. Phase 11 — AI CVR Analysis:
+  2. Phase 11 — AI CVR Analysis:
      Pass student CVR data through Gemini. Return structured feedback:
      skill strength, market alignment, missing keywords, improvements.
-     Display as panel on CVR or coach page.
+     Display as a panel on CVR page or coach page.
 
-  4. Passive — Trend Confidence: auto-improves to 'medium' after 4 days,
-     'high' after 7 days of cron runs. No code needed.
+  3. Passive — Trend Confidence: auto-improves to 'medium' after 4 days,
+     'high' after 7 days of cron runs. No code needed — just time.
 
-  5. Future — Production Readiness:
-     Polygon Amoy → mainnet. Fix NEXT_PUBLIC_APP_URL for schema_url.
+  4. Future — Production Readiness:
+     Polygon Amoy → mainnet. Fix NEXT_PUBLIC_APP_URL for schema_url in prod.
 
 * **Git:**
   - Branch: feature/phase9-domain-recommendations
-  - Commit: "fix: domain-aware course recommendations + dynamic course generation"
+  - Commit message for PR to main:
+    "feat: phase 9 — domain-aware recommendations + dynamic course generation + cron fix"
+  - Merge to main before starting Phase 10.
 ---
