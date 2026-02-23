@@ -1,4 +1,3 @@
-
 # 1. Project Overview
 
 * **Name:** VECTOR (Decentralized Micro-Credentialing System)
@@ -38,7 +37,7 @@ packages
 │       ├── predictions
 │       │   └── decay-forecaster.ts                    ← MODIFIED (% slope thresholds + confidence)
 │       ├── recommendations
-│       │   └── course-recommender.ts                  ← MODIFIED (real DB + gap analysis)
+│       │   └── course-recommender.ts                  ← MODIFIED (real DB + gap analysis) ← NEXT TARGET
 │       ├── scripts
 │       │   ├── daily-update.ts                        ← MODIFIED (p-limit concurrency, W3C sync)
 │       │   └── ingest-job-data.ts
@@ -60,7 +59,9 @@ packages
 └── web-portal
     └── vector-web
         ├── prisma
-        │   └── schema.prisma
+        │   └── schema.prisma                          ← MODIFIED (skill_tags String[] on verified_credentials)
+        ├── scripts
+        │   └── backfill-skill-tags.ts                 ← NEW (one-time migration, already run)
         └── src
             ├── app
             │   ├── (auth)
@@ -77,7 +78,7 @@ packages
             │   │   ├── admin
             │   │   │   ├── system-logs/route.ts
             │   │   │   └── verify-user/route.ts
-            │   │   ├── analyze/route.ts               ← MODIFIED (14-day history window)
+            │   │   ├── analyze/route.ts               ← MODIFIED (skill_tags fan-out, empty early return, cache persist)
             │   │   ├── auth
             │   │   │   ├── callback/route.ts
             │   │   │   ├── cancel-reset/route.ts
@@ -90,17 +91,18 @@ packages
             │   │   ├── chat/route.ts                  ← MODIFIED (salary + location Gemini context)
             │   │   ├── mint/route.ts
             │   │   ├── registrar
-            │   │   │   ├── credentials/route.ts
+            │   │   │   ├── credentials/route.ts       ← MODIFIED (skill_tags[], skill_tags excluded from schema validation)
             │   │   │   └── log-mint/route.ts          ← MODIFIED (notification insert after mint)
             │   │   ├── schemas/route.ts
             │   │   ├── schemas/[id]/route.ts
             │   │   ├── student
             │   │   │   ├── credentials/route.ts
+            │   │   │   ├── skill-health/route.ts      ← NEW (fast cache-read, no LLM)
             │   │   │   └── market-insights/route.ts
             │   │   ├── verify/[id]/route.ts           ← NEW (public credential verification API)
             │   │   └── verify-registrar/route.ts
             │   ├── registrar
-            │   │   ├── dashboard/page.tsx
+            │   │   ├── dashboard/page.tsx             ← MODIFIED (extracts + validates skill_tags before minting)
             │   │   └── students/page.tsx
             │   ├── student
             │   │   ├── coach/page.tsx                 ← MODIFIED (per-skill chart normalization)
@@ -108,7 +110,7 @@ packages
             │   │   ├── dashboard/page.tsx
             │   │   ├── profile/page.tsx
             │   │   ├── profile/security/page.tsx
-            │   │   └── skills/page.tsx                ← NEXT TARGET (Phase 8)
+            │   │   └── skills/page.tsx                ← MODIFIED (fan-out by skill_tags, two-phase load, slope velocity UI)
             │   └── verify/[id]/page.tsx               ← NEW (public verification portal, no auth)
             ├── components
             │   ├── auth
@@ -135,7 +137,7 @@ packages
             │   │   ├── MetricCards.tsx
             │   │   ├── RecentActivity.tsx
             │   │   ├── RegistrarLayout.tsx
-            │   │   ├── SchemaBuilder.tsx
+            │   │   ├── SchemaBuilder.tsx              ← MODIFIED (skill_tags field locked, undeletable, on all templates)
             │   │   ├── Sidebar.tsx
             │   │   └── TopBar.tsx                     ← MODIFIED (click-to-read, redirect on click)
             │   ├── features
@@ -178,15 +180,10 @@ packages
                 └── wagmi.ts
 
 scripts
-  seed_market_data.py
-research
-testing
 
-# 4. Core Database Schema / State Shape
+# 4. Database Schema (Current — post Phase 8)
 
 ```sql
--- WARNING: This schema is for context only and is not meant to be run.
-
 CREATE TABLE public.audit_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   created_at timestamp with time zone DEFAULT now(),
@@ -203,7 +200,7 @@ CREATE TABLE public.courses (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   title text NOT NULL,
   provider text,
-  skill_tags ARRAY,
+  skill_tags text[],
   link text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   CONSTRAINT courses_pkey PRIMARY KEY (id)
@@ -223,7 +220,7 @@ CREATE TABLE public.market_snapshots (
   job_count integer NOT NULL,
   data_source text DEFAULT 'adzuna'::text,
   recorded_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  metadata jsonb DEFAULT '{}',
+  metadata jsonb DEFAULT '{}'::jsonb,
   CONSTRAINT market_snapshots_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.minting_batches (
@@ -342,6 +339,7 @@ CREATE TABLE public.verified_credentials (
   user_id uuid NOT NULL,
   batch_id uuid,
   skill_name text NOT NULL,
+  skill_tags text[] DEFAULT '{}',
   token_id text NOT NULL,
   transaction_hash text,
   issuer_did text,
@@ -367,51 +365,71 @@ CREATE TABLE public.verified_credentials (
 * **Error Handling:** Use Zod for all form and API request validation.
 * **Zod Validation:** All z.record definitions must use the z.record(z.string(), z.any()) syntax to avoid runtime parser crashes.
 * **Next.js 15 params:** Route params are a Promise in Next.js 15. Always `await params` before accessing properties: `const { id } = await params`.
+* **Next.js 15 cookies:** `cookies()` returns a Promise — always `await cookies()` before accessing properties.
+* **skill_tags exclusion:** `skill_tags` is a top-level DB column on verified_credentials, NOT a credential_data field. Always exclude it from W3C schema required-field validation in registrar/credentials/route.ts using `key !== 'skill_tags'`.
+* **NEXT_PUBLIC_APP_URL:** Must be set in .env or schema_url will be stored as "undefined/api/schemas/...". Set to http://localhost:3000 in dev.
 
 # 6. Current State / Next Steps
 
-* **Data Changes:**
-    - monitored_keywords: Removed 'Nursing' — degree title not a job-market skill.
-    - market_snapshots: history query in analyze/route.ts scoped to last 14 days.
-    - No Prisma schema changes this session.
+* **Data Changes (Phase 8):**
+  - verified_credentials: added `skill_tags text[] DEFAULT '{}'` column (migrated + generated).
+  - monitored_keywords: auto-populated with skill tags on every credential issue and analyze call.
+  - skill_health_cache: populated as fire-and-forget side effect of /api/analyze calls.
+  - All old test credentials deleted (DELETE FROM verified_credentials) — clean slate.
+  - SQL seed applied to baseline all monitored_keywords into skill_health_cache as Stable/0.0.
 
 * **Last Completed:**
-  - Phase 7 — Mint Notifications (complete):
-    - log-mint/route.ts: after verified_credentials insert, captures new UUID
-      via .select('id').single(), then inserts notification row for the student
-      with title, message (includes issuer name), type: 'success', is_read: false,
-      link_url: /verify/[credential-uuid]. Non-fatal — mint succeeds even if
-      notification insert fails.
-    - TopBar.tsx: removed mark-all-on-open behavior. Each notification is now
-      marked read individually on click via handleNotificationClick(). If
-      notification has a link_url, closes dropdown and redirects via router.push().
-      Bell badge now shows numeric unread count (capped at 9+) instead of dot.
-      Notifications with link_url show "· View →" hint. Added link_url field
-      to NotificationItem interface.
+  - Phase 8 — Student Skills Page + Pipeline Fixes (complete):
 
-* **Current Focus:**
-  - Phase 8 — Student Skills Page Refinement:
-    Paste skills/page.tsx to assess current state. Goals: better layout,
-    skill health indicators pulled from skill_health_cache
-    (Rising/Stable/Decaying status + trend_slope), self-reported skill
-    management (add/edit/delete with proficiency + evidence link).
+    analyze/route.ts (3 fixes):
+      1. verifiedNames flatMaps skill_tags instead of skill_name.
+         Falls back to skill_name only if skill_tags is empty.
+      2. Removed random monitored_keywords fallback when allSkills is empty.
+         Now returns early with empty state — coach page shows proper empty UI
+         instead of misleading generic networking/DevOps recommendations.
+      3. Fire-and-forget cache persist after every analyze call.
+
+    registrar/credentials/route.ts (2 fixes):
+      1. Added skill_tags: z.array(z.string()).default([]) to MintCredentialValidator.
+      2. Excluded skill_tags from W3C required-field check with key !== 'skill_tags'.
+
+    skills/page.tsx:
+      - 26 skills fanning out from 6 credentials (now deleted, clean slate).
+      - Two-phase load working. Velocity badges working.
+      - React +0.26 Growing, Data Analysis +0.28 Growing confirmed real signals.
+
+* **Known Pending Issues:**
+  - Recommendation engine is not field-aware: a nursing student sees networking/
+    DevOps/Agile courses because course-recommender.ts gaps against ALL monitored
+    keywords regardless of field relevance. Fix: in course-recommender.ts, filter
+    candidate courses by skill_tag overlap with the student's actual tags before
+    scoring by market demand. Need to paste course-recommender.ts to diagnose.
+  - trend_slope is still synthetic. Replace deriveTrendSlope() with real linear
+    regression from market_snapshots once data density is sufficient per tag.
+  - NEXT_PUBLIC_APP_URL missing from .env — set to http://localhost:3000.
+  - Verify api/student/credentials/route.ts selects skill_tags column.
 
 * **Next Steps (in order):**
-  - Phase 8 — Skills Page Refinement (current, see above)
+  1. Fix recommendation engine field-awareness — paste course-recommender.ts
+     and packages/ai-engine/src/index.ts to diagnose and fix.
 
-  - Phase 9 — CVR QR Code → Verified Ledger:
-    Add QR code to generated/exported CVR encoding /verify/[credential-uuid].
-    Employer scans → lands on public verification portal.
-    Tie into ExportCVRModal or CVR preview step.
+  2. Phase 9 — CVR QR Code → Verified Ledger:
+     Add QR code to generated/exported CVR encoding /verify/[credential-uuid].
+     Employer scans → lands on public verification portal.
+     Tie into ExportCVRModal or CVR preview step.
 
-  - Phase 10 — AI CVR Analysis:
-    Pass student CVR data through Gemini. Return structured feedback:
-    skill strength, market alignment, missing keywords, improvements.
-    Display as panel on CVR or coach page.
+  3. Phase 10 — AI CVR Analysis:
+     Pass student CVR data through Gemini. Return structured feedback:
+     skill strength, market alignment, missing keywords, improvements.
+     Display as panel on CVR or coach page.
 
-  - Passive — Trend Confidence: auto-improves to 'medium' after 4 days,
-    'high' after 7 days of cron runs. No code needed.
+  4. Passive — Trend Confidence: auto-improves to 'medium' after 4 days,
+     'high' after 7 days of cron runs. No code needed.
 
-  - Future — Production Readiness:
-    Polygon Amoy → mainnet. Fix NEXT_PUBLIC_APP_URL for schema_url.
+  5. Future — Production Readiness:
+     Polygon Amoy → mainnet. Fix NEXT_PUBLIC_APP_URL for schema_url.
+
+* **Git:**
+  - Branch: feature/phase8-skill-tags-market-health
+  - Commit: "fix: analyze empty state + registrar skill_tags validation"
 ---

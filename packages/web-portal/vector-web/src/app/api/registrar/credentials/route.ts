@@ -99,7 +99,8 @@ const MintCredentialValidator = z.object({
   user_id: z.string().uuid("Invalid student ID"),
   schema_id: z.string().uuid("Invalid schema ID"),
   skill_name: z.string().min(1, "Skill name is required"),
-  credential_data: z.record(z.string(), z.any()), // ✅ Fixed Zod syntax
+  skill_tags: z.array(z.string()).default([]),         // ✅ Phase 8: marketable skill tags
+  credential_data: z.record(z.string(), z.any()),      // ✅ Fixed Zod syntax
   private_notes: z.string().optional(),
   certificate_number: z.string().optional(),
   token_id: z.string().min(1, "Token ID is required"),
@@ -152,7 +153,11 @@ export async function POST(req: Request) {
     const providedKeys = Object.keys(providedData);
 
     // Check if any truly REQUIRED fields are missing
-    const missingFields = requiredKeys.filter(key => !providedKeys.includes(key));
+    // skill_tags is excluded — it is promoted to its own DB column and
+    // validated separately at the top level, not inside credential_data
+    const missingFields = requiredKeys.filter((key: string) =>
+      key !== 'skill_tags' && !providedKeys.includes(key)
+    );
 
     if (missingFields.length > 0) {
       return NextResponse.json({ 
@@ -189,6 +194,7 @@ export async function POST(req: Request) {
       data: {
         user_id: validatedData.user_id,
         skill_name: validatedData.skill_name,
+        skill_tags: validatedData.skill_tags,          // ✅ Phase 8: persist marketable skill tags
         token_id: validatedData.token_id,
         transaction_hash: validatedData.transaction_hash,
         issuer_did: issuerDid,
@@ -198,6 +204,15 @@ export async function POST(req: Request) {
         certificate_number: validatedData.certificate_number
       }
     });
+
+    // 8. ✅ Phase 8: Sync skill_tags into monitored_keywords so they're
+    //    eligible for skill_health_cache population on next /api/analyze call
+    if (validatedData.skill_tags.length > 0) {
+      await prisma.monitored_keywords.createMany({
+        data: validatedData.skill_tags.map(keyword => ({ keyword, is_active: true })),
+        skipDuplicates: true,
+      });
+    }
 
     return NextResponse.json({ 
       success: true, 

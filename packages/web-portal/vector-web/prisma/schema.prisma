@@ -67,6 +67,7 @@ model verified_credentials {
   user_id            String           @db.Uuid
   batch_id           String?          @db.Uuid
   skill_name         String
+  skill_tags         String[]         @default([])
   token_id           String
   transaction_hash   String?
   issuer_did         String?

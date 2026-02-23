@@ -11,7 +11,16 @@ interface SchemaField {
   required: boolean;
 }
 
-// Pre-defined templates for quick schema creation
+// The skill_tags field is injected into every template — it's the source of truth
+// for market intelligence. Registrar must explicitly declare the marketable skills
+// the credential represents, separate from the credential title.
+const SKILL_TAGS_FIELD = {
+  keyName: 'skill_tags',
+  displayName: 'Skill Tags (comma-separated)',
+  type: 'string' as const,
+  required: true,
+};
+
 const PRESET_TEMPLATES = [
   {
     id: 'academic_degree',
@@ -25,6 +34,7 @@ const PRESET_TEMPLATES = [
       { keyName: 'graduation_date', displayName: 'Graduation Date', type: 'date', required: true },
       { keyName: 'gpa', displayName: 'Final GPA', type: 'number', required: false },
       { keyName: 'honors', displayName: 'Latin Honors', type: 'string', required: false },
+      SKILL_TAGS_FIELD,
     ]
   },
   {
@@ -36,9 +46,9 @@ const PRESET_TEMPLATES = [
     fields: [
       { keyName: 'program_name', displayName: 'Program Name', type: 'string', required: true },
       { keyName: 'hours_completed', displayName: 'Hours Completed', type: 'number', required: true },
-      { keyName: 'primary_skills', displayName: 'Primary Skills (Comma separated)', type: 'string', required: true },
       { keyName: 'capstone_url', displayName: 'Capstone Project URL', type: 'string', required: false },
       { keyName: 'passed_with_distinction', displayName: 'Passed with Distinction', type: 'boolean', required: false },
+      SKILL_TAGS_FIELD,
     ]
   },
   {
@@ -52,6 +62,7 @@ const PRESET_TEMPLATES = [
       { keyName: 'track_category', displayName: 'Track / Category', type: 'string', required: true },
       { keyName: 'placement', displayName: 'Placement (e.g., 1 for 1st)', type: 'number', required: false },
       { keyName: 'project_name', displayName: 'Project Name', type: 'string', required: false },
+      SKILL_TAGS_FIELD,
     ]
   }
 ];
@@ -71,14 +82,14 @@ export default function SchemaBuilder() {
 
     if (templateId === 'custom') {
       setTitle('');
-      setFields([]);
+      // Custom always starts with the skill_tags field pre-added so it's never forgotten
+      setFields([{ id: crypto.randomUUID(), ...SKILL_TAGS_FIELD }]);
       return;
     }
 
     const template = PRESET_TEMPLATES.find(t => t.id === templateId);
     if (template) {
       setTitle(template.defaultTitle);
-      // Map the predefined fields and inject a fresh UUID for React keys
       setFields(template.fields.map(f => ({
         id: crypto.randomUUID(),
         keyName: f.keyName,
@@ -92,17 +103,14 @@ export default function SchemaBuilder() {
   const addField = () => {
     setFields([
       ...fields,
-      {
-        id: crypto.randomUUID(),
-        keyName: '',
-        displayName: '',
-        type: 'string',
-        required: true,
-      },
+      { id: crypto.randomUUID(), keyName: '', displayName: '', type: 'string', required: true },
     ]);
   };
 
   const removeField = (id: string) => {
+    // Protect the skill_tags field from being deleted
+    const field = fields.find(f => f.id === id);
+    if (field?.keyName === 'skill_tags') return;
     setFields(fields.filter((f) => f.id !== id));
   };
 
@@ -115,8 +123,7 @@ export default function SchemaBuilder() {
     const requiredFields: string[] = [];
 
     fields.forEach((field) => {
-      // Ensure valid JSON keys (lowercase, no spaces, underscores instead)
-      const safeKey = field.displayName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      const safeKey = field.keyName || field.displayName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
       if (!safeKey) return;
 
       schemaProperties[safeKey] = {
@@ -124,9 +131,7 @@ export default function SchemaBuilder() {
         title: field.displayName,
       };
 
-      if (field.required) {
-        requiredFields.push(safeKey);
-      }
+      if (field.required) requiredFields.push(safeKey);
     });
 
     return {
@@ -146,35 +151,30 @@ export default function SchemaBuilder() {
       setError("Please provide a title for this credential template.");
       return;
     }
-
     if (fields.length === 0) {
       setError("You must add at least one field to the schema.");
       return;
     }
+    if (!fields.some(f => f.keyName === 'skill_tags')) {
+      setError("Every schema must include a 'Skill Tags' field for market intelligence.");
+      return;
+    }
 
     setIsSubmitting(true);
-
     try {
       const finalSchema = generateJsonSchema();
-
       const response = await fetch('/api/schemas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          json_schema: finalSchema,
-        }),
+        body: JSON.stringify({ title, json_schema: finalSchema }),
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to publish schema');
-      }
+      if (!response.ok) throw new Error(data.error || 'Failed to publish schema');
 
       setSuccess(true);
       setTitle('');
-      setFields([]);
+      setFields([{ id: crypto.randomUUID(), ...SKILL_TAGS_FIELD }]);
       setActiveTemplate('custom');
     } catch (err: any) {
       setError(err.message);
@@ -202,8 +202,8 @@ export default function SchemaBuilder() {
             type="button"
             onClick={() => loadTemplate('custom')}
             className={`flex flex-col items-start p-4 border rounded-xl transition-all text-left ${
-              activeTemplate === 'custom' 
-                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' 
+              activeTemplate === 'custom'
+                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
           >
@@ -221,8 +221,8 @@ export default function SchemaBuilder() {
                 type="button"
                 onClick={() => loadTemplate(preset.id)}
                 className={`flex flex-col items-start p-4 border rounded-xl transition-all text-left ${
-                  isActive 
-                    ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' 
+                  isActive
+                    ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
@@ -241,7 +241,7 @@ export default function SchemaBuilder() {
           <label className="block text-sm font-semibold text-gray-900 mb-1">
             Template Name (Public)
           </label>
-          <p className="text-xs text-gray-500 mb-3">This is the title that will appear on the student's dashboard.</p>
+          <p className="text-xs text-gray-500 mb-3">This is the title shown on the student's credential detail page.</p>
           <input
             type="text"
             value={title}
@@ -276,58 +276,88 @@ export default function SchemaBuilder() {
             </div>
           ) : (
             <div className="space-y-3">
-              {fields.map((field, index) => (
-                <div key={field.id} className="flex items-start gap-4 p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:border-blue-300 transition-colors group">
-                  <div className="pt-2 text-gray-400 font-mono text-xs w-6 text-center">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4">
-                    <div className="md:col-span-5">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Display Name</label>
-                      <input
-                        type="text"
-                        value={field.displayName}
-                        onChange={(e) => updateField(field.id, { displayName: e.target.value, keyName: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '_') })}
-                        placeholder="e.g., Final Grade"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="md:col-span-4">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Data Type</label>
-                      <select
-                        value={field.type}
-                        onChange={(e) => updateField(field.id, { type: e.target.value as any })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:ring-1 focus:ring-blue-500 outline-none"
-                      >
-                        <option value="string">Text (String)</option>
-                        <option value="number">Number</option>
-                        <option value="boolean">Yes/No (Boolean)</option>
-                        <option value="date">Date</option>
-                      </select>
-                    </div>
-                    <div className="md:col-span-3 flex items-center pt-6">
-                      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-gray-900 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={field.required}
-                          onChange={(e) => updateField(field.id, { required: e.target.checked })}
-                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        />
-                        <span className="font-medium">Required</span>
-                      </label>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeField(field.id)}
-                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all mt-4 opacity-0 group-hover:opacity-100"
-                    title="Remove field"
+              {fields.map((field, index) => {
+                const isSkillTags = field.keyName === 'skill_tags';
+                return (
+                  <div
+                    key={field.id}
+                    className={`flex items-start gap-4 p-4 rounded-xl border shadow-sm transition-colors group ${
+                      isSkillTags
+                        ? 'bg-purple-50 border-purple-200'
+                        : 'bg-white border-gray-200 hover:border-blue-300'
+                    }`}
                   >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              ))}
+                    <div className="pt-2 text-gray-400 font-mono text-xs w-6 text-center">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4">
+                      <div className="md:col-span-5">
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Display Name</label>
+                        <input
+                          type="text"
+                          value={field.displayName}
+                          onChange={(e) => !isSkillTags && updateField(field.id, {
+                            displayName: e.target.value,
+                            keyName: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '_')
+                          })}
+                          readOnly={isSkillTags}
+                          placeholder="e.g., Final Grade"
+                          className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-md outline-none ${
+                            isSkillTags ? 'bg-purple-100 text-purple-800 font-semibold cursor-not-allowed' : 'focus:ring-1 focus:ring-blue-500'
+                          }`}
+                          required
+                        />
+                        {isSkillTags && (
+                          <p className="text-[10px] text-purple-600 mt-1">
+                            Required for market intelligence — e.g. "React, Node.js, PostgreSQL"
+                          </p>
+                        )}
+                      </div>
+                      <div className="md:col-span-4">
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Data Type</label>
+                        <select
+                          value={field.type}
+                          onChange={(e) => !isSkillTags && updateField(field.id, { type: e.target.value as any })}
+                          disabled={isSkillTags}
+                          className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white outline-none ${
+                            isSkillTags ? 'opacity-60 cursor-not-allowed' : 'focus:ring-1 focus:ring-blue-500'
+                          }`}
+                        >
+                          <option value="string">Text (String)</option>
+                          <option value="number">Number</option>
+                          <option value="boolean">Yes/No (Boolean)</option>
+                          <option value="date">Date</option>
+                        </select>
+                      </div>
+                      <div className="md:col-span-3 flex items-center pt-6">
+                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={field.required}
+                            onChange={(e) => !isSkillTags && updateField(field.id, { required: e.target.checked })}
+                            disabled={isSkillTags}
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="font-medium">Required</span>
+                        </label>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeField(field.id)}
+                      disabled={isSkillTags}
+                      className={`p-2 rounded-lg transition-all mt-4 ${
+                        isSkillTags
+                          ? 'text-gray-200 cursor-not-allowed'
+                          : 'text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100'
+                      }`}
+                      title={isSkillTags ? 'Skill Tags field cannot be removed' : 'Remove field'}
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -338,7 +368,6 @@ export default function SchemaBuilder() {
             <AlertCircle className="w-5 h-5 flex-shrink-0" /> {error}
           </div>
         )}
-        
         {success && (
           <div className="p-4 rounded-xl bg-green-50 border border-green-100 text-green-700 flex items-center gap-3 text-sm font-medium">
             <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -348,7 +377,6 @@ export default function SchemaBuilder() {
           </div>
         )}
 
-        {/* Submit Action */}
         <div className="pt-6 border-t flex justify-end">
           <button
             type="submit"
