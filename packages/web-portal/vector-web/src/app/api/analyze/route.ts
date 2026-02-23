@@ -13,6 +13,26 @@ const AnalyzeRequestSchema = z.object({
   skillsOverride: z.array(z.string()).optional().default([]),
 });
 
+// Helper: maps the AI trend string to a standardized status for skill_health_cache
+function mapTrendToStatus(trend: string, healthScore: number): string {
+  if (trend === 'growing' || trend === 'up') return 'Rising';
+  if (trend === 'declining' || trend === 'down') return 'Decaying';
+  // Even if trend is "stable", use health score to give a more useful label
+  if (healthScore >= 65) return 'Stable';
+  if (healthScore < 40) return 'Decaying';
+  return 'Stable';
+}
+
+// Helper: derives a synthetic trend_slope float from health score + trend label
+// This is used until we have enough market_snapshots to compute a real linear regression slope
+// Range: roughly -1.0 (steep decline) to +1.0 (steep growth)
+function deriveTrendSlope(trend: string, healthScore: number): number {
+  const normalized = (healthScore - 50) / 50; // centers 50 → 0, 100 → 1, 0 → -1
+  if (trend === 'growing' || trend === 'up') return Math.abs(normalized) * 0.8 + 0.1;
+  if (trend === 'declining' || trend === 'down') return -(Math.abs(normalized) * 0.8 + 0.1);
+  return normalized * 0.3; // stable: slight lean based on score
+}
+
 export async function POST(req: Request) {
   try {
     const rawBody = await req.json();
@@ -57,15 +77,13 @@ export async function POST(req: Request) {
     const dbCredentials = student?.verified_credentials || [];
 
     // --- PHASE 5: AI Dynamic Schema Extraction ---
-// Extract deeper context from any W3C credentials concurrently
     const dynamicSkillsPromises = dbCredentials
       .filter(cred => 
         cred.schema_url && 
         cred.credential_data && 
-        !cred.schema_url.includes('undefined') // 🛡️ Skip broken legacy records
+        !cred.schema_url.includes('undefined')
       )
       .map(cred => {
-        // 🛠️ Construct Absolute URL if relative, and ensure protocol exists
         let absoluteSchemaUrl = cred.schema_url!;
         
         if (absoluteSchemaUrl.startsWith('/')) {
@@ -81,12 +99,16 @@ export async function POST(req: Request) {
 
     const dynamicSkillsArrays = await Promise.all(dynamicSkillsPromises);
     const dynamicW3CSkills = dynamicSkillsArrays.flat();
-    // ----------------------------------------------
 
-    const verifiedNames = dbCredentials.map(c => c.skill_name);
+    // ✅ Phase 8: use skill_tags (marketable skills) instead of skill_name (credential title)
+    // Falls back to skill_name only if tags are empty (e.g. pre-backfill records)
+    const verifiedNames = dbCredentials.flatMap(c =>
+      Array.isArray(c.skill_tags) && c.skill_tags.length > 0
+        ? c.skill_tags
+        : [c.skill_name]
+    );
     const selfReportedNames = student?.self_reported_skills.map(s => s.skill_name) || [];
     
-    // Merge standard skill names, override parameters, and the deep W3C extractions
     let allSkills = Array.from(new Set([
       ...skillsOverride,
       ...verifiedNames,
@@ -94,13 +116,20 @@ export async function POST(req: Request) {
       ...dynamicW3CSkills
     ]));
 
-    // Fallback logic
+    // ✅ Phase 8 fix: if no skills found, return empty state instead of
+    // falling back to random monitored keywords which produced misleading
+    // generic recommendations unrelated to the student.
     if (allSkills.length === 0) {
-        const monitored = await prisma.monitored_keywords.findMany({ 
-            where: { is_active: true },
-            take: 5 
-        });
-        allSkills = monitored.length > 0 ? monitored.map(k => k.keyword) : ['React', 'Node.js', 'Solidity'];
+      return NextResponse.json({
+        status: 'success',
+        data: {
+          skillHealth: [],
+          recommendations: [],
+          history: [],
+          credentials: [],
+          summary: 'No credentials found. Issue verified credentials to generate personalized insights.'
+        }
+      });
     }
 
     const marketHistoryRaw = await prisma.market_snapshots.findMany({
@@ -128,6 +157,57 @@ export async function POST(req: Request) {
       marketData: marketHistoryRaw, 
       resumeText: resumeText 
     });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 4. 💾 PERSIST to skill_health_cache (Phase 8)
+    // skill_health_cache has a FK to monitored_keywords, so we must ensure
+    // each skill exists in monitored_keywords before upserting the cache.
+    // We do this fire-and-forget (no await on the outer block) so it never
+    // delays the API response back to the student.
+    // ─────────────────────────────────────────────────────────────────────────
+    if (analysisResult?.skillHealth && Array.isArray(analysisResult.skillHealth)) {
+      (async () => {
+        try {
+          const skillHealthData: Array<{ skillName: string; healthScore: number; trend: string }> = 
+            analysisResult.skillHealth;
+
+          // Step 4a: Upsert all skill names into monitored_keywords so the FK constraint is satisfied
+          await prisma.monitored_keywords.createMany({
+            data: skillHealthData.map(s => ({
+              keyword: s.skillName,
+              is_active: true,
+            })),
+            skipDuplicates: true, // Safe: won't overwrite existing category/is_active values
+          });
+
+          // Step 4b: Upsert each skill into skill_health_cache
+          await Promise.all(
+            skillHealthData.map(s =>
+              prisma.skill_health_cache.upsert({
+                where: { skill_name: s.skillName },
+                create: {
+                  skill_name: s.skillName,
+                  status: mapTrendToStatus(s.trend, s.healthScore),
+                  trend_slope: deriveTrendSlope(s.trend, s.healthScore),
+                  last_updated: new Date(),
+                },
+                update: {
+                  status: mapTrendToStatus(s.trend, s.healthScore),
+                  trend_slope: deriveTrendSlope(s.trend, s.healthScore),
+                  last_updated: new Date(),
+                },
+              })
+            )
+          );
+
+          console.log(`[skill_health_cache] Persisted ${skillHealthData.length} skill(s)`);
+        } catch (cacheErr) {
+          // Non-fatal: log but don't surface to the user
+          console.error('[skill_health_cache] Failed to persist cache:', cacheErr);
+        }
+      })();
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     return NextResponse.json({
       status: 'success',

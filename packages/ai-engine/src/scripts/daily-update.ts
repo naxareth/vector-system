@@ -10,6 +10,29 @@ dotenv.config();
 const args = process.argv.slice(2);
 const manualKeyword = args.find(arg => arg.startsWith('--keyword='))?.split('=')[1];
 
+// ---------------------------------------------------------------------------
+// --with-gemini flag
+//
+// By default the daily cron runs WITHOUT any Gemini calls so it never hits
+// the free-tier RPD quota (20 req/day). Gemini is only used for:
+//   1. W3C credential skill extraction (extractSkillsFromCredential)
+//   2. Related skill expansion (expandToRelatedSkills)
+//
+// Pass --with-gemini explicitly to enable these features:
+//   npm run daily-update -- --with-gemini
+//   (or use the "daily-update:full" package.json script)
+//
+// In GitHub Actions, add --with-gemini to the run command only on the
+// weekly/manual workflow, not the daily one.
+// ---------------------------------------------------------------------------
+const withGemini = args.includes('--with-gemini');
+
+if (withGemini) {
+  console.log('🤖 Gemini mode: ENABLED (W3C sync + skill expansion will run)');
+} else {
+  console.log('⚡ Gemini mode: DISABLED (Adzuna-only run — no quota consumed)');
+}
+
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_KEY!
@@ -32,6 +55,8 @@ const INTER_TASK_DELAY_MS = 500;
  *
  * This gives the AI a broader market picture — not just what students have,
  * but the surrounding ecosystem so gap analysis is meaningful.
+ *
+ * Only called when --with-gemini is passed. Never called in standard daily runs.
  */
 async function expandToRelatedSkills(skill: string): Promise<string[]> {
   try {
@@ -77,6 +102,10 @@ async function expandToRelatedSkills(skill: string): Promise<string[]> {
  * NOTE: This section runs serially — Gemini calls are chained per-credential and
  * per-skill. p-limit is intentionally NOT applied here; the W3C sync is a one-shot
  * setup pass, not a high-volume loop. Parallelizing it would risk Gemini quota errors.
+ *
+ * QUOTA NOTE: Only runs when --with-gemini is passed. Each credential costs
+ * 1 Gemini call for extraction + 1 per extracted skill for expansion.
+ * Run this at most weekly to stay within free tier limits.
  */
 async function syncExtractedSkillsToMonitored(): Promise<void> {
   console.log("\n🔗 W3C Sync: Extracting skills from verified credentials...");
@@ -246,8 +275,13 @@ async function runDailyUpdate() {
     console.log(`🎯 Manual trigger detected for: "${manualKeyword}"`);
     skillsToTrack = [manualKeyword];
   } else {
-    // W3C sync runs FIRST so newly discovered skills are included in this same run
-    await syncExtractedSkillsToMonitored();
+    // W3C sync — only runs when --with-gemini flag is present
+    // Skipped on standard daily runs to preserve free-tier Gemini quota
+    if (withGemini) {
+      await syncExtractedSkillsToMonitored();
+    } else {
+      console.log("\n⏭️  Skipping W3C sync (run with --with-gemini to enable)");
+    }
 
     console.log("\n🔍 Building skills list from database...");
 

@@ -7,7 +7,7 @@ export interface CourseRecommendation {
   link: string | null;
   relevanceScore: number;
   reason: string;
-  reasonType: 'gap' | 'decay' | 'growth' | 'complement';
+  reasonType: 'gap' | 'decay' | 'growth' | 'complement' | 'explore';
 }
 
 interface Props {
@@ -40,6 +40,24 @@ const REASON_CONFIG = {
     dot: 'bg-blue-400',
     bar: 'bg-blue-400',
   },
+  // Tier 2 fallback: courses outside the student's domain surfaced as
+  // expansion suggestions. Styled neutrally so they're visually distinct
+  // from field-relevant Tier 1 cards.
+  explore: {
+    label: 'Explore',
+    color: 'bg-gray-50 text-gray-500 border-gray-200',
+    dot: 'bg-gray-400',
+    bar: 'bg-gray-400',
+  },
+};
+
+// Fallback config in case an unknown reasonType arrives — prevents crashes
+// if the API adds a new type before the frontend is updated.
+const FALLBACK_CONFIG = {
+  label: 'Suggested',
+  color: 'bg-gray-50 text-gray-500 border-gray-200',
+  dot: 'bg-gray-400',
+  bar: 'bg-gray-400',
 };
 
 export default function RecommendationsPanel({ recommendations, loading }: Props) {
@@ -80,6 +98,12 @@ export default function RecommendationsPanel({ recommendations, loading }: Props
     );
   }
 
+  // Check if all visible recommendations are Tier 2 explores — if so, show
+  // a subtle banner so the student understands why these are outside their field
+  const allExplore = recommendations.every(r => r.reasonType === 'explore');
+  const hasExplore = recommendations.some(r => r.reasonType === 'explore');
+  const hasTier1 = recommendations.some(r => r.reasonType !== 'explore');
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Header */}
@@ -91,10 +115,35 @@ export default function RecommendationsPanel({ recommendations, loading }: Props
         <span className="text-xs text-gray-400">{recommendations.length} suggestion{recommendations.length !== 1 ? 's' : ''}</span>
       </div>
 
+      {/* Explore banner — shown when all results are Tier 2 (no domain courses yet) */}
+      {allExplore && (
+        <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-gray-500">
+            No field-specific courses found yet for your credentials — showing high-demand courses you can explore to expand your skill set.
+          </p>
+        </div>
+      )}
+
+      {/* Mixed banner — shown when Tier 1 + Tier 2 results are mixed */}
+      {hasTier1 && hasExplore && (
+        <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-gray-500">
+            <span className="font-medium text-gray-600">Explore</span> cards are outside your current field — suggested as expansion opportunities.
+          </p>
+        </div>
+      )}
+
       {/* Course Cards */}
       <div className="divide-y divide-gray-50">
         {recommendations.map((rec, i) => {
-          const config = REASON_CONFIG[rec.reasonType];
+          // Use fallback config if reasonType is unknown — prevents future crashes
+          const config = REASON_CONFIG[rec.reasonType] ?? FALLBACK_CONFIG;
           return (
             <div key={rec.courseId} className="px-6 py-4 hover:bg-gray-50 transition-colors">
               <div className="flex items-start gap-4">
