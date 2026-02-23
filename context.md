@@ -1,3 +1,4 @@
+
 # 1. Project Overview
 
 * **Name:** VECTOR (Decentralized Micro-Credentialing System)
@@ -119,14 +120,14 @@ packages
             │   │   └── StudentRegisterForm.tsx
             │   ├── cvr
             │   │   ├── CVRFormSections.tsx            ← MODIFIED (barrel export)
-            │   │   ├── PersonalDetailsSection.tsx     ← NEW
-            │   │   ├── EducationSection.tsx           ← NEW
-            │   │   ├── ExperienceSection.tsx          ← NEW
-            │   │   ├── ProjectsSection.tsx            ← NEW
-            │   │   ├── CertificationsSection.tsx      ← NEW
-            │   │   ├── VerifiedCertificationsBlock.tsx ← NEW
-            │   │   ├── SkillsSection.tsx              ← NEW
-            │   │   └── TemplateSelector.tsx           ← NEW
+            │   │   ├── PersonalDetailsSection.tsx
+            │   │   ├── EducationSection.tsx
+            │   │   ├── ExperienceSection.tsx
+            │   │   ├── ProjectsSection.tsx
+            │   │   ├── CertificationsSection.tsx
+            │   │   ├── VerifiedCertificationsBlock.tsx
+            │   │   ├── SkillsSection.tsx
+            │   │   └── TemplateSelector.tsx
             │   ├── dashboard
             │   │   ├── AdminLayout.tsx
             │   │   ├── CredentialCard.tsx
@@ -374,86 +375,56 @@ CREATE TABLE public.verified_credentials (
 
 * **Data Changes:**
 
-    - monitored_keywords: Removed 'Nursing' (Healthcare category) — was a
-      degree title, not a job-market skill. Slipped in via seed file.
-      Also deleted all associated market_snapshots rows for 'Nursing'.
+    - monitored_keywords: Removed 'Nursing' (Healthcare category) — degree
+      title not a job-market skill. Also deleted associated market_snapshots rows.
 
-    - market_snapshots: No schema changes. history query in analyze/route.ts
-      now scoped to last 14 days (was unbounded) to prevent old sparse
-      rows from distorting the trend chart.
+    - market_snapshots: history query in analyze/route.ts scoped to last 14
+      days (was unbounded) to prevent old sparse rows distorting trend chart.
 
-    - No new Prisma schema changes this session. All changes are data-level.
+    - No new Prisma schema changes. All changes are data-level.
 
 
 * **Last Completed:**
-  - Phase 6 branch: feature/phase6-rate-limit-resilience
-
-  - Rate-Limit Resilience (Phase 1): Replaced serial for-loop + setTimeout(2000)
-    in daily-update.ts with p-limit (concurrency: 3, inter-task delay: 500ms).
-    Extracted processSkill() as named function. W3C sync section intentionally
-    kept serial (Gemini quota safety). Estimated 3x throughput improvement:
-    100 skills ~67s vs ~200s serial. Install: npm install p-limit@4 in ai-engine.
-
-  - Public Verification Portal (Phase 2):
-    - /api/verify/[id] route: DB lookup via Prisma (credential UUID as ID —
-      not enumerable unlike token_id). On-chain verification via Polygon Amoy
-      public RPC using ethers.JsonRpcProvider. Returns credential details,
-      student identity, issuer info, and onChain { verified, balance, tokenId,
-      error } object. params now awaited (Next.js 15 requirement).
-    - /verify/[id] public page: Standalone, no auth, no DashboardLayout.
-      Shows green/amber verification status banner, credential details card,
-      blockchain record (token ID, transaction hash → Polygonscan link, issuer
-      DID, network), student identity (name, student ID, wallet), QR code
-      (generated via qrcode library), copy link button.
-      Install: npm install qrcode @types/qrcode in web-portal/vector-web.
-
-  - CVR Separation of Concerns (Phase 2 bonus):
-    - Split 500-line cvr/page.tsx into 8 focused components in components/cvr/:
-      PersonalDetailsSection, EducationSection, ExperienceSection,
-      ProjectsSection, CertificationsSection, VerifiedCertificationsBlock,
-      SkillsSection, TemplateSelector.
-    - CVRFormSections.tsx updated as barrel export for clean imports.
-    - cvr/page.tsx reduced to slim orchestrator (~200 lines).
-
-  - Gemini Context Enrichment (Phase 3): /api/chat/route.ts updated to
-    deduplicate market_snapshots to most recent per skill, then extract
-    salary (avg/min/max/currency) and top 3 hiring locations from metadata
-    JSONB. Gemini prompt now includes salary-aware, location-specific context.
-    Graceful fallback to job count only for skills with empty metadata (pre-Feb 22).
-    Verified working: Gemini correctly cited Python avg $118k, React avg $103k,
-    and gave HealthTech crossover advice based on student's skill combo.
-
-  - MarketInsightsPanel location bars fix: Adzuna returns locations as plain
-    string array (no counts). Switched from count-based to rank-based bar
-    widths: 100/80/60/45/30%. Extracted LocationBars component with auto-detect
-    logic — falls back to count-based automatically if real counts arrive.
-
-  - Trend chart normalization fix (coach/page.tsx): Per-skill y-axis
-    normalization prevents high-count skills (Python 134k) from flattening
-    low-count skills (React 4k) to zero. Added amber low-data warning when
-    < 4 snapshots exist. Added legend with actual job counts. analyze/route.ts
-    history query scoped to last 14 days.
+  - Phase 6 (feature/phase6-rate-limit-resilience) — fully merged.
+  - p-limit concurrency in daily-update.ts (3 concurrent, 500ms delay).
+  - Public /verify/[id] portal + /api/verify/[id] route (UUID-based, on-chain check).
+  - CVR split into 8 section components + barrel export.
+  - Gemini chat enriched with salary + location from market_snapshots metadata.
+  - MarketInsightsPanel location bars switched to rank-based widths.
+  - Trend chart per-skill normalization + low-data warning + 14-day history window.
 
 
 * **Current Focus:**
-  - Merge feature/phase6-rate-limit-resilience PR into main.
-  - Confirm cron schedule (00:00 UTC) runs automatically tomorrow and verify
-    no silent failures via GitHub Actions log output.
+  - Phase 7 — Mint Notifications:
+    Trigger: when registrar mints → insert into notifications table with
+    link_url = /verify/[credential-uuid].
+    UI: notification bell in TopBar with unread badge, dropdown list,
+    mark-as-read on click, redirect to /verify/[id].
+    Files to paste when ready: registrar/log-mint/route.ts, TopBar.tsx,
+    DashboardLayout.tsx.
 
 
-* **Next Steps:**
-  - Trend Confidence Improvement: Skills currently have confidence: 'low'
-    (only 2-3 snapshots). Forecaster accuracy improves to 'medium' after
-    4 days, 'high' after 7 days of cron runs. No code needed — passive.
-  - Trend Chart Polish: Chart still looks sparse with only 2-3 data points.
-    Will improve naturally as cron accumulates data. Revisit chart UX
-    (e.g. Recharts migration) once 7+ days of data are available.
-  - Student Notifications: Use the existing notifications table to alert
-    students when a skill they hold starts decaying (trend: 'declining').
-    Trigger from daily-update.ts after market snapshot insert.
-  - Registrar Portal Polish: SchemaBuilder.tsx and batch minting UX
-    improvements based on any registrar feedback.
-  - Production Readiness: Swap Polygon Amoy testnet → Polygon mainnet,
-    set NEXT_PUBLIC_APP_URL correctly so schema_url stops writing
-    'undefined/api/schemas/...' for new credentials.
+* **Next Steps (in order):**
+  - Phase 7 — Mint Notifications (current, see above)
+
+  - Phase 8 — Student Skills Page Refinement:
+    Paste skills/page.tsx to assess current state. Goals: better layout,
+    skill health indicators from skill_health_cache, self-reported skill
+    management (add/edit/delete with proficiency + evidence link).
+
+  - Phase 9 — CVR QR Code → Verified Ledger:
+    Add QR code to generated/exported CVR encoding /verify/[credential-uuid].
+    Employer scans → lands on public verification portal.
+    Tie into ExportCVRModal or CVR preview step.
+
+  - Phase 10 — AI CVR Analysis:
+    Pass student CVR data through Gemini. Return structured feedback:
+    skill strength, market alignment, missing keywords, improvements.
+    Display as panel on CVR or coach page.
+
+  - Passive — Trend Confidence: auto-improves to 'medium' after 4 days,
+    'high' after 7 days of cron runs. No code needed.
+
+  - Future — Production Readiness:
+    Polygon Amoy → mainnet. Fix NEXT_PUBLIC_APP_URL for schema_url.
 ---
