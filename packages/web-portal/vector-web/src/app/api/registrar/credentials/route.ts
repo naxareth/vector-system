@@ -4,6 +4,78 @@ import { NextResponse } from 'next/server';
 import { decryptData, encryptData } from '@/lib/encryption'; 
 import { prisma } from '@/lib/db'; 
 import { z } from 'zod';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// ---------------------------------------------------------------------------
+// Inline course generator — uses the web portal's own Gemini instance so
+// we avoid cross-package imports that Turbopack can't resolve.
+// Mirrors generateCoursesForTag from ai-engine/src/nlp/gemini-client.ts.
+// ---------------------------------------------------------------------------
+const _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+interface GeneratedCourse {
+  title: string;
+  provider: string;
+  link: string;
+  skill_tags: string[];
+}
+
+async function generateCoursesForTag(tag: string): Promise<GeneratedCourse[]> {
+  const prompt = `
+You are a course catalog generator for an academic micro-credentialing platform.
+
+Given a skill tag, return 2-3 realistic online courses that teach this skill.
+
+RULES:
+1. Return ONLY valid JSON — no markdown fences, no explanation, no preamble.
+2. Use only these providers: Coursera, edX, Udemy, LinkedIn Learning, Google, Microsoft.
+3. skill_tags on each course must include the input tag plus 1-2 closely related tags.
+   Related tags must come from the same domain (e.g. a healthcare tag pairs with other
+   healthcare tags — never mix healthcare with DevOps or unrelated tech).
+4. Links must follow real provider URL patterns:
+   - Coursera: https://www.coursera.org/learn/<slug>
+   - edX: https://www.edx.org/learn/<subject>/<slug>
+   - Udemy: https://www.udemy.com/course/<slug>
+   - LinkedIn Learning: https://www.linkedin.com/learning/<slug>
+   - Google: https://grow.google/certificates/
+   - Microsoft: https://learn.microsoft.com/en-us/training/
+5. If the tag is too niche for a standalone course, bundle it with its parent domain.
+6. Course titles must sound like real courses — not generic.
+
+OUTPUT FORMAT (strict JSON array, nothing else):
+[
+  {
+    "title": "Course Title Here",
+    "provider": "Coursera",
+    "link": "https://www.coursera.org/learn/course-slug",
+    "skill_tags": ["${tag}", "RelatedTag1"]
+  }
+]
+
+Input tag: "${tag}"
+`.trim();
+
+  try {
+    const model = _genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const cleaned = text.replace(/\`\`\`json/gi, '').replace(/\`\`\`/g, '').trim();
+    const parsed: GeneratedCourse[] = JSON.parse(cleaned);
+    const valid = parsed.filter(
+      (c) =>
+        typeof c.title === 'string' &&
+        typeof c.provider === 'string' &&
+        typeof c.link === 'string' &&
+        Array.isArray(c.skill_tags) &&
+        c.skill_tags.length > 0
+    );
+    console.log(`[course-gen] Gemini generated ${valid.length} course(s) for tag: "${tag}"`);
+    return valid;
+  } catch (err) {
+    console.error(`[course-gen] generateCoursesForTag failed for "${tag}":`, err);
+    return [];
+  }
+}
 
 export const dynamic = 'force-dynamic'; 
 
@@ -99,7 +171,8 @@ const MintCredentialValidator = z.object({
   user_id: z.string().uuid("Invalid student ID"),
   schema_id: z.string().uuid("Invalid schema ID"),
   skill_name: z.string().min(1, "Skill name is required"),
-  credential_data: z.record(z.string(), z.any()), // ✅ Fixed Zod syntax
+  skill_tags: z.array(z.string()).default([]),         // ✅ Phase 8: marketable skill tags
+  credential_data: z.record(z.string(), z.any()),      // ✅ Fixed Zod syntax
   private_notes: z.string().optional(),
   certificate_number: z.string().optional(),
   token_id: z.string().min(1, "Token ID is required"),
@@ -152,7 +225,11 @@ export async function POST(req: Request) {
     const providedKeys = Object.keys(providedData);
 
     // Check if any truly REQUIRED fields are missing
-    const missingFields = requiredKeys.filter(key => !providedKeys.includes(key));
+    // skill_tags is excluded — it is promoted to its own DB column and
+    // validated separately at the top level, not inside credential_data
+    const missingFields = requiredKeys.filter((key: string) =>
+      key !== 'skill_tags' && !providedKeys.includes(key)
+    );
 
     if (missingFields.length > 0) {
       return NextResponse.json({ 
@@ -189,6 +266,7 @@ export async function POST(req: Request) {
       data: {
         user_id: validatedData.user_id,
         skill_name: validatedData.skill_name,
+        skill_tags: validatedData.skill_tags,          // ✅ Phase 8: persist marketable skill tags
         token_id: validatedData.token_id,
         transaction_hash: validatedData.transaction_hash,
         issuer_did: issuerDid,
@@ -198,6 +276,98 @@ export async function POST(req: Request) {
         certificate_number: validatedData.certificate_number
       }
     });
+
+    // 8. ✅ Phase 8: Sync skill_tags into monitored_keywords so they're
+    //    eligible for skill_health_cache population on next /api/analyze call
+    if (validatedData.skill_tags.length > 0) {
+      await prisma.monitored_keywords.createMany({
+        data: validatedData.skill_tags.map(keyword => ({ keyword, is_active: true })),
+        skipDuplicates: true,
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 9. 🎓 DYNAMIC COURSE GENERATION (Phase 9)
+    //
+    // For each incoming skill_tag, check if the courses table already has
+    // coverage. If a tag has zero matching courses, call Gemini to generate
+    // 2-3 relevant courses and insert them.
+    //
+    // This runs fire-and-forget — no await on the outer block — so it never
+    // delays the 201 response back to the registrar.
+    //
+    // This ensures the recommendation engine always has domain-relevant
+    // courses available after a credential is minted, regardless of what
+    // field the credential is in.
+    // ─────────────────────────────────────────────────────────────────────────
+    if (validatedData.skill_tags.length > 0) {
+      (async () => {
+        try {
+          // Step 9a: Find which tags have zero course coverage in one query.
+          // We fetch all courses whose skill_tags overlap with the incoming tags,
+          // then determine which incoming tags are still uncovered.
+          const coveredCourses = await prisma.courses.findMany({
+            where: {
+              skill_tags: {
+                hasSome: validatedData.skill_tags,
+              },
+            },
+            select: { skill_tags: true },
+          });
+
+          // Flatten all tags that already have at least one course covering them
+          const coveredTags = new Set(
+            coveredCourses.flatMap((c) => c.skill_tags ?? [])
+          );
+
+          const uncoveredTags = validatedData.skill_tags.filter(
+            (tag) => !coveredTags.has(tag)
+          );
+
+          if (uncoveredTags.length === 0) {
+            console.log('[course-gen] All tags already covered — skipping generation');
+            return;
+          }
+
+          console.log(`[course-gen] Uncovered tags detected: ${uncoveredTags.join(', ')} — generating courses`);
+
+          // Step 9b: Generate courses for each uncovered tag in parallel
+          const generatedBatches = await Promise.all(
+            uncoveredTags.map((tag) => generateCoursesForTag(tag))
+          );
+
+          const allGenerated = generatedBatches.flat();
+
+          if (allGenerated.length === 0) {
+            console.warn('[course-gen] Gemini returned no courses for uncovered tags');
+            return;
+          }
+
+          // Step 9c: Bulk insert generated courses
+          // createMany is used for efficiency; skipDuplicates guards against
+          // any race condition where two mints fire simultaneously for the
+          // same uncovered tag.
+          await prisma.courses.createMany({
+            data: allGenerated.map((c) => ({
+              title: c.title,
+              provider: c.provider,
+              link: c.link,
+              // TODO: Links are Gemini-generated and unverified.
+              // Add a link-validation pass in a future phase.
+              skill_tags: c.skill_tags,
+            })),
+            skipDuplicates: false, // titles are not unique-constrained, so allow
+          });
+
+          console.log(`[course-gen] Inserted ${allGenerated.length} course(s) for tags: ${uncoveredTags.join(', ')}`);
+
+        } catch (courseGenErr) {
+          // Non-fatal: log but never surface to the registrar
+          console.error('[course-gen] Dynamic course generation failed:', courseGenErr);
+        }
+      })();
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     return NextResponse.json({ 
       success: true, 

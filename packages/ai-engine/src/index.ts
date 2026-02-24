@@ -40,24 +40,48 @@ export async function analyzeStudentProfile(params: AIInputParams) {
     const rawHistory = marketData.filter(row =>
       row.skill_name.toLowerCase() === skill.toLowerCase()
     );
-
     const formattedHistory = rawHistory.map(row => ({
       date: row.recorded_at,
       jobCount: row.job_count,
     }));
-
     return calculateSkillDecay(skill, formattedHistory);
   });
 
-  // 3. RECOMMENDATION + GAP ANALYSIS
-  // ✅ Now async — queries real courses table + market_snapshots for gap analysis
+  // 3. DOMAIN TAG EXTRACTION
+  //
+  // Flatten skill_tags from all verified credentials into a single deduplicated
+  // array. This tells the recommender what field/domain the student belongs to
+  // so it can filter courses to domain-relevant ones first (Tier 1) before
+  // falling back to general high-demand courses (Tier 2 / explore).
+  //
+  // Rules:
+  //   - Only include credentials that have a non-empty skill_tags array
+  //   - Deduplicate across all credentials (Set)
+  //   - If no credentials have tags, studentDomainTags = [] which safely
+  //     triggers the Tier 2 explore fallback in the recommender
+  const studentDomainTags: string[] = Array.from(
+    new Set(
+      studentData.credentials
+        .filter(
+          (cred) => Array.isArray(cred.skill_tags) && cred.skill_tags.length > 0
+        )
+        .flatMap((cred) => cred.skill_tags as string[])
+    )
+  );
+
+  console.log(`🏷️  AI Engine: Domain tags resolved (${studentDomainTags.length}):`, studentDomainTags);
+
+  // 4. RECOMMENDATION + GAP ANALYSIS
+  // ✅ Now domain-aware — passes studentDomainTags so the recommender can
+  // filter courses to the student's field before scoring by market demand.
   const recommendations = await recommendCourses({
     studentSkills: finalSkills,
     skillHealthMap: skillHealth,
+    studentDomainTags,
     topN: 5,
   });
 
-  // 4. Surface skill gaps explicitly for the AI context
+  // 5. Surface skill gaps explicitly for the AI context
   // Declining or low-confidence skills the student has → flag as at-risk
   const atRiskSkills = skillHealth
     .filter(s => s.trend === 'declining' || (s.healthScore < 40 && s.confidence !== 'low'))
@@ -72,6 +96,6 @@ export async function analyzeStudentProfile(params: AIInputParams) {
     studentId: studentData.id,
     skillHealth,
     recommendations,
-    atRiskSkills, // Replaces hardcoded gaps: []
+    atRiskSkills,
   };
 }

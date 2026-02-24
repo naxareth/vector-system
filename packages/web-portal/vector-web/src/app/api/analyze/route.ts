@@ -100,7 +100,13 @@ export async function POST(req: Request) {
     const dynamicSkillsArrays = await Promise.all(dynamicSkillsPromises);
     const dynamicW3CSkills = dynamicSkillsArrays.flat();
 
-    const verifiedNames = dbCredentials.map(c => c.skill_name);
+    // ✅ Phase 8: use skill_tags (marketable skills) instead of skill_name (credential title)
+    // Falls back to skill_name only if tags are empty (e.g. pre-backfill records)
+    const verifiedNames = dbCredentials.flatMap(c =>
+      Array.isArray(c.skill_tags) && c.skill_tags.length > 0
+        ? c.skill_tags
+        : [c.skill_name]
+    );
     const selfReportedNames = student?.self_reported_skills.map(s => s.skill_name) || [];
     
     let allSkills = Array.from(new Set([
@@ -110,12 +116,20 @@ export async function POST(req: Request) {
       ...dynamicW3CSkills
     ]));
 
+    // ✅ Phase 8 fix: if no skills found, return empty state instead of
+    // falling back to random monitored keywords which produced misleading
+    // generic recommendations unrelated to the student.
     if (allSkills.length === 0) {
-        const monitored = await prisma.monitored_keywords.findMany({ 
-            where: { is_active: true },
-            take: 5 
-        });
-        allSkills = monitored.length > 0 ? monitored.map(k => k.keyword) : ['React', 'Node.js', 'Solidity'];
+      return NextResponse.json({
+        status: 'success',
+        data: {
+          skillHealth: [],
+          recommendations: [],
+          history: [],
+          credentials: [],
+          summary: 'No credentials found. Issue verified credentials to generate personalized insights.'
+        }
+      });
     }
 
     const marketHistoryRaw = await prisma.market_snapshots.findMany({

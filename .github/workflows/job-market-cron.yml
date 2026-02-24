@@ -1,20 +1,27 @@
 name: Daily Job Market Tracker
-
 on:
   schedule:
     # Runs at 00:00 UTC every day
     - cron: '0 0 * * *'
   # Allows you to run it manually from GitHub tab for testing
   workflow_dispatch:
-          inputs:
-            keyword:
-              description: 'Optional skill keyword to manually override discovery'
-              required: false
-              default: ''
+    inputs:
+      keyword:
+        description: 'Optional skill keyword to manually override discovery'
+        required: false
+        default: ''
+      with_gemini:
+        description: 'Enable Gemini W3C sync + skill expansion (burns quota)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
 jobs:
   update-market-data:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -22,21 +29,37 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          # ✅ Fix: upgraded from 18 → 20
+          # Node 18 is deprecated by @supabase/supabase-js and causes EBADENGINE
+          # warnings. Node 20 is the current LTS and required by several dependencies.
+          node-version: '20'
 
       - name: Install Dependencies
-        # Navigate to the specific package folder if using monorepo
+        # ✅ Install ONLY inside the ai-engine package — do NOT run npm install
+        # at the monorepo root first. Running root install would hoist p-limit@7
+        # (ESM-only) into the root node_modules, which ts-node then resolves
+        # before the ai-engine's own p-limit@4 (CJS), causing ERR_REQUIRE_ESM.
         working-directory: ./packages/ai-engine
         run: npm install
 
       - name: Run Daily Update Script
         working-directory: ./packages/ai-engine
-        run: npm run daily-update
+        # Pass --with-gemini only when manually triggered with with_gemini=true.
+        # Scheduled daily runs never pass the flag — zero Gemini quota consumed.
+        run: |
+          if [ "${{ github.event.inputs.with_gemini }}" = "true" ]; then
+            echo "🤖 Running with Gemini enabled"
+            npm run daily-update:full
+          elif [ -n "${{ github.event.inputs.keyword }}" ]; then
+            echo "🎯 Running with manual keyword: ${{ github.event.inputs.keyword }}"
+            npm run daily-update -- --keyword=${{ github.event.inputs.keyword }}
+          else
+            echo "⚡ Running standard Adzuna-only update"
+            npm run daily-update
+          fi
         env:
-          # GitHub Secrets (Updated for Adzuna)
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          # New Adzuna Secrets
           ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
           ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
           ADZUNA_BASE_URL: "https://api.adzuna.com/v1/api/jobs"

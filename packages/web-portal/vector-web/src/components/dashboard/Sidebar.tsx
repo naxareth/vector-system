@@ -112,7 +112,10 @@ export default function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
           {navigation.map((item) => {
-            const isActive = pathname === item.href;
+            // ✅ Fix: only compute isActive after mount so server and client
+            // render identical HTML on first pass (all links render as inactive).
+            // After mount, the correct active link highlights instantly.
+            const isActive = mounted && pathname === item.href;
             return (
               <Link
                 key={item.name}
