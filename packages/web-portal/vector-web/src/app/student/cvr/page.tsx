@@ -274,15 +274,17 @@ export default function CVRPage() {
 
     const finalSkills = availableSkills.filter((s) => selectedSkillIds.includes(s.id));
 
+    const primaryCredentialId = availableCertifications[0]?.id || crypto.randomUUID();
+
     const cvrData: any = {
       generatedAt: new Date().toISOString(),
+      credentialId: primaryCredentialId,
       template: selectedTemplate,
       color: selectedColor,
       skills: finalSkills,
       fullName: formData.fullName,
       email: formData.email,
     };
-
     if (formData.phone) cvrData.phone = formData.phone;
     if (formData.portfolio) cvrData.portfolio = formData.portfolio;
     if (formData.linkedin) cvrData.linkedin = formData.linkedin;
