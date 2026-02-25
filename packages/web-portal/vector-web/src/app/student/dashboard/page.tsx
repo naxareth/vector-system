@@ -1,12 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import CredentialCard from '@/components/dashboard/CredentialCard';
 import RecentActivity, { ActivityItem } from '@/components/dashboard/RecentActivity';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
+import studentIllustration from './student.png';
 
 interface AIAnalysisData {
   skillHealth: {
@@ -40,7 +42,7 @@ interface CredentialItem {
   marketRelevance: number;
   verified: boolean;
   certificateNumber?: string;
-  credentialData?: Record<string, any>; // ✅ Add this line
+  credentialData?: Record<string, any>;
 }
 
 export default function StudentDashboard() {
@@ -68,11 +70,9 @@ export default function StudentDashboard() {
       const blockchainCreds: CredentialItem[] = [];
       const foundSkills: string[] = [];
 
-      // 1. 🛡️ Fetch Secure DB Credentials (Category 2 & 3 Fix)
       const dbRes = await fetch('/api/student/credentials');
       const dbCreds = dbRes.ok ? await dbRes.json() : [];
 
-      // 2. Read Blockchain (Verification Layer)
       if (walletAddress) {
         newActivities.push({
             id: 'wallet-conn',
@@ -88,14 +88,11 @@ export default function StudentDashboard() {
 
         for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
             if (typeof skillId !== 'number' || processedIds.has(skillId)) continue;
-            
             try {
                 const balance = await contract.balanceOf(walletAddress, skillId);
                 if (balance > 0) {
                     processedIds.add(skillId);
                     foundSkills.push(skillName);
-                    
-                    // Note: We use the skillId as a temporary ID for blockchain-only items
                     blockchainCreds.push({
                         id: `bc-${skillId}`,
                         title: skillName,
@@ -104,7 +101,6 @@ export default function StudentDashboard() {
                         marketRelevance: 85,
                         verified: true,
                     });
-
                     newActivities.push({
                         id: `cred-${skillId}`,
                         type: 'success',
@@ -117,7 +113,6 @@ export default function StudentDashboard() {
         }
       }
 
-      // 3. 🤖 AI Analysis
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,10 +128,8 @@ export default function StudentDashboard() {
         setAiData(json.data);
       }
 
-      // 4. Merge & Deduplicate (Prioritize DB IDs for routing to Detail Page)
       const mergedCreds: CredentialItem[] = [];
       
-      // Add DB Credentials first (these have the real UUIDs for the detail page)
       dbCreds.forEach((dbC: any) => {
         const analysis = json.data?.skillHealth?.find((s:any) => s.skillName === dbC.skill_name);
         mergedCreds.push({
@@ -147,16 +140,13 @@ export default function StudentDashboard() {
             marketRelevance: analysis ? analysis.healthScore : 70,
             verified: true,
             certificateNumber: dbC.certificate_number,
-            credentialData: dbC.credential_data // ✅ Pass the dynamic payload here
+            credentialData: dbC.credential_data
         });
       });
 
-      // Add Blockchain credentials only if they aren't already in the DB list
       blockchainCreds.forEach(bc => {
         const alreadyExists = mergedCreds.some(mc => mc.title.toLowerCase() === bc.title.toLowerCase());
-        if (!alreadyExists) {
-            mergedCreds.push(bc);
-        }
+        if (!alreadyExists) mergedCreds.push(bc);
       });
 
       setAllCredentials(mergedCreds);
@@ -231,75 +221,212 @@ export default function StudentDashboard() {
     localStorage.removeItem('pendingCVR');
   };
 
-  const decayingSkill = aiData?.skillHealth.find(s => s.healthScore < 60) || 
-                        aiData?.skillHealth.sort((a, b) => a.healthScore - b.healthScore)[0];
+  const marketScore = aiData?.skillHealth?.length
+    ? Math.round(aiData.skillHealth.reduce((acc, s) => acc + s.healthScore, 0) / aiData.skillHealth.length)
+    : 0;
 
   return (
     <DashboardLayout>
-      {/* 1. Welcome Banner */}
-      <div className="mb-6 -mt-6 md:-mt-2 bg-purple-50 border border-purple-100 rounded-2xl overflow-visible relative">
-        <div className="flex flex-col md:flex-row items-center justify-between py-2 px-4 md:py-3 md:px-10 relative">
-          <div className="flex-1 text-purple-900 z-10 pl-4">
-            <h1 className="text-2xl md:text-5xl font-bold mb-2 flex items-center gap-2">
-              Welcome back, {user?.full_name?.split(' ')[0] || 'Student'}! 
-            </h1>
-            <p className="text-purple-700 text-sm md:text-base mb-1">
-              You've earned <span className="font-bold text-purple-900">{allCredentials.length}</span> credential{allCredentials.length !== 1 ? 's' : ''} this month!
-            </p>
-            <div className="flex items-center gap-3 mt-4">
-              {loading ? (
-                <span className="text-sm text-purple-600 animate-pulse bg-purple-50 px-3 py-1 rounded-full">⚡ Loading...</span>
-              ) : user?.wallet_address ? (
-                <span className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  <span className="font-medium">Wallet Address:</span>
-                  <span className="font-mono">{`${user.wallet_address.slice(0,6)}...${user.wallet_address.slice(-4)}`}</span>
-                  <button type="button" onClick={() => navigator.clipboard.writeText(user.wallet_address || '')} className="p-1 rounded hover:bg-white/50 text-gray-600">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2" /><rect x="8" y="8" width="12" height="12" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} /></svg>
-                  </button>
-                </span>
-              ) : (
-                <button onClick={connectWallet} disabled={isWalletConnecting} className="flex items-center gap-2 text-sm bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-gray-800">
-                  {isWalletConnecting ? 'Connecting...' : 'Connect Wallet'}
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="relative w-80 h-40 md:w-[500px] md:h-56 mt-4 md:mt-0 md:-mr-8 md:-mb-8">
-            <img src="/sidebar-illustration.png" alt="Illustration" className="absolute right-4 -top-6 md:-top-28 w-[150%] h-[150%] object-contain drop-shadow-2xl opacity-95"/>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Wallet Tutorial */}
+      {/* Wallet Tutorial */}
       {!loading && !user?.wallet_address && showTutorial && (
-        <div className="bg-white rounded-xl border border-blue-200 shadow-lg mb-8 overflow-hidden relative">
+        <div className="bg-white rounded-xl border border-blue-200 shadow-lg mb-6 overflow-hidden relative">
           <div className="bg-blue-50 px-6 py-4 border-b border-blue-100 flex justify-between items-center">
             <h3 className="font-bold text-blue-900 flex items-center gap-2">How to Connect Your Wallet</h3>
             <button onClick={() => setShowTutorial(false)} className="text-blue-400 hover:text-blue-700">×</button>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div><div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3 text-orange-600">1</div><h4 className="font-bold text-sm">Install MetaMask</h4></div>
-            <div><div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3 text-purple-600">2</div><h4 className="font-bold text-sm">Create Account</h4></div>
+            <div><div className="w-12 h-12 bg-[#06B4C9]/10 rounded-full flex items-center justify-center mx-auto mb-3 text-[#06B4C9]">2</div><h4 className="font-bold text-sm">Create Account</h4></div>
             <div><div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 text-green-600">3</div><h4 className="font-bold text-sm">Connect</h4></div>
           </div>
         </div>
       )}
 
-      {/* 3. Main Dashboard Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm">
-              <h3 className="text-sm font-medium text-gray-600">Verified Skills</h3>
-              <p className="text-3xl font-bold text-gray-900">{allCredentials.length}</p>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm">
-              <h3 className="text-sm font-medium text-gray-600">Market Score</h3>
-              <p className="text-3xl font-bold text-gray-900">{aiData?.skillHealth?.length ? Math.round(aiData.skillHealth.reduce((acc, s) => acc + s.healthScore, 0) / aiData.skillHealth.length) : 0}%</p>
+      {/* ── SINGLE GRID: Left col has ALL main content, Right col has sidebar ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+
+        {/* ── LEFT COLUMN ── */}
+        <div className="xl:col-span-2 flex flex-col gap-6">
+
+          {/* Welcome Banner */}
+          <div className="bg-[#011018]/90 border border-[#011018] rounded-2xl overflow-hidden relative">
+            <div className="flex flex-col md:flex-row items-center justify-between p-8 pb-0">
+              <div className="flex-1 text-[#06B4C9] z-10 pb-8">
+                <h1 className="text-xl md:text-4xl font-bold mb-2 text-white">
+                  Welcome back, {user?.full_name?.split(' ')[0] || 'Student'}!
+                </h1>
+                <p className="text-white text-sm md:text-base mb-3">
+                  You've earned <span className="font-bold text-[#06B4C9]">{allCredentials.length}</span> credential{allCredentials.length !== 1 ? 's' : ''} this month!
+                </p>
+                <div className="flex items-center gap-3">
+                  {loading ? (
+                    <span className="text-sm text-[#06B4C9] animate-pulse bg-[#06B4C9]/10 px-3 py-1 rounded-full">⚡ Loading...</span>
+                  ) : user?.wallet_address ? (
+                    <span className="flex items-center gap-2 text-sm text-[#06B4C9] bg-[#06B4C9]/10 px-3 py-2 rounded-lg border border-[#06B4C9]">
+                      <span className="w-2 h-2 bg-[#06B4C9] rounded-full animate-pulse"></span>
+                      <span className="font-medium text-white">Wallet:</span>
+                      <span className="font-mono text-white">{`${user.wallet_address.slice(0,6)}...${user.wallet_address.slice(-4)}`}</span>
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(user.wallet_address || '')}
+                        className="p-1 rounded hover:bg-white/10 text-[#06B4C9]"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2" />
+                          <rect x="8" y="8" width="12" height="12" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+                        </svg>
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={connectWallet}
+                      disabled={isWalletConnecting}
+                      className="flex items-center gap-2 text-sm bg-[#06B4C9] text-white px-4 py-2.5 rounded-lg hover:bg-[#06B4C9]/90"
+                    >
+                      {isWalletConnecting ? 'Connecting...' : 'Connect Wallet'}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="relative w-48 h-48 md:w-72 md:h-60 flex-shrink-0 self-end">
+                <Image 
+                  src={studentIllustration} //temporary, replace with something more suitable for students
+                  alt="Student professional illustration"
+                  fill
+                  className="object-contain object-bottom scale-120"
+                  priority
+                />
+              </div>
             </div>
           </div>
 
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-5 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">Verified Skills</h3>
+                  <p className="text-3xl font-bold text-gray-900 mb-2">{allCredentials.length}</p>
+                  <div className={`flex items-center gap-1 text-xs font-medium ${allCredentials.length > 2 ? 'text-green-600' : 'text-red-600'}`}>
+                    {allCredentials.length > 2 ? (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0v-8m0 8l-8-8" />
+                      </svg>
+                    )}
+                    <span>{allCredentials.length > 2 ? '+12%' : '-8%'}</span>
+                    <span className="text-gray-400 ml-1">this month</span>
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-[#E7F1EC] flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-[#157942]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-5 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">Market Score</h3>
+                  <p className="text-3xl font-bold text-gray-900 mb-2">{marketScore}%</p>
+                  <div className={`flex items-center gap-1 text-xs font-medium ${marketScore >= 70 ? 'text-green-600' : 'text-red-600'}`}>
+                    {marketScore >= 70 ? (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
+                    )}
+                    <span>{marketScore >= 70 ? '+5%' : '-12%'}</span>
+                    <span className="text-gray-400 ml-1">from last week</span>
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-[#FFEDD4] flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-[#F54900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Skill Health Trends */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Top Skills Performance</h3>
+              <div className="flex items-center gap-3 text-xs">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="text-gray-600">Growing</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span className="text-gray-600">Stable</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                  <span className="text-gray-600">Declining</span>
+                </div>
+              </div>
+            </div>
+            {aiData?.skillHealth && aiData.skillHealth.length > 0 ? (
+              <div className="space-y-4">
+                {aiData.skillHealth
+                  .sort((a, b) => b.healthScore - a.healthScore)
+                  .slice(0, 3)
+                  .map((skill, index) => {
+                    const trendColors = {
+                      growing: { bg: 'bg-green-500', text: 'text-green-700', light: 'bg-green-50' },
+                      stable: { bg: 'bg-blue-500', text: 'text-blue-700', light: 'bg-blue-50' },
+                      declining: { bg: 'bg-orange-500', text: 'text-orange-700', light: 'bg-orange-50' }
+                    };
+                    const colors = trendColors[skill.trend];
+                    
+                    return (
+                      <div key={skill.skillName} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-700">{skill.skillName}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors.text} ${colors.light}`}>
+                              {skill.trend}
+                            </span>
+                          </div>
+                          <span className="text-sm font-bold text-gray-900">{skill.healthScore}%</span>
+                        </div>
+                        <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={`absolute top-0 left-0 h-full ${colors.bg} transition-all duration-700 ease-out rounded-full`}
+                            style={{ width: `${skill.healthScore}%` }}
+                          ></div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>Demand: {skill.currentDemand.toFixed(1)}%</span>
+                          <span>Decay Rate: {skill.decayRate.toFixed(2)}%</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              <div className="py-8 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-3">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <p className="text-sm text-gray-500 mb-2">No skill analytics available yet</p>
+                <p className="text-xs text-gray-400">Connect your wallet and upload credentials to see performance trends</p>
+              </div>
+            )}
+          </div>
+
+          {/* Pending CVR Banner */}
           {hasPendingCVR && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex justify-between">
               <p className="text-blue-700 text-sm">Your Resume is currently being verified by the registrar.</p>
@@ -307,57 +434,86 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* 4. Credentials Section */}
-          <div>
+          {/* Verified Credentials */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Verified Credentials</h2>
-              <button onClick={() => router.push('/student/skills')} className="text-purple-600 text-sm font-medium hover:underline">View All</button>
+              <button
+                onClick={() => router.push('/student/skills')}
+                className="text-[#06B4C9] text-sm font-medium hover:underline"
+              >
+                View All
+              </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {allCredentials.length > 0 ? (
                 allCredentials.slice(0, 4).map((cred) => (
-                  <CredentialCard 
-                    key={cred.id} 
-                    {...cred} 
-                  />
+                  <CredentialCard key={cred.id} {...cred} />
                 ))
               ) : (
-                <div className="col-span-2 p-12 text-center border-2 border-dashed border-gray-100 rounded-xl bg-gray-50/50">
+                <div className="col-span-2 p-12 text-center border-2 border-gray-100 rounded-xl bg-gray-50/50">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-3">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
+                  </div>
                   <p className="text-gray-400 text-sm">No credentials detected yet.</p>
                 </div>
               )}
             </div>
           </div>
+
         </div>
 
-        <div className="xl:col-span-1 space-y-6">
+        {/* ── RIGHT COLUMN: sticks to top, doesn't affect left column height ── */}
+        <div className="xl:col-span-1 flex flex-col gap-6">
           <RecentActivity activities={activities} />
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Setup</h3>
             <div className="relative pt-1 mb-4">
               <div className="flex mb-2 items-center justify-between">
-                <span className="text-xs font-semibold py-1 px-2 uppercase rounded-full text-purple-600 bg-purple-50">
+                <span className="text-xs font-semibold py-1 px-2 uppercase rounded-full text-[#06B4C9] bg-[#06B4C9]/10">
                   {user?.wallet_address && allCredentials.length > 0 ? 'Almost Done' : 'In Progress'}
                 </span>
-                <span className="text-xs font-semibold text-purple-600">{user?.wallet_address ? (allCredentials.length > 0 ? '75%' : '50%') : '25%'}</span>
+                <span className="text-xs font-semibold text-[#06B4C9]">
+                  {user?.wallet_address ? (allCredentials.length > 0 ? '75%' : '50%') : '25%'}
+                </span>
               </div>
-              <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-purple-100">
-                <div style={{ width: user?.wallet_address ? (allCredentials.length > 0 ? '75%' : '50%') : '25%' }} className="bg-purple-600 transition-all duration-500"></div>
+              <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-[#06B4C9]/10">
+                <div
+                  style={{ width: user?.wallet_address ? (allCredentials.length > 0 ? '75%' : '50%') : '25%' }}
+                  className="bg-[#06B4C9] transition-all duration-500"
+                ></div>
               </div>
             </div>
             <ul className="space-y-3 mb-6">
               <li className="flex items-center text-sm text-gray-600">
-                {user?.wallet_address ? <span className="text-green-500 font-bold mr-2">✓</span> : <span className="text-gray-300 mr-2">○</span>} Connect Wallet
+                {user?.wallet_address
+                  ? <span className="text-green-500 font-bold mr-2">✓</span>
+                  : <span className="text-gray-300 mr-2">○</span>}
+                Connect Wallet
               </li>
               <li className="flex items-center text-sm text-gray-600">
-                {allCredentials.length > 0 || hasPendingCVR ? <span className="text-green-500 font-bold mr-2">✓</span> : <span className="text-gray-300 mr-2">○</span>} Upload Resume (CVR)
+                {allCredentials.length > 0 || hasPendingCVR
+                  ? <span className="text-green-500 font-bold mr-2">✓</span>
+                  : <span className="text-gray-300 mr-2">○</span>}
+                Upload Resume (CVR)
               </li>
-              <li className="flex items-center text-sm text-gray-600"><span className="text-gray-300 mr-2">○</span> Complete Profile</li>
+              <li className="flex items-center text-sm text-gray-600">
+                <span className="text-gray-300 mr-2">○</span>
+                Complete Profile
+              </li>
             </ul>
-            <button onClick={() => router.push('/student/profile')} className="w-full bg-purple-600 text-white py-2.5 rounded-lg text-sm font-bold shadow-sm shadow-purple-200 hover:bg-purple-700 transition-colors">Complete Setup</button>
+            <button
+              onClick={() => router.push('/student/profile')}
+              className="w-full bg-[#06B4C9] !text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#06B4C9]/80 transition-colors"
+            >
+              Complete Setup
+            </button>
           </div>
         </div>
+
       </div>
     </DashboardLayout>
   );

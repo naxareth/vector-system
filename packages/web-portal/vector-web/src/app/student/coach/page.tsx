@@ -367,7 +367,7 @@ export default function CoachPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-4 -mt-10">
+      <div className="mb-6">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -404,7 +404,7 @@ export default function CoachPage() {
               <select
                 value={selectedSkillView}
                 onChange={(e) => setSelectedSkillView(e.target.value)}
-                className="text-xs border border-gray-300 rounded-lg px-2 py-1 bg-white outline-none focus:ring-1 focus:ring-purple-500"
+                className="text-xs border border-gray-300 rounded-lg px-2 py-1 bg-white outline-none focus:ring-1 focus:ring-[#06B4C9]"
               >
                 <option value="All">All Skills</option>
                 {skillsList.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
@@ -429,7 +429,7 @@ export default function CoachPage() {
               </div>
               <div className="text-center">
                 <div className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Alignment</div>
-                <div className={`text-2xl font-bold ${metrics.portfolioScore > 75 ? 'text-green-600' : 'text-purple-600'}`}>{metrics.marketAlignment}</div>
+                <div className={`text-2xl font-bold ${metrics.portfolioScore > 75 ? 'text-green-600' : 'text-[#06B4C9]'}`}>{metrics.marketAlignment}</div>
               </div>
               <div className="text-center">
                 <div className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Growth</div>
@@ -491,10 +491,10 @@ export default function CoachPage() {
         {chatOpen && (
           <div className="lg:col-span-1">
             <div className="sticky top-6 h-[calc(100vh-theme(spacing.32))] min-h-[500px] flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-              <div className="p-4 bg-gradient-to-r from-purple-700 to-purple-600 text-white flex items-center justify-between">
+              <div className="p-4 bg-gradient-to-r from-[#011018] to-[#011018]/90 text-white flex items-center justify-between">
                 <div>
                   <h2 className="font-bold">Vector Co-Pilot</h2>
-                  <p className="text-xs font-medium text-purple-100">Analyzing your context...</p>
+                  <p className="text-xs font-medium text-[#06B4C9]">Analyzing your context...</p>
                 </div>
                 <button onClick={() => setChatOpen(false)} className="hover:bg-white/20 rounded p-1">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -505,11 +505,11 @@ export default function CoachPage() {
                   <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
                     <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
                       msg.role === 'user'
-                        ? 'bg-purple-600 text-white rounded-br-none'
+                        ? 'bg-[#06B4C9] text-white rounded-br-none'
                         : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
                     }`}>
                      {msg.role === 'user' ? msg.text : (
-                        <div className="prose prose-sm prose-purple max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0">
+                        <div className="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0">
                           <ReactMarkdown>{msg.text}</ReactMarkdown>
                         </div>
                       )}
@@ -528,7 +528,7 @@ export default function CoachPage() {
               <div className="p-3 bg-white border-t border-gray-200">
                 <div className="flex gap-2 overflow-x-auto pb-3 mb-1 no-scrollbar">
                   {quickPrompts.map((p, i) => (
-                    <button key={i} onClick={() => handleSend(p)} className="whitespace-nowrap px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-full text-xs font-medium hover:bg-purple-100 transition-colors">{p}</button>
+                    <button key={i} onClick={() => handleSend(p)} className="whitespace-nowrap px-3 py-1.5 bg-[#06B4C9]/10 text-[#06B4C9] border border-[#06B4C9]/20 rounded-full text-xs font-medium hover:bg-[#06B4C9]/20 transition-colors">{p}</button>
                   ))}
                 </div>
                 <div className="flex gap-2 relative">
@@ -538,12 +538,12 @@ export default function CoachPage() {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                     placeholder="Ask Vector anything..."
-                    className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#06B4C9]"
                   />
                   <button
                     onClick={() => handleSend()}
                     disabled={chatLoading}
-                    className="bg-purple-600 text-white px-4 rounded-xl hover:bg-purple-700 transition-colors shadow-sm disabled:opacity-50"
+                    className="bg-[#06B4C9] text-white px-4 rounded-xl hover:bg-[#06B4C9]/80 transition-colors shadow-sm disabled:opacity-50"
                   >
                     Send
                   </button>
@@ -557,7 +557,7 @@ export default function CoachPage() {
       {!chatOpen && (
         <button
           onClick={() => setChatOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-50 hover:bg-purple-700 active:scale-95"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-[#06B4C9] text-white rounded-full shadow-lg flex items-center justify-center transition-all z-50 hover:bg-[#06B4C9]/80 active:scale-95"
         >
           💬
         </button>

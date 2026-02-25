@@ -126,76 +126,76 @@ export default function RegistrarRegisterForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {serverError && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200 flex items-center gap-2 animate-pulse">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200 flex items-center gap-2">
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           {serverError}
         </div>
       )}
 
+      {/* First / Last name */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">First Name</label>
-          <input 
-            {...register('firstName')} 
-            className={`w-full px-3 py-2 border ${errors.firstName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} 
-            placeholder="Jane" 
+          <label className="block text-xs font-medium text-gray-600 mb-1">First Name</label>
+          <input
+            {...register('firstName')}
+            className={`w-full px-3 py-2 border ${errors.firstName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all`}
           />
           {errors.firstName && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.firstName.message}</p>}
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Last Name</label>
-          <input 
-            {...register('lastName')} 
-            className={`w-full px-3 py-2 border ${errors.lastName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} 
-            placeholder="Smith" 
+          <label className="block text-xs font-medium text-gray-600 mb-1">Last Name</label>
+          <input
+            {...register('lastName')}
+            className={`w-full px-3 py-2 border ${errors.lastName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all`}
           />
           {errors.lastName && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.lastName.message}</p>}
         </div>
       </div>
 
+      {/* Email */}
       <div>
-        <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Institution Email</label>
-        <input 
-          {...register('email')} 
+        <label className="block text-xs font-medium text-gray-600 mb-1">Institution Email</label>
+        <input
+          {...register('email')}
           type="email"
-          className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} 
-          placeholder="admin@university.edu" 
+          onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
+          className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all`}
         />
         {errors.email && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.email.message}</p>}
       </div>
 
-      {/* Registrar Specific Field */}
-      <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
-        <label className="block text-xs font-bold text-purple-800 uppercase mb-1">Authorization Code</label>
+      {/* Authorization Code */}
+      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <label className="block text-xs font-bold text-gray-700 mb-1">Authorization Code</label>
         <div className="relative">
-          <input 
-            {...register('inviteCode')} 
+          <input
+            {...register('inviteCode')}
             type={showCode ? "text" : "password"}
-            className={`w-full px-3 py-2 pr-10 border ${errors.inviteCode ? 'border-red-500 bg-red-50' : 'border-purple-200'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} 
-            placeholder="Enter authorization code" 
+            className={`w-full px-3 py-2 pr-10 border ${errors.inviteCode ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all hide-password-toggle`}
           />
-          <button 
+          <button
             type="button"
             onClick={() => setShowCode(!showCode)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400 hover:text-purple-600 focus:outline-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
           >
             {showCode ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
-        <p className="text-[10px] text-purple-600 mt-1 font-medium">Network verification required for issuer access.</p>
+        <p className="text-[10px] text-gray-500 mt-1 font-medium">Network verification required for issuer access.</p>
         {errors.inviteCode && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.inviteCode.message}</p>}
       </div>
 
+      {/* Password */}
       <div>
-        <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Password</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
         <div className="relative">
-          <input 
-            {...register('password')} 
+          <input
+            {...register('password')}
             type={showPassword ? "text" : "password"}
-            className={`w-full px-3 py-2 pr-10 border ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} 
-            placeholder="12+ chars, symbols, numbers" 
+            onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
+            className={`w-full px-3 py-2 pr-10 border ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all hide-password-toggle`}
           />
-          <button 
+          <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -206,16 +206,17 @@ export default function RegistrarRegisterForm() {
         {errors.password && <p className="mt-1 text-[10px] text-red-600 font-bold leading-tight">{errors.password.message}</p>}
       </div>
 
+      {/* Confirm Password */}
       <div>
-        <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Confirm Password</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Confirm Password</label>
         <div className="relative">
-          <input 
-            {...register('confirmPassword')} 
+          <input
+            {...register('confirmPassword')}
             type={showConfirmPassword ? "text" : "password"}
-            className={`w-full px-3 py-2 pr-10 border ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 outline-none`} 
-            placeholder="••••••••" 
+            onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
+            className={`w-full px-3 py-2 pr-10 border ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all hide-password-toggle`}
           />
-          <button 
+          <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -227,18 +228,22 @@ export default function RegistrarRegisterForm() {
       </div>
 
       {/* Cloudflare Turnstile Widget */}
-      <div className="flex justify-center py-2">
+      <div className="flex justify-center py-1">
         <Turnstile
           ref={turnstileRef}
           siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
           onSuccess={(token) => setTurnstileToken(token)}
-          onError={() => setServerError("CAPTCHA failed to load. Please refresh the page.")}
+          onError={() => setServerError('CAPTCHA failed to load. Please refresh the page.')}
           onExpire={() => setTurnstileToken(null)}
           options={{ theme: 'light' }}
         />
       </div>
 
-      <button type="submit" disabled={isSubmitting || !turnstileToken} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-all transform active:scale-[0.98] shadow-md flex items-center justify-center gap-2 disabled:opacity-50 mt-4">
+      <button
+        type="submit"
+        disabled={isSubmitting || !turnstileToken}
+        className="w-full bg-[#011018] hover:bg-[#02202f] text-white font-semibold py-3 rounded-lg transition-all active:scale-[0.98] shadow-sm disabled:opacity-50"
+      >
         {isSubmitting ? 'Verifying...' : 'Create Registrar Account'}
       </button>
     </form>

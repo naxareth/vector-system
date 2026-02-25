@@ -153,9 +153,9 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center">
+            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-[#06B4C9]/10 border border-[#06B4C9]/20 flex items-center justify-center">
               <svg
-                className="w-5 h-5 text-purple-600"
+                className="w-5 h-5 text-[#06B4C9]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -184,7 +184,7 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
           </p>
           <button
             onClick={handleAnalyze}
-            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2"
+            className="px-6 py-2.5 bg-[#06B4C9] hover:bg-[#06B4C9]/80 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -206,8 +206,8 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 px-6 py-10 flex flex-col items-center gap-3">
         <div className="relative w-10 h-10">
-          <div className="absolute inset-0 rounded-full border-2 border-purple-100" />
-          <div className="absolute inset-0 rounded-full border-2 border-purple-600 border-t-transparent animate-spin" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#06B4C9]/20" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#06B4C9] border-t-transparent animate-spin" />
         </div>
         <p className="text-sm text-gray-600 font-medium">Analyzing your CVR with AI&hellip;</p>
         <p className="text-xs text-gray-400">Checking market alignment and skill health data</p>
@@ -241,7 +241,7 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
           </div>
           <button
             onClick={handleAnalyze}
-            className="text-xs text-purple-600 hover:text-purple-800 font-medium flex-shrink-0"
+            className="text-xs text-[#06B4C9] hover:text-[#06B4C9]/80 font-medium flex-shrink-0"
           >
             Retry
           </button>
@@ -264,9 +264,9 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center">
+          <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-[#06B4C9]/10 border border-[#06B4C9]/20 flex items-center justify-center">
             <svg
-              className="w-5 h-5 text-purple-600"
+              className="w-5 h-5 text-[#06B4C9]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -286,7 +286,7 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
         </div>
         <button
           onClick={handleAnalyze}
-          className="text-xs text-gray-400 hover:text-purple-600 transition-colors flex items-center gap-1"
+          className="text-xs text-gray-400 hover:text-[#06B4C9] transition-colors flex items-center gap-1"
           title="Re-run analysis"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -427,7 +427,7 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <svg
-                className="w-4 h-4 text-purple-500"
+                className="w-4 h-4 text-[#06B4C9]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -444,7 +444,7 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
             <ol className="space-y-2.5">
               {analysis.recommendations.map((rec, i) => (
                 <li key={i} className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-xs font-bold flex items-center justify-center mt-0.5">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#06B4C9]/10 text-[#06B4C9] text-xs font-bold flex items-center justify-center mt-0.5">
                     {i + 1}
                   </span>
                   <p className="text-sm text-gray-600 leading-relaxed">{rec}</p>

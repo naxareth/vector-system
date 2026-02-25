@@ -11,7 +11,7 @@ export default function RegisterPage() {
         <div className="px-10 py-12 md:px-14 lg:px-16 flex flex-col justify-center">
           {/* Logo + branding */}
           <Link href="/" className="inline-flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-[#011018] rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">V</span>
             </div>
             <span className="text-xl font-bold text-gray-900">Vector</span>
@@ -33,7 +33,7 @@ export default function RegisterPage() {
         </div>
 
         {/* ── Right column: accent image panel ── */}
-        <div className="hidden md:flex rounded-2xl m-3 bg-gradient-to-br from-gray-900 to-[#1a3a2a] items-center justify-center">
+        <div className="hidden md:flex rounded-2xl m-3 bg-[#011018] items-center justify-center">
           <span className="text-gray-400 text-sm tracking-wide">Image Here</span>
         </div>
       </div>

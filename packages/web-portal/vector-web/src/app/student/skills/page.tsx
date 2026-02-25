@@ -173,7 +173,7 @@ export default function SkillsPage() {
                 if (typeof skillId !== 'number' || processedIds.has(skillId)) continue;
                 try {
                   const balance = await contract.balanceOf(profile.wallet_address, skillId);
-                  if (balance > 0n) {
+                  if (balance > 0) {
                     processedIds.add(skillId);
                     if (!dbNames.includes(skillName)) {
                       found.push({ id: `bc-${skillId}`, skill_name: skillName, skill_tags: [skillName], source: 'blockchain' });
@@ -236,7 +236,7 @@ export default function SkillsPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 -mt-10">
+      <div className="mb-6 ">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Skills</h1>
         <p className="text-sm text-gray-500">Your verified credentials and market health</p>
       </div>

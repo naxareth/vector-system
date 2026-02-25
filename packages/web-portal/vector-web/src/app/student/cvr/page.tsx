@@ -108,7 +108,7 @@ export default function CVRPage() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
-  const [selectedColor, setSelectedColor] = useState('#6d28d9');
+  const [selectedColor, setSelectedColor] = useState('#06B4C9');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -425,7 +425,7 @@ export default function CVRPage() {
   // ---------------------------------------------------------------------------
   return (
     <DashboardLayout>
-      <div className="mb-4 -mt-10">
+      <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
           {isGenerated ? 'Credential Verified Resume (CVR)' : 'Credential Verified Resume'}
         </h1>
@@ -452,7 +452,7 @@ export default function CVRPage() {
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div>
                   <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Your CVR History
@@ -461,7 +461,7 @@ export default function CVRPage() {
                     Each export is permanent and immutable. Share the latest link with employers.
                   </p>
                 </div>
-                <span className="text-xs font-medium text-purple-600 bg-purple-50 border border-purple-100 px-3 py-1 rounded-full">
+                <span className="text-xs font-medium text-[#06B4C9] bg-[#06B4C9]/10 border border-[#06B4C9]/20 px-3 py-1 rounded-full">
                   {cvrHistory.length} export{cvrHistory.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -478,7 +478,7 @@ export default function CVRPage() {
                   return (
                     <div
                       key={cvr.id}
-                      className={`px-6 py-4 flex items-center justify-between gap-4 ${isLatest ? 'bg-purple-50/40' : ''}`}
+                      className={`px-6 py-4 flex items-center justify-between gap-4 ${isLatest ? 'bg-[#06B4C9]/10' : ''}`}
                     >
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className={`mt-1.5 flex-shrink-0 w-2 h-2 rounded-full ${isLatest ? 'bg-emerald-500' : 'bg-gray-300'}`} />
@@ -525,7 +525,7 @@ export default function CVRPage() {
                             copied === cvr.id
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                               : isLatest
-                              ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+                              ? 'bg-[#06B4C9] text-white border-[#06B4C9] hover:bg-[#06B4C9]/80'
                               : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                           }`}
                         >
@@ -596,7 +596,7 @@ export default function CVRPage() {
               <div>
                 <button
                   type="submit"
-                  className="w-full md:w-auto px-8 py-3 bg-purple-600 hover:bg-purple-700 !text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all"
+                  className="w-full md:w-auto px-8 py-3 bg-[#06B4C9] hover:bg-[#06B4C9]/80 !text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -627,7 +627,7 @@ export default function CVRPage() {
             <div className="flex flex-wrap justify-center gap-4">
               <button
                 onClick={() => setIsExportModalOpen(true)}
-                className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold shadow-lg shadow-purple-200 transition-all flex items-center gap-2"
+                className="px-8 py-3 bg-[#06B4C9] hover:bg-[#06B4C9]/80 text-white rounded-lg font-bold shadow-lg shadow-[#06B4C9]/20 transition-all flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -636,7 +636,7 @@ export default function CVRPage() {
               </button>
               <button
                 onClick={handleCreateNew}
-                className="px-8 py-3 bg-white border-2 border-gray-200 hover:border-purple-200 hover:bg-purple-50 text-gray-700 hover:text-purple-700 rounded-lg font-bold transition-all flex items-center gap-2"
+                className="px-8 py-3 bg-white border-2 border-gray-200 hover:border-[#06B4C9] hover:bg-[#06B4C9]/10 text-gray-700 hover:text-[#06B4C9] rounded-lg font-bold transition-all flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

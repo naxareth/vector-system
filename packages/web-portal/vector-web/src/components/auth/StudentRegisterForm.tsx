@@ -127,7 +127,7 @@ export default function StudentRegisterForm() {
           <label className="block text-xs font-medium text-gray-600 mb-1">First Name</label>
           <input
             {...register('firstName')}
-            className={`w-full px-3 py-2 border ${errors.firstName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-green-700 outline-none transition-all`}
+            className={`w-full px-3 py-2 border ${errors.firstName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all`}
           />
           {errors.firstName && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.firstName.message}</p>}
         </div>
@@ -135,7 +135,7 @@ export default function StudentRegisterForm() {
           <label className="block text-xs font-medium text-gray-600 mb-1">Last Name</label>
           <input
             {...register('lastName')}
-            className={`w-full px-3 py-2 border ${errors.lastName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-green-700 outline-none transition-all`}
+            className={`w-full px-3 py-2 border ${errors.lastName ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all`}
           />
           {errors.lastName && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.lastName.message}</p>}
         </div>
@@ -148,7 +148,7 @@ export default function StudentRegisterForm() {
           {...register('email')}
           type="email"
           onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
-          className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-green-700 outline-none transition-all`}
+          className={`w-full px-3 py-2 border ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all`}
         />
         {errors.email && <p className="mt-1 text-[10px] text-red-600 font-bold">{errors.email.message}</p>}
       </div>
@@ -161,7 +161,7 @@ export default function StudentRegisterForm() {
             {...register('password')}
             type={showPassword ? 'text' : 'password'}
             onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
-            className={`w-full px-3 py-2 pr-10 border ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-green-700 outline-none transition-all hide-password-toggle`}
+            className={`w-full px-3 py-2 pr-10 border ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all hide-password-toggle`}
           />
           <button
             type="button"
@@ -182,7 +182,7 @@ export default function StudentRegisterForm() {
             {...register('confirmPassword')}
             type={showConfirmPassword ? 'text' : 'password'}
             onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
-            className={`w-full px-3 py-2 pr-10 border ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-green-700 outline-none transition-all hide-password-toggle`}
+            className={`w-full px-3 py-2 pr-10 border ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all hide-password-toggle`}
           />
           <button
             type="button"
@@ -210,7 +210,7 @@ export default function StudentRegisterForm() {
       <button
         type="submit"
         disabled={isSubmitting || !turnstileToken}
-        className="w-full bg-[#1a3a2a] hover:bg-[#153023] text-white font-semibold py-3 rounded-lg transition-all active:scale-[0.98] shadow-sm disabled:opacity-50"
+        className="w-full bg-[#011018] hover:bg-[#02202f] text-white font-semibold py-3 rounded-lg transition-all active:scale-[0.98] shadow-sm disabled:opacity-50"
       >
         {isSubmitting ? 'Processing...' : 'Create Student Account'}
       </button>

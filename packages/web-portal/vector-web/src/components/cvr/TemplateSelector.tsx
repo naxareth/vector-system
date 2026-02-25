@@ -42,7 +42,7 @@ const templates = [
           <div className="w-2/3 h-1.5 bg-gray-300 rounded-sm mx-auto" />
         </div>
         <div className="w-2/3 p-2 space-y-2">
-          <div className="w-1/2 h-3 bg-purple-600 rounded-sm mb-2" />
+          <div className="w-1/2 h-3 bg-[#06B4C9] rounded-sm mb-2" />
           <div className="w-full h-1.5 bg-gray-200 rounded-sm" />
           <div className="w-full h-1.5 bg-gray-200 rounded-sm" />
           <div className="w-5/6 h-1.5 bg-gray-200 rounded-sm" />
@@ -85,7 +85,7 @@ export default function TemplateSelector({
     <div className="pt-6 border-t border-gray-200">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900">Choose Template</h2>
-        <span className="text-sm text-purple-600 font-medium bg-purple-50 px-3 py-1 rounded-full">
+        <span className="text-sm text-[#06B4C9] font-medium bg-[#06B4C9]/10 px-3 py-1 rounded-full">
           {selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)} Selected
         </span>
       </div>
@@ -106,15 +106,15 @@ export default function TemplateSelector({
               <div
                 className={`h-full rounded-xl border-2 transition-all duration-200 overflow-hidden ${
                   isSelected
-                    ? 'border-purple-600 shadow-md ring-1 ring-purple-600'
-                    : 'border-gray-200 hover:border-purple-300 hover:shadow-sm'
+                    ? 'border-[#06B4C9] shadow-md ring-1 ring-[#06B4C9]'
+                    : 'border-gray-200 hover:border-[#06B4C9]/50 hover:shadow-sm'
                 }`}
               >
                 <div className="relative overflow-hidden">
                   {tpl.preview}
                   {isSelected && (
-                    <div className="absolute inset-0 bg-purple-600/10 flex items-center justify-center">
-                      <div className="bg-purple-600 text-white p-2 rounded-full shadow-lg">
+                    <div className="absolute inset-0 bg-[#06B4C9]/10 flex items-center justify-center">
+                      <div className="bg-[#06B4C9] text-white p-2 rounded-full shadow-lg">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>

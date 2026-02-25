@@ -208,13 +208,13 @@ export default function LoginPage() {
         <div className="px-10 py-12 md:px-14 lg:px-16 flex flex-col justify-center">
           {/* Logo + branding */}
           <Link href="/" className="inline-flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-[#011018] rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">V</span>
             </div>
             <span className="text-xl font-bold text-gray-900">Vector</span>
           </Link>
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome Back</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-1">Welcome Back</h1>
           <p className="text-sm text-gray-500 mb-8" style={{ fontFamily: '"IBM Plex Sans", sans-serif' }}>Sign in to access VECTOR</p>
 
           {/* Success Message for Password Reset */}
@@ -258,7 +258,7 @@ export default function LoginPage() {
                 value={formData.email} 
                 onChange={(e) => setFormData({...formData, email: e.target.value})} 
                 onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-700 focus:border-transparent outline-none transition-all" 
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#011018] focus:border-transparent outline-none transition-all" 
                 required 
               />
             </div>
@@ -279,7 +279,7 @@ export default function LoginPage() {
                   value={formData.password} 
                   onChange={(e) => setFormData({...formData, password: e.target.value})} 
                   onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
-                  className="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-700 focus:border-transparent outline-none transition-all hide-password-toggle" 
+                  className="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#011018] focus:border-transparent outline-none transition-all hide-password-toggle" 
                   required 
                 />
                 <button 
@@ -307,7 +307,7 @@ export default function LoginPage() {
             <button 
               type="submit" 
               disabled={loading || !turnstileToken} 
-              className="w-full bg-[#1a3a2a] hover:bg-[#153023] text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center active:scale-[0.98]"
+              className="w-full bg-[#011018] hover:bg-[#02202f] text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center active:scale-[0.98]"
             >
               {loading ? (
                 <>
@@ -356,7 +356,7 @@ export default function LoginPage() {
         </div>
 
         {/* ── Right column: accent image panel ── */}
-        <div className="hidden md:flex rounded-2xl m-3 bg-gradient-to-br from-gray-900 to-[#1a3a2a] items-center justify-center">
+        <div className="hidden md:flex rounded-2xl m-3 bg-[#011018] items-center justify-center">
           <span className="text-gray-400 text-sm tracking-wide">Image Here</span>
         </div>
       </div>
