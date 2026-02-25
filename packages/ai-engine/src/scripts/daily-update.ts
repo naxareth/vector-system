@@ -60,7 +60,7 @@ const INTER_TASK_DELAY_MS = 500;
  */
 async function expandToRelatedSkills(skill: string): Promise<string[]> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     const prompt = `
       You are a job market analyst for a tech credentialing platform.

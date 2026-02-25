@@ -22,13 +22,14 @@ model users {
   location             String?
   audit_logs_actor     audit_logs[]                 @relation("AuditActor")
   audit_logs_target    audit_logs[]                 @relation("AuditTarget")
+  credential_schemas   credential_schemas[]
+  cvr_exports          cvr_exports[]
   minting_batches      minting_batches[]
   notifications        notifications[]
   profiles             profiles?
   self_reported_skills self_reported_skills[]
   enrollments          student_course_enrollments[]
   verified_credentials verified_credentials[]
-  credential_schemas   credential_schemas[]
 }
 
 model audit_logs {
@@ -67,16 +68,16 @@ model verified_credentials {
   user_id            String           @db.Uuid
   batch_id           String?          @db.Uuid
   skill_name         String
-  skill_tags         String[]         @default([])
   token_id           String
   transaction_hash   String?
   issuer_did         String?
   metadata_uri       String?
-  schema_url         String?
-  credential_data    Json?
   issued_at          DateTime?        @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
   private_notes      String?
   certificate_number String?
+  credential_data    Json?
+  schema_url         String?
+  skill_tags         String[]         @default([])
   batch              minting_batches? @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   student            users            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -101,18 +102,16 @@ model market_snapshots {
   job_count   Int
   data_source String?   @default("adzuna")
   recorded_at DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
-  
-  // 🛡️ Added for Phase 5 flexibility: Stores rich market data (salaries, locations)
-  metadata    Json?     @default("{}") 
+  metadata    Json?     @default("{}")
 
   @@index([skill_name, recorded_at(sort: Desc)], map: "idx_market_snapshots_skill_date")
 }
 
 model skill_health_cache {
   skill_name         String             @id
-  trend_slope         Float?
-  status              String?
-  last_updated        DateTime?          @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  trend_slope        Float?
+  status             String?
+  last_updated       DateTime?          @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
   monitored_keywords monitored_keywords @relation(fields: [skill_name], references: [keyword], onDelete: NoAction, onUpdate: NoAction)
 }
 
@@ -183,9 +182,33 @@ model verification_codes {
   id         BigInt            @id @default(autoincrement())
   email      String
   code       String
-  type       verification_type @default(EMAIL_VERIFICATION)
   expires_at DateTime          @db.Timestamptz(6)
   created_at DateTime?         @default(now()) @db.Timestamptz(6)
+  type       verification_type @default(EMAIL_VERIFICATION)
+}
+
+model system_logs {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  method     String
+  path       String
+  status     Int
+  ip_address String?
+  duration   Int?
+  user_agent String?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([status])
+  @@index([created_at(sort: Desc)])
+}
+
+model cvr_exports {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String    @db.Uuid
+  generated_at   DateTime? @default(now()) @db.Timestamptz(6)
+  template       String?
+  credential_ids String[]  @db.Uuid
+  snapshot       Json?
+  users          users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 enum verification_type {
@@ -203,18 +226,4 @@ enum account_status {
   active
   pending_verification
   suspended
-}
-
-model system_logs {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  method     String   
-  path       String   
-  status     Int      
-  ip_address String?  
-  duration   Int?     
-  user_agent String?  
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-
-  @@index([status]) 
-  @@index([created_at(sort: Desc)]) 
 }

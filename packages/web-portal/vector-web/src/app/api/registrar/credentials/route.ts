@@ -56,7 +56,7 @@ Input tag: "${tag}"
 `.trim();
 
   try {
-    const model = _genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    const model = _genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const cleaned = text.replace(/\`\`\`json/gi, '').replace(/\`\`\`/g, '').trim();
