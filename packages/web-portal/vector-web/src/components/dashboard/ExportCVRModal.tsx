@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
 
 interface ExportCVRModalProps {
   isOpen: boolean;
@@ -13,7 +14,8 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
   const [includeVerification, setIncludeVerification] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [cvrData, setCvrData] = useState<any>(null);
-  
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+
   // This ref points to the invisible A4 resume div
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -21,7 +23,25 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
   useEffect(() => {
     if (isOpen) {
       const stored = localStorage.getItem('sampleCVRData');
-      if (stored) setCvrData(JSON.parse(stored));
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setCvrData(parsed);
+
+        // Generate a stable credential ID
+        const credentialId =
+          parsed.credentialId ||
+          `${Date.now()}-${parsed.fullName?.substring(0, 3).toUpperCase()}`;
+
+        // Use /verify/cvr/[id] for full CVR exports, /verify/[id] for legacy single-credential
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const verifyUrl = parsed.isCvrExport
+          ? `${baseUrl}/verify/cvr/${credentialId}`
+          : `${baseUrl}/verify/${credentialId}`;
+
+        QRCode.toDataURL(verifyUrl, { width: 120, margin: 1 })
+          .then((url) => setQrDataUrl(url))
+          .catch((err) => console.error('QR generation failed:', err));
+      }
     }
   }, [isOpen]);
 
@@ -30,15 +50,13 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
   // 2. The Export Logic
   const handleExport = async () => {
     setIsExporting(true);
-    
-    // Allow slight delay for UI update
-    await new Promise(resolve => setTimeout(resolve, 100));
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     try {
       if (selectedFormat === 'json') {
-        // --- JSON EXPORT ---
         const dataStr = JSON.stringify(cvrData, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
+        const blob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -47,15 +65,13 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
         link.click();
         document.body.removeChild(link);
       } else {
-        // --- PDF EXPORT ---
         if (!printRef.current) return;
 
-        // Capture the hidden div
         const canvas = await html2canvas(printRef.current, {
-          scale: 2, // High resolution for crisp text
+          scale: 2,
           useCORS: true,
           logging: false,
-          backgroundColor: '#ffffff', // Force white background
+          backgroundColor: '#ffffff',
         });
 
         const imgData = canvas.toDataURL('image/png');
@@ -66,11 +82,11 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         pdf.save(`CVR_${cvrData.fullName.replace(/\s+/g, '_')}.pdf`);
       }
-      
+
       onClose();
     } catch (error) {
-      console.error("Export failed", error);
-      alert("Failed to export. Please try again.");
+      console.error('Export failed', error);
+      alert('Failed to export. Please try again.');
     } finally {
       setIsExporting(false);
     }
@@ -79,14 +95,14 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
   // ✅ SAFE COLORS (Hex codes to prevent 'lab()' errors)
   const colors = {
     white: '#ffffff',
-    black: '#111827',     // gray-900
-    gray: '#4b5563',      // gray-600
-    lightGray: '#f9fafb', // gray-50
-    border: '#e5e7eb',    // gray-200
-    purple: '#9333ea',    // purple-600
-    purpleLight: '#f3e8ff', // purple-100
-    greenText: '#15803d',   // green-700
-    greenBg: '#dcfce7',     // green-100
+    black: '#111827',
+    gray: '#4b5563',
+    lightGray: '#f9fafb',
+    border: '#e5e7eb',
+    purple: '#9333ea',
+    purpleLight: '#f3e8ff',
+    greenText: '#15803d',
+    greenBg: '#dcfce7',
     slate700: '#334155',
     slate600: '#475569',
     slate500: '#64748b',
@@ -99,6 +115,26 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
   const isModern = cvrData?.template === 'modern';
   const isSimple = cvrData?.template === 'simple';
 
+  // Shared QR block used in all three ghost templates
+  const QRBlock = () =>
+    qrDataUrl ? (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <img
+          src={qrDataUrl}
+          alt="Verification QR"
+          style={{ width: '64px', height: '64px', flexShrink: 0 }}
+        />
+        <div style={{ fontSize: '10px', color: colors.gray }}>
+          <p style={{ fontWeight: 'bold', margin: '0 0 2px 0', color: colors.black }}>
+            Scan to Verify
+          </p>
+          <p style={{ margin: 0 }}>
+            Scan this QR code to verify credentials on the VECTOR blockchain portal.
+          </p>
+        </div>
+      </div>
+    ) : null;
+
   return (
     <>
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -106,10 +142,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900">Export Verified Resume</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -120,9 +153,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
           <div className="space-y-4 mb-6">
             {/* Format Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Export Format
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setSelectedFormat('pdf')}
@@ -173,12 +204,25 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
                 <p className="text-xs text-blue-800">
-                  {selectedFormat === 'pdf' 
-                    ? 'The PDF will include a cryptographic footer linked to the Polygon blockchain.' 
+                  {selectedFormat === 'pdf'
+                    ? 'The PDF will include a QR code and cryptographic footer linked to the Polygon blockchain.'
                     : 'The JSON file contains raw data suitable for verifier applications.'}
                 </p>
               </div>
             </div>
+
+            {/* QR Preview — only shown for PDF mode */}
+            {qrDataUrl && selectedFormat === 'pdf' && (
+              <div className="flex items-center gap-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <img src={qrDataUrl} alt="Verification QR" className="w-16 h-16 rounded" />
+                <div>
+                  <p className="text-xs font-semibold text-gray-700">Verification QR Code</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Will be embedded in the exported PDF. Employers can scan to verify credentials on-chain.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -197,7 +241,10 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
             >
               {isExporting ? (
                 <>
-                  <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                  <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
                   Processing...
                 </>
               ) : (
@@ -214,16 +261,16 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
       </div>
 
       {/* ------------------------------------------------------------
-        THE "GHOST" TEMPLATE 
+        THE "GHOST" TEMPLATE
         Rendered off-screen for html2canvas to capture.
-        CRITICAL FIX: We use inline STYLES with HEX CODES instead of 
+        CRITICAL FIX: We use inline STYLES with HEX CODES instead of
         Tailwind color classes to prevent 'lab()' errors.
         ------------------------------------------------------------
       */}
       {cvrData && (
         <div style={{ position: 'absolute', top: -9999, left: -9999 }}>
-          <div 
-            ref={printRef} 
+          <div
+            ref={printRef}
             style={{ width: '210mm', minHeight: '297mm', backgroundColor: colors.white, color: colors.gray }}
           >
             {isModern ? (
@@ -391,19 +438,23 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <p style={{ fontSize: '13px', color: colors.gray }}>Available upon request.</p>
                   </div>
 
-                  {/* Blockchain Footer (Conditional) */}
+                  {/* Blockchain Footer + QR (Modern) */}
                   {includeVerification && (
-                    <div style={{ marginTop: '32px', paddingTop: '16px', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '32px', height: '32px', backgroundColor: colors.purpleLight, borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.purple, flexShrink: 0 }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
+                    <div style={{ marginTop: '32px', paddingTop: '16px', borderTop: `1px solid ${colors.border}` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: qrDataUrl ? '12px' : '0' }}>
+                        <div style={{ width: '32px', height: '32px', backgroundColor: colors.purpleLight, borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.purple, flexShrink: 0 }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                          </svg>
+                        </div>
+                        <div style={{ fontSize: '11px', color: colors.gray }}>
+                          <p style={{ fontWeight: 'bold', color: colors.black, margin: 0 }}>Cryptographically Secured Document</p>
+                          <p style={{ margin: 0 }}>Generated by VECTOR Platform • Immutable Record on Polygon Amoy Testnet</p>
+                          {/* ✅ FIXED: Use stable credentialId from cvrData, not Date.now() */}
+                          <p style={{ fontFamily: 'monospace', fontSize: '9px', color: '#9ca3af', margin: '2px 0 0 0' }}>ID: {cvrData.credentialId}</p>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '11px', color: colors.gray }}>
-                        <p style={{ fontWeight: 'bold', color: colors.black, margin: 0 }}>Cryptographically Secured Document</p>
-                        <p style={{ margin: 0 }}>Generated by VECTOR Platform • Immutable Record on Polygon Amoy Testnet</p>
-                        <p style={{ fontFamily: 'monospace', fontSize: '9px', color: '#9ca3af', margin: '2px 0 0 0' }}>ID: {Date.now()}-{cvrData.fullName?.substring(0,3).toUpperCase()}</p>
-                      </div>
+                      {qrDataUrl && <QRBlock />}
                     </div>
                   )}
                 </div>
@@ -413,7 +464,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                  SIMPLE TEMPLATE - Traditional ATS-Friendly
                  ============================================================ */
               <div style={{ padding: '36px', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>
-                {/* Name - Centered Large */}
+                {/* Name */}
                 <div style={{ textAlign: 'center', marginBottom: '4px' }}>
                   <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: colors.black, margin: 0, fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>
                     {cvrData.fullName}
@@ -425,10 +476,9 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                   {[cvrData.phone, cvrData.email, cvrData.portfolio, cvrData.linkedin].filter(Boolean).join('  |  ')}
                 </div>
 
-                {/* Horizontal Rule */}
                 <hr style={{ border: 'none', borderTop: '1.5px solid #111827', margin: '8px 0 12px 0' }} />
 
-                {/* Summary - Italic */}
+                {/* Summary */}
                 {cvrData.summary && (
                   <div style={{ marginBottom: '20px', textAlign: 'center' }}>
                     <p style={{ fontSize: '12px', color: colors.gray, fontStyle: 'italic', lineHeight: '1.6', margin: 0, fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>
@@ -553,14 +603,16 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                   )}
                 </div>
 
-                {/* Blockchain Footer */}
+                {/* Blockchain Footer + QR (Simple) */}
                 {includeVerification && (
-                  <div style={{ marginTop: '32px', paddingTop: '12px', borderTop: `0.5px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ fontSize: '10px', color: colors.gray }}>
+                  <div style={{ marginTop: '32px', paddingTop: '12px', borderTop: `0.5px solid ${colors.border}` }}>
+                    <div style={{ fontSize: '10px', color: colors.gray, marginBottom: qrDataUrl ? '12px' : '0' }}>
                       <p style={{ fontWeight: 'bold', color: colors.black, margin: 0 }}>Blockchain Verified Resume</p>
                       <p style={{ margin: 0 }}>Generated by VECTOR Platform • Immutable Record on Polygon Amoy Testnet</p>
-                      <p style={{ fontFamily: 'monospace', fontSize: '9px', color: '#9ca3af', margin: '2px 0 0 0' }}>ID: {Date.now()}-{cvrData.fullName?.substring(0,3).toUpperCase()}</p>
+                      {/* ✅ FIXED: Use stable credentialId from cvrData, not Date.now() */}
+                      <p style={{ fontFamily: 'monospace', fontSize: '9px', color: '#9ca3af', margin: '2px 0 0 0' }}>ID: {cvrData.credentialId}</p>
                     </div>
+                    {qrDataUrl && <QRBlock />}
                   </div>
                 )}
               </div>
@@ -582,20 +634,20 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ display: 'inline-block', padding: '8px', backgroundColor: colors.white, border: `1px solid ${colors.border}`, borderRadius: '8px' }}>
                       <div style={{ width: '64px', height: '64px', backgroundColor: colors.black, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.white, fontSize: '8px', textAlign: 'center', lineHeight: '1.2' }}>
-                        VECTOR<br/>SECURE
+                        VECTOR<br />SECURE
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Resume Contact */}
+                {/* Contact */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px', color: colors.gray, marginBottom: '12px', fontWeight: '500' }}>
                   <span>📧 {cvrData.email}</span>
                   {cvrData.phone && <span>📱 {cvrData.phone}</span>}
                   {cvrData.portfolio && <span>🌐 {cvrData.portfolio}</span>}
                 </div>
 
-                {/* Resume Summary */}
+                {/* Summary */}
                 {cvrData.summary && (
                   <div style={{ marginBottom: '24px' }}>
                     <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `0.5px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
@@ -605,7 +657,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                   </div>
                 )}
 
-                {/* Resume Education */}
+                {/* Education */}
                 {cvrData.education && cvrData.education.length > 0 && (
                   <div style={{ marginBottom: '24px' }}>
                     <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `0.5px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
@@ -614,19 +666,19 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {cvrData.education.map((edu: any, i: number) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                            <div>
-                                <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '15px' }}>{edu.degree}</div>
-                                <div style={{ color: colors.gray, fontSize: '14px' }}>{edu.school}, {edu.location}</div>
-                                {edu.honors && <div style={{ fontStyle: 'italic', fontSize: '13px', color: colors.gray }}>{edu.honors}</div>}
-                            </div>
-                            <div style={{ fontWeight: 'bold', color: colors.purple, fontSize: '14px' }}>{edu.year}</div>
+                          <div>
+                            <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '15px' }}>{edu.degree}</div>
+                            <div style={{ color: colors.gray, fontSize: '14px' }}>{edu.school}, {edu.location}</div>
+                            {edu.honors && <div style={{ fontStyle: 'italic', fontSize: '13px', color: colors.gray }}>{edu.honors}</div>}
+                          </div>
+                          <div style={{ fontWeight: 'bold', color: colors.purple, fontSize: '14px' }}>{edu.year}</div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Resume Experience */}
+                {/* Experience */}
                 {cvrData.experience && cvrData.experience.length > 0 && (
                   <div style={{ marginBottom: '24px' }}>
                     <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `0.5px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
@@ -635,19 +687,19 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                       {cvrData.experience.map((exp: any, i: number) => (
                         <div key={i}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '15px' }}>{exp.title}</div>
-                                <div style={{ fontWeight: 'bold', color: colors.purple, fontSize: '13px' }}>{exp.dates}</div>
-                            </div>
-                            <div style={{ fontStyle: 'italic', color: colors.gray, fontSize: '14px', marginBottom: '4px' }}>{exp.company}</div>
-                            <p style={{ color: colors.black, fontSize: '13px', lineHeight: '1.5', whiteSpace: 'pre-line' }}>{exp.description}</p>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '15px' }}>{exp.title}</div>
+                            <div style={{ fontWeight: 'bold', color: colors.purple, fontSize: '13px' }}>{exp.dates}</div>
+                          </div>
+                          <div style={{ fontStyle: 'italic', color: colors.gray, fontSize: '14px', marginBottom: '4px' }}>{exp.company}</div>
+                          <p style={{ color: colors.black, fontSize: '13px', lineHeight: '1.5', whiteSpace: 'pre-line' }}>{exp.description}</p>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Resume Projects */}
+                {/* Projects */}
                 {cvrData.projects && cvrData.projects.length > 0 && (
                   <div style={{ marginBottom: '24px' }}>
                     <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `0.5px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
@@ -656,17 +708,17 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {cvrData.projects.map((proj: any, i: number) => (
                         <div key={i} style={{ backgroundColor: colors.lightGray, padding: '12px', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
-                            <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '6px', background: (cvrData.color || colors.purple) }} />
-                            <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '14px', marginBottom: '2px' }}>{proj.title}</div>
-                            <div style={{ fontSize: '13px', color: colors.black, marginBottom: '4px' }}>{proj.description}</div>
-                            {proj.technologies && <div style={{ fontSize: '11px', fontFamily: 'monospace', color: (cvrData.color || colors.purple) }}>Tech: {proj.technologies}</div>}
+                          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '6px', background: cvrData.color || colors.purple }} />
+                          <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '14px', marginBottom: '2px' }}>{proj.title}</div>
+                          <div style={{ fontSize: '13px', color: colors.black, marginBottom: '4px' }}>{proj.description}</div>
+                          {proj.technologies && <div style={{ fontSize: '11px', fontFamily: 'monospace', color: cvrData.color || colors.purple }}>Tech: {proj.technologies}</div>}
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Resume Certifications */}
+                {/* Certifications */}
                 {cvrData.certifications && cvrData.certifications.length > 0 && (
                   <div style={{ marginBottom: '24px' }}>
                     <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
@@ -675,18 +727,18 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {cvrData.certifications.map((cert: any, i: number) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '14px' }}>{cert.name}</div>
-                                {cert.issuer && <div style={{ fontSize: '13px', color: colors.gray, marginTop: '4px' }}>{cert.issuer}</div>}
-                            </div>
-                            <div style={{ fontSize: '13px', color: colors.gray }}>{cert.date}</div>
+                          <div>
+                            <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '14px' }}>{cert.name}</div>
+                            {cert.issuer && <div style={{ fontSize: '13px', color: colors.gray, marginTop: '4px' }}>{cert.issuer}</div>}
+                          </div>
+                          <div style={{ fontSize: '13px', color: colors.gray }}>{cert.date}</div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Resume Awards */}
+                {/* Awards */}
                 {cvrData.awards && cvrData.awards.length > 0 && (
                   <div style={{ marginBottom: '24px' }}>
                     <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
@@ -702,7 +754,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                   </div>
                 )}
 
-                {/* Resume Skills */}
+                {/* Skills */}
                 <div style={{ marginBottom: '32px' }}>
                   <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '16px' }}>
                     Competencies & Skills
@@ -711,27 +763,29 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     {cvrData.skills && cvrData.skills.map((skill: any, i: number) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: skill.verified ? colors.greenBg : colors.lightGray, borderRadius: '16px', border: `1px solid ${skill.verified ? colors.greenText : colors.border}` }}>
                         <span style={{ fontWeight: '600', fontSize: '12px', color: skill.verified ? colors.greenText : colors.black }}>{skill.name}</span>
-                        {skill.verified && (
-                          <span style={{ fontSize: '9px', fontWeight: 'bold' }}>✓</span>
-                        )}
+                        {skill.verified && <span style={{ fontSize: '9px', fontWeight: 'bold' }}>✓</span>}
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Blockchain Footer (Conditional) */}
+                {/* Blockchain Footer + QR (Professional) */}
                 {includeVerification && (
-                  <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ width: '40px', height: '40px', backgroundColor: colors.purpleLight, borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.purple }}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
+                  <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: `1px solid ${colors.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: qrDataUrl ? '16px' : '0' }}>
+                      <div style={{ width: '40px', height: '40px', backgroundColor: colors.purpleLight, borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.purple, flexShrink: 0 }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                      </div>
+                      <div style={{ fontSize: '12px', color: colors.gray }}>
+                        <p style={{ fontWeight: 'bold', color: colors.black, margin: 0 }}>Cryptographically Secured Document</p>
+                        <p style={{ margin: 0 }}>Generated by VECTOR Platform • Immutable Record on Polygon Amoy Testnet</p>
+                        {/* ✅ FIXED: Use stable credentialId from cvrData, not Date.now() */}
+                        <p style={{ fontFamily: 'monospace', fontSize: '10px', marginTop: '4px', color: '#9ca3af', margin: 0 }}>ID: {cvrData.credentialId}</p>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '12px', color: colors.gray }}>
-                      <p style={{ fontWeight: 'bold', color: colors.black, margin: 0 }}>Cryptographically Secured Document</p>
-                      <p style={{ margin: 0 }}>Generated by VECTOR Platform • Immutable Record on Polygon Amoy Testnet</p>
-                      <p style={{ fontFamily: 'monospace', fontSize: '10px', marginTop: '4px', color: '#9ca3af', margin: 0 }}>ID: {Date.now()}-{cvrData.fullName?.substring(0,3).toUpperCase()}</p>
-                    </div>
+                    {qrDataUrl && <QRBlock />}
                   </div>
                 )}
               </div>

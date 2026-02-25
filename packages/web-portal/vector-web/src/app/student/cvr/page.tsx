@@ -72,6 +72,14 @@ type FormData = {
   awards: { title: string; description: string }[];
 };
 
+type CVRHistoryItem = {
+  id: string;
+  generated_at: string;
+  template: string | null;
+  credential_ids: string[];
+  snapshot: any;
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -79,6 +87,16 @@ const sanitizeArray = (arr: any[]) =>
   arr.filter((item) =>
     Object.values(item).some((v: any) => v !== null && v !== undefined && String(v).trim() !== '')
   );
+
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -91,6 +109,7 @@ export default function CVRPage() {
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
   const [selectedColor, setSelectedColor] = useState('#6d28d9');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [copied, setCopied] = useState<string | null>(null);
 
   // Skills
   const [availableSkills, setAvailableSkills] = useState<SkillItem[]>([]);
@@ -98,6 +117,10 @@ export default function CVRPage() {
 
   // Available verified credentials to pull into CVR
   const [availableCertifications, setAvailableCertifications] = useState<any[]>([]);
+
+  // CVR History
+  const [cvrHistory, setCvrHistory] = useState<CVRHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // Generated state
   const [isGenerated, setIsGenerated] = useState(false);
@@ -184,6 +207,9 @@ export default function CVRPage() {
           .eq('user_id', session.user.id);
 
         if (certs) setAvailableCertifications(certs);
+
+        // Load CVR history
+        await fetchCVRHistory(session.user.id);
       } catch (error) {
         console.error('CVR Data Error:', error);
       } finally {
@@ -192,6 +218,26 @@ export default function CVRPage() {
     };
     initPage();
   }, [router]);
+
+  // ---------------------------------------------------------------------------
+  // CVR History fetch
+  // ---------------------------------------------------------------------------
+  const fetchCVRHistory = async (userId: string) => {
+    setHistoryLoading(true);
+    try {
+      const { data } = await supabase
+        .from('cvr_exports')
+        .select('id, generated_at, template, credential_ids, snapshot')
+        .eq('user_id', userId)
+        .order('generated_at', { ascending: false });
+
+      if (data) setCvrHistory(data);
+    } catch (err) {
+      console.error('CVR history fetch error:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   // ---------------------------------------------------------------------------
   // Blockchain skill fetch
@@ -255,9 +301,19 @@ export default function CVRPage() {
   };
 
   // ---------------------------------------------------------------------------
+  // Copy verify link
+  // ---------------------------------------------------------------------------
+  const handleCopyLink = (id: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    navigator.clipboard.writeText(`${baseUrl}/verify/cvr/${id}`);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  // ---------------------------------------------------------------------------
   // Generate CVR
   // ---------------------------------------------------------------------------
-  const handleGenerateCVR = (e: React.FormEvent) => {
+  const handleGenerateCVR = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
@@ -274,7 +330,16 @@ export default function CVRPage() {
 
     const finalSkills = availableSkills.filter((s) => selectedSkillIds.includes(s.id));
 
-    const cvrData: any = {
+    // Only include credentials the student actually added to the CVR
+    const credentialIds = availableCertifications
+      .filter((c) =>
+        formData.certifications.some(
+          (fc) => fc.name === c.skill_name && fc.verified === true
+        )
+      )
+      .map((c) => c.id);
+
+    const snapshot: any = {
       generatedAt: new Date().toISOString(),
       template: selectedTemplate,
       color: selectedColor,
@@ -282,19 +347,48 @@ export default function CVRPage() {
       fullName: formData.fullName,
       email: formData.email,
     };
-
-    if (formData.phone) cvrData.phone = formData.phone;
-    if (formData.portfolio) cvrData.portfolio = formData.portfolio;
-    if (formData.linkedin) cvrData.linkedin = formData.linkedin;
-    if (formData.title) cvrData.title = formData.title;
-    if (formData.summary) cvrData.summary = formData.summary;
+    if (formData.phone) snapshot.phone = formData.phone;
+    if (formData.portfolio) snapshot.portfolio = formData.portfolio;
+    if (formData.linkedin) snapshot.linkedin = formData.linkedin;
+    if (formData.title) snapshot.title = formData.title;
+    if (formData.summary) snapshot.summary = formData.summary;
 
     const cleaned = (arr: any[]) => sanitizeArray(arr);
-    if (cleaned(formData.education).length) cvrData.education = cleaned(formData.education);
-    if (cleaned(formData.experience).length) cvrData.experience = cleaned(formData.experience);
-    if (cleaned(formData.projects).length) cvrData.projects = cleaned(formData.projects);
-    if (cleaned(formData.certifications).length) cvrData.certifications = cleaned(formData.certifications);
-    if (cleaned(formData.awards).length) cvrData.awards = cleaned(formData.awards);
+    if (cleaned(formData.education).length) snapshot.education = cleaned(formData.education);
+    if (cleaned(formData.experience).length) snapshot.experience = cleaned(formData.experience);
+    if (cleaned(formData.projects).length) snapshot.projects = cleaned(formData.projects);
+    if (cleaned(formData.certifications).length) snapshot.certifications = cleaned(formData.certifications);
+    if (cleaned(formData.awards).length) snapshot.awards = cleaned(formData.awards);
+
+    // Save CVR export to DB — get a stable UUID for QR code
+    let cvrId: string | null = null;
+    try {
+      const res = await fetch('/api/cvr/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          template: selectedTemplate,
+          credential_ids: credentialIds,
+          snapshot,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        cvrId = data.id;
+      } else {
+        console.warn('[CVR] Export save failed — falling back to local UUID');
+      }
+    } catch (err) {
+      console.warn('[CVR] Export API unreachable — falling back to local UUID', err);
+    }
+
+    const credentialId = cvrId || credentialIds[0] || crypto.randomUUID();
+
+    const cvrData = {
+      ...snapshot,
+      credentialId,
+      isCvrExport: !!cvrId,
+    };
 
     localStorage.setItem('sampleCVRData', JSON.stringify(cvrData));
     localStorage.setItem('pendingCVR', 'true');
@@ -302,6 +396,10 @@ export default function CVRPage() {
     setGeneratedData(cvrData);
     setIsGenerated(true);
     setIsSuccessModalOpen(true);
+
+    // Refresh history so new export appears immediately
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) await fetchCVRHistory(session.user.id);
   };
 
   const handleCreateNew = () => {
@@ -331,73 +429,172 @@ export default function CVRPage() {
           Syncing Profile & Blockchain Data...
         </div>
       ) : !isGenerated ? (
-        <form onSubmit={handleGenerateCVR} className="w-full">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 space-y-6">
-            <PersonalDetailsSection
-              formData={formData}
-              errors={errors}
-              onChange={handleChange}
-            />
-            <EducationSection
-              items={formData.education}
-              onAdd={() => addItem('education', { degree: '', school: '', location: '', year: '', honors: '' })}
-              onRemove={(i) => removeItem('education', i)}
-              onUpdate={(i, f, v) => updateItem('education', i, f, v)}
-            />
-            <ExperienceSection
-              items={formData.experience}
-              onAdd={() => addItem('experience', { title: '', company: '', dates: '', description: '' })}
-              onRemove={(i) => removeItem('experience', i)}
-              onUpdate={(i, f, v) => updateItem('experience', i, f, v)}
-            />
-            <ProjectsSection
-              items={formData.projects}
-              onAdd={() => addItem('projects', { title: '', description: '', technologies: '', role: '' })}
-              onRemove={(i) => removeItem('projects', i)}
-              onUpdate={(i, f, v) => updateItem('projects', i, f, v)}
-            />
-            <VerifiedCertificationsBlock
-              availableCertifications={availableCertifications}
-              addedCertifications={formData.certifications}
-              onAdd={handleAddVerifiedCertification}
-            />
-            <CertificationsSection
-              certifications={formData.certifications}
-              awards={formData.awards}
-              onAddCertification={() => addItem('certifications', { name: '', issuer: '', date: '', verified: false })}
-              onAddAward={() => addItem('awards', { title: '', description: '' })}
-              onRemoveCertification={(i) => removeItem('certifications', i)}
-              onRemoveAward={(i) => removeItem('awards', i)}
-              onUpdateCertification={(i, f, v) => updateItem('certifications', i, f, v)}
-              onUpdateAward={(i, f, v) => updateItem('awards', i, f, v)}
-            />
-            <SkillsSection
-              availableSkills={availableSkills}
-              selectedSkillIds={selectedSkillIds}
-              onToggle={handleSkillToggle}
-              onAddCustom={handleAddCustomSkill}
-            />
-            <TemplateSelector
-              selectedTemplate={selectedTemplate}
-              selectedColor={selectedColor}
-              onTemplateChange={setSelectedTemplate}
-              onColorChange={setSelectedColor}
-            />
+        <>
+          {/* ----------------------------------------------------------------
+            CVR History Panel
+            Shows all past exports. Latest = green, older = amber "Outdated".
+            Student can copy any link or open the verify page directly.
+            ---------------------------------------------------------------- */}
+          {cvrHistory.length > 0 && (
+            <div className="mb-6 bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                  <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Your CVR History
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Each export is permanent and immutable. Share the latest link with employers.
+                  </p>
+                </div>
+                <span className="text-xs font-medium text-purple-600 bg-purple-50 border border-purple-100 px-3 py-1 rounded-full">
+                  {cvrHistory.length} export{cvrHistory.length !== 1 ? 's' : ''}
+                </span>
+              </div>
 
-            {/* Submit */}
-            <div>
-              <button
-                type="submit"
-                className="w-full md:w-auto px-8 py-3 bg-purple-600 hover:bg-purple-700 !text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Generate CVR
-              </button>
+              <div className="divide-y divide-gray-50">
+                {cvrHistory.map((cvr, index) => {
+                  const isLatest = index === 0;
+                  const snapshot = typeof cvr.snapshot === 'string'
+                    ? JSON.parse(cvr.snapshot)
+                    : cvr.snapshot;
+                  const skillCount = snapshot?.skills?.length || 0;
+                  const certCount = cvr.credential_ids?.length || 0;
+
+                  return (
+                    <div
+                      key={cvr.id}
+                      className={`px-6 py-4 flex items-center justify-between gap-4 ${isLatest ? 'bg-purple-50/40' : ''}`}
+                    >
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className={`mt-1.5 flex-shrink-0 w-2 h-2 rounded-full ${isLatest ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-800">
+                              {formatDateTime(cvr.generated_at)}
+                            </span>
+                            {isLatest ? (
+                              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                Latest
+                              </span>
+                            ) : (
+                              <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                Outdated
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5 capitalize">
+                            {cvr.template || 'professional'} template
+                            {certCount > 0 && ` · ${certCount} verified credential${certCount !== 1 ? 's' : ''}`}
+                            {skillCount > 0 && ` · ${skillCount} skill${skillCount !== 1 ? 's' : ''}`}
+                          </p>
+                          <p className="text-xs font-mono text-gray-300 mt-0.5 truncate">{cvr.id}</p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <a
+                          href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify/cvr/${cvr.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
+                        >
+                          View
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                        <button
+                          onClick={() => handleCopyLink(cvr.id)}
+                          className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all border ${
+                            copied === cvr.id
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : isLatest
+                              ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {copied === cvr.id ? '✓ Copied' : isLatest ? 'Copy Latest Link' : 'Copy Link'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </form>
+          )}
+
+          <form onSubmit={handleGenerateCVR} className="w-full">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 space-y-6">
+              <PersonalDetailsSection
+                formData={formData}
+                errors={errors}
+                onChange={handleChange}
+              />
+              <EducationSection
+                items={formData.education}
+                onAdd={() => addItem('education', { degree: '', school: '', location: '', year: '', honors: '' })}
+                onRemove={(i) => removeItem('education', i)}
+                onUpdate={(i, f, v) => updateItem('education', i, f, v)}
+              />
+              <ExperienceSection
+                items={formData.experience}
+                onAdd={() => addItem('experience', { title: '', company: '', dates: '', description: '' })}
+                onRemove={(i) => removeItem('experience', i)}
+                onUpdate={(i, f, v) => updateItem('experience', i, f, v)}
+              />
+              <ProjectsSection
+                items={formData.projects}
+                onAdd={() => addItem('projects', { title: '', description: '', technologies: '', role: '' })}
+                onRemove={(i) => removeItem('projects', i)}
+                onUpdate={(i, f, v) => updateItem('projects', i, f, v)}
+              />
+              <VerifiedCertificationsBlock
+                availableCertifications={availableCertifications}
+                addedCertifications={formData.certifications}
+                onAdd={handleAddVerifiedCertification}
+              />
+              <CertificationsSection
+                certifications={formData.certifications}
+                awards={formData.awards}
+                onAddCertification={() => addItem('certifications', { name: '', issuer: '', date: '', verified: false })}
+                onAddAward={() => addItem('awards', { title: '', description: '' })}
+                onRemoveCertification={(i) => removeItem('certifications', i)}
+                onRemoveAward={(i) => removeItem('awards', i)}
+                onUpdateCertification={(i, f, v) => updateItem('certifications', i, f, v)}
+                onUpdateAward={(i, f, v) => updateItem('awards', i, f, v)}
+              />
+              <SkillsSection
+                availableSkills={availableSkills}
+                selectedSkillIds={selectedSkillIds}
+                onToggle={handleSkillToggle}
+                onAddCustom={handleAddCustomSkill}
+              />
+              <TemplateSelector
+                selectedTemplate={selectedTemplate}
+                selectedColor={selectedColor}
+                onTemplateChange={setSelectedTemplate}
+                onColorChange={setSelectedColor}
+              />
+
+              {/* Submit */}
+              <div>
+                <button
+                  type="submit"
+                  className="w-full md:w-auto px-8 py-3 bg-purple-600 hover:bg-purple-700 !text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Generate CVR
+                </button>
+              </div>
+            </div>
+          </form>
+        </>
       ) : (
         /* Generated CVR display */
         <div className="w-full">

@@ -18,6 +18,8 @@
 * **`packages/web-portal/vector-web`**: The main Next.js application containing the Student, Registrar, and Admin portals.
 
 .github
+  workflows
+    daily-market-tracker.yml                          ← MODIFIED (Node 18→20, --with-gemini dropdown, smart run step)
 .vscode
 configs
 docs
@@ -35,11 +37,11 @@ packages
 │       │   ├── gemini-client.ts                       ← MODIFIED (GEMINI_MODEL constant, generateCoursesForTag export)
 │       │   └── skill-extractor.ts                     ← MODIFIED (uses GEMINI_MODEL constant)
 │       ├── predictions
-│       │   └── decay-forecaster.ts                    ← MODIFIED (% slope thresholds + confidence)
+│       │   └── decay-forecaster.ts                    ← MODIFIED (% slope thresholds + confidence) ← Phase 13 target
 │       ├── recommendations
 │       │   └── course-recommender.ts                  ← MODIFIED (Tier 1/Tier 2 domain filter, normalize, explore fallback)
 │       ├── scripts
-│       │   ├── daily-update.ts                        ← MODIFIED (p-limit concurrency, W3C sync)
+│       │   ├── daily-update.ts                        ← MODIFIED (--with-gemini flag gates all Gemini calls) ← Phase 13 batching audit
 │       │   └── ingest-job-data.ts
 │       └── index.ts                                   ← MODIFIED (studentDomainTags extraction, passes to recommendCourses)
 │
@@ -61,7 +63,8 @@ packages
         ├── prisma
         │   └── schema.prisma                          ← MODIFIED (skill_tags String[] on verified_credentials)
         ├── scripts
-        │   └── backfill-skill-tags.ts                 ← NEW (one-time migration, already run)
+        │   ├── backfill-skill-tags.ts                 ← NEW (one-time migration, already run)
+        │   └── evaluate-extractor.ts                  ← PLANNED Phase 13 (F1 score golden dataset eval)
         └── src
             ├── app
             │   ├── (auth)
@@ -88,7 +91,9 @@ packages
             │   │   │   ├── send-verification/route.ts
             │   │   │   ├── verify-captcha/route.ts
             │   │   │   └── verify-email/route.ts
-            │   │   ├── chat/route.ts                  ← MODIFIED (salary + location Gemini context)
+            │   │   ├── chat/route.ts                  ← MODIFIED (salary + location Gemini context) ← Phase 13 key segregation
+            │   │   ├── cvr
+            │   │   │   └── export/route.ts            ← PLANNED Phase 11 (INSERT into cvr_exports, return UUID)
             │   │   ├── mint/route.ts
             │   │   ├── registrar
             │   │   │   ├── credentials/route.ts       ← MODIFIED (inline Gemini course gen, dynamic course pipeline, skill_tags validation)
@@ -99,19 +104,23 @@ packages
             │   │   │   ├── credentials/route.ts
             │   │   │   ├── skill-health/route.ts      ← NEW (fast cache-read, no LLM)
             │   │   │   └── market-insights/route.ts
-            │   │   ├── verify/[id]/route.ts           ← NEW (public credential verification API)
+            │   │   ├── verify
+            │   │   │   ├── [id]/route.ts              ← NEW (public single credential verification API)
+            │   │   │   └── cvr/[id]/route.ts          ← PLANNED Phase 11 (CVR-level verification API)
             │   │   └── verify-registrar/route.ts
             │   ├── registrar
             │   │   ├── dashboard/page.tsx             ← MODIFIED (extracts + validates skill_tags before minting)
             │   │   └── students/page.tsx
             │   ├── student
-            │   │   ├── coach/page.tsx                 ← MODIFIED (per-skill chart normalization)
-            │   │   ├── cvr/page.tsx                   ← MODIFIED (slim orchestrator, 8 components)
+            │   │   ├── coach/page.tsx                 ← MODIFIED (react-markdown for AI chat, per-skill chart normalization)
+            │   │   ├── cvr/page.tsx                   ← MODIFIED (credentialId = availableCertifications[0]?.id || crypto.randomUUID()) ← Phase 11 update
             │   │   ├── dashboard/page.tsx
             │   │   ├── profile/page.tsx
             │   │   ├── profile/security/page.tsx
             │   │   └── skills/page.tsx                ← MODIFIED (fan-out by skill_tags, two-phase load, slope velocity UI)
-            │   └── verify/[id]/page.tsx               ← NEW (public verification portal, no auth)
+            │   └── verify
+            │       ├── [id]/page.tsx                  ← NEW (public single credential verify portal, no auth)
+            │       └── cvr/[id]/page.tsx              ← PLANNED Phase 11 (full CVR verification portal)
             ├── components
             │   ├── auth
             │   │   ├── ChallengeMFA.tsx
@@ -133,167 +142,136 @@ packages
             │   │   ├── CredentialCard.tsx
             │   │   ├── CVRSuccessModal.tsx
             │   │   ├── DashboardLayout.tsx
-            │   │   ├── ExportCVRModal.tsx
+            │   │   ├── ExportCVRModal.tsx             ← MODIFIED Phase 10 (QR in all 3 ghost templates + modal preview) ← Phase 11 update QR URL
             │   │   ├── MetricCards.tsx
             │   │   ├── RecentActivity.tsx
             │   │   ├── RegistrarLayout.tsx
             │   │   ├── SchemaBuilder.tsx              ← MODIFIED (skill_tags field locked, undeletable, on all templates)
             │   │   ├── Sidebar.tsx                    ← MODIFIED (active link hydration fix — mounted guard)
-            │   │   └── TopBar.tsx                     ← MODIFIED (date hydration fix — client-only render)
-            │   ├── features
-            │   │   ├── CTASection.tsx
-            │   │   ├── FeaturesSection.tsx
-            │   │   ├── HeroSection.tsx
-            │   │   └── WorkflowSection.tsx
-            │   ├── pages
-            │   │   ├── LandingPage.tsx
-            │   │   └── LoginPage.tsx
-            │   ├── shared
-            │   │   ├── ConnectWalletModal.tsx
-            │   │   ├── DashboardTour.tsx
-            │   │   ├── Footer.tsx
-            │   │   ├── Navbar.tsx
-            │   │   ├── RegistrarLoginModal.tsx
-            │   │   ├── RegistrarTour.tsx
-            │   │   ├── SessionTimeout.tsx
-            │   │   └── Tooltip.tsx
+            │   │   ├── NotificationBell.tsx
+            │   │   └── ThemeToggle.tsx
             │   └── student
-            │       ├── MarketInsightsPanel.tsx        ← MODIFIED (rank-based location bars)
-            │       └── RecommendationsPanel.tsx       ← MODIFIED (explore reasonType, FALLBACK_CONFIG crash guard, contextual banners)
-            ├── contexts
-            │   └── ThemeContext.tsx
-            ├── hooks
-            │   └── useCVR.ts
+            │       ├── MarketInsightsPanel.tsx        ← MODIFIED (rich market data display)
+            │       └── RecommendationsPanel.tsx       ← MODIFIED (Tier 1/Tier 2 domain-aware display)
             └── lib
-                ├── schemas
-                │   ├── auth.ts
-                │   └── cvr.ts
-                ├── audit.ts
                 ├── blockchain.ts
                 ├── db.ts
-                ├── email.ts
                 ├── encryption.ts
-                ├── logger.ts
-                ├── supabaseClient.ts
-                ├── turnstile.ts
-                ├── utils.ts
-                └── wagmi.ts
+                └── supabaseClient.ts
 
-scripts
-
-# 4. Database Schema (Current — post Phase 9)
+# 4. Database Schema (PostgreSQL / Supabase)
 
 ```sql
 CREATE TABLE public.audit_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  created_at timestamp with time zone DEFAULT now(),
-  actor_id uuid,
-  target_id uuid,
-  action_type text NOT NULL,
-  description text,
+  user_id uuid,
+  action text NOT NULL,
+  resource_type text,
+  resource_id text,
   metadata jsonb,
-  CONSTRAINT audit_logs_pkey PRIMARY KEY (id),
-  CONSTRAINT audit_logs_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.users(id),
-  CONSTRAINT audit_logs_target_id_fkey FOREIGN KEY (target_id) REFERENCES public.users(id)
+  ip_address text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT audit_logs_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.courses (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
   title text NOT NULL,
   provider text,
-  skill_tags text[],
-  link text,
-  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  url text,
+  skill_tag text,
+  level text DEFAULT 'beginner'::text,
+  duration_hours integer,
+  is_free boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT courses_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.credential_schemas (
+CREATE TABLE public.cvr_exports (
+  -- PLANNED: create in Supabase before Phase 11
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  issuer_id uuid NOT NULL,
-  title text NOT NULL,
-  json_schema jsonb NOT NULL,
-  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT credential_schemas_pkey PRIMARY KEY (id),
-  CONSTRAINT credential_schemas_issuer_id_fkey FOREIGN KEY (issuer_id) REFERENCES public.users(id)
+  user_id uuid NOT NULL,
+  generated_at timestamp with time zone DEFAULT now(),
+  template text,
+  credential_ids uuid[],
+  snapshot jsonb,
+  CONSTRAINT cvr_exports_pkey PRIMARY KEY (id),
+  CONSTRAINT cvr_exports_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.market_snapshots (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  skill_name text NOT NULL,
-  job_count integer NOT NULL,
-  data_source text DEFAULT 'adzuna'::text,
-  recorded_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  metadata jsonb DEFAULT '{}'::jsonb,
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  keyword text NOT NULL,
+  job_count integer,
+  avg_salary numeric,
+  location_data jsonb,
+  recorded_at timestamp with time zone DEFAULT now(),
   CONSTRAINT market_snapshots_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.minting_batches (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  registrar_id uuid,
-  batch_name text,
-  total_students integer,
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  registrar_id uuid NOT NULL,
+  batch_name text NOT NULL,
+  status USER-DEFINED DEFAULT 'pending'::batch_status,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  processed_at timestamp with time zone,
   CONSTRAINT minting_batches_pkey PRIMARY KEY (id),
   CONSTRAINT minting_batches_registrar_id_fkey FOREIGN KEY (registrar_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.monitored_keywords (
-  keyword text NOT NULL,
-  category text,
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  keyword text NOT NULL UNIQUE,
+  category text DEFAULT 'tech'::text,
   is_active boolean DEFAULT true,
-  CONSTRAINT monitored_keywords_pkey PRIMARY KEY (keyword)
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT monitored_keywords_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.notifications (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
+  type text NOT NULL,
   title text NOT NULL,
   message text,
-  type text DEFAULT 'info'::text CHECK (type = ANY (ARRAY['info'::text, 'success'::text, 'warning'::text, 'alert'::text])),
   is_read boolean DEFAULT false,
-  link_url text,
-  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT notifications_pkey PRIMARY KEY (id),
   CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.profiles (
   id uuid NOT NULL,
-  bio text,
   phone text,
-  university text DEFAULT 'PHINMA University'::text,
   major text,
-  graduation_year text,
+  bio text,
   linkedin_url text,
-  github_url text,
-  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  portfolio_links jsonb DEFAULT '{"github": "", "linkedin": "", "portfolio": ""}'::jsonb,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
   CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES public.users(id)
 );
-CREATE TABLE public.rate_limits (
-  ip text NOT NULL,
-  endpoint text NOT NULL,
-  attempts integer DEFAULT 1,
-  last_attempt timestamp with time zone DEFAULT now(),
-  CONSTRAINT rate_limits_pkey PRIMARY KEY (ip, endpoint)
-);
-CREATE TABLE public.self_reported_skills (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid NOT NULL,
-  skill_name text NOT NULL,
-  proficiency text CHECK (proficiency = ANY (ARRAY['Beginner'::text, 'Intermediate'::text, 'Expert'::text])),
-  evidence_link text,
+CREATE TABLE public.schemas (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  fields jsonb NOT NULL DEFAULT '[]'::jsonb,
+  created_by uuid,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT self_reported_skills_pkey PRIMARY KEY (id),
-  CONSTRAINT self_reported_skills_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT schemas_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.skill_health_cache (
-  skill_name text NOT NULL,
-  trend_slope double precision,
-  status text CHECK (status = ANY (ARRAY['Rising'::text, 'Stable'::text, 'Decaying'::text])),
-  last_updated timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT skill_health_cache_pkey PRIMARY KEY (skill_name),
-  CONSTRAINT skill_health_cache_skill_name_fkey FOREIGN KEY (skill_name) REFERENCES public.monitored_keywords(keyword)
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  keyword text NOT NULL UNIQUE,
+  health_score integer DEFAULT 50,
+  trend_label text DEFAULT 'stable'::text,
+  trend_slope numeric DEFAULT 0,
+  job_count integer DEFAULT 0,
+  avg_salary numeric DEFAULT 0,
+  top_locations jsonb DEFAULT '[]'::jsonb,
+  confidence text DEFAULT 'low'::text,
+  last_updated timestamp with time zone DEFAULT now(),
+  CONSTRAINT skill_health_cache_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.student_course_enrollments (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   course_id uuid NOT NULL,
-  status text CHECK (status = ANY (ARRAY['completed'::text, 'in_progress'::text])),
+  enrolled_at timestamp with time zone DEFAULT now(),
   completed_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   CONSTRAINT student_course_enrollments_pkey PRIMARY KEY (id),
@@ -365,103 +343,78 @@ CREATE TABLE public.verified_credentials (
 * **Error Handling:** Use Zod for all form and API request validation.
 * **Zod Validation:** All z.record definitions must use the z.record(z.string(), z.any()) syntax to avoid runtime parser crashes.
 * **Next.js 15 params:** Route params are a Promise in Next.js 15. Always `await params` before accessing properties: `const { id } = await params`.
-* **Next.js 15 cookies:** `cookies()` returns a Promise — always `await cookies()` before accessing properties.
+* **Next.js 15 cookies:** `cookies()` returns a Promise — always `await cookies()` before calling `.get()`.
 * **skill_tags exclusion:** `skill_tags` is a top-level DB column on verified_credentials, NOT a credential_data field. Always exclude it from W3C schema required-field validation in registrar/credentials/route.ts using `key !== 'skill_tags'`.
-* **NEXT_PUBLIC_APP_URL:** Must be set in .env or schema_url will be stored as "undefined/api/schemas/...". Set to http://localhost:3000 in dev.
+* **NEXT_PUBLIC_APP_URL:** Must be set in .env or schema_url will be stored as "undefined/api/schemas/...". Set to http://localhost:3000 in dev. Use `process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'` as fallback pattern everywhere.
 * **Gemini model:** Use `gemini-flash-latest` in web portal routes (chat/route.ts, credentials/route.ts). In ai-engine, use the `GEMINI_MODEL` constant exported from `gemini-client.ts`. Never hardcode model strings outside these two locations.
 * **Cross-package imports:** Never import from `ai-engine/src` inside web portal API routes — Turbopack cannot resolve cross-package relative paths. Inline any shared logic using the web portal's own dependencies instead.
 * **Course generation:** generateCoursesForTag is inlined in credentials/route.ts (not imported from ai-engine). If the same logic is needed elsewhere in the web portal, inline it again rather than importing across packages.
 * **Hydration safety:** Never use `new Date()`, `Date.now()`, `Math.random()`, or `usePathname()`-dependent class names in initial render. Gate them behind `useState(null)` + `useEffect` or a `mounted` boolean to avoid SSR/client mismatch.
+* **p-limit version:** ai-engine uses p-limit@4 (last CJS-compatible version). Do NOT upgrade to v5+ — those are ESM-only and will break ts-node with ERR_REQUIRE_ESM.
+* **GitHub Actions Node version:** Always Node 20. Never 18 — Supabase and Hardhat deps require >=20.
+* **Gemini quota:** Free tier is 20 RPD on gemini-flash-latest. Daily cron runs with zero Gemini calls by default (no --with-gemini flag). Only pass --with-gemini for weekly/manual runs needing W3C skill sync.
+* **react-markdown:** Installed in web portal. Use for rendering AI chat responses in coach/page.tsx. Wrap in a `<div className="prose prose-sm prose-purple ...">` — do NOT pass className directly to ReactMarkdown (removed in latest version).
+* **ngrok (dev only):** For mobile QR testing, run `ngrok http 3000` in a separate terminal and update NEXT_PUBLIC_APP_URL temporarily. Revert after testing. Never commit ngrok URLs.
+* **QR code generation:** Uses `qrcode` npm package (already installed). Always generate from `NEXT_PUBLIC_APP_URL` env var with localhost fallback. QR data URL generated via `QRCode.toDataURL(verifyUrl, { width: 120, margin: 1 })`.
+* **Decay forecaster:** Current implementation uses simple slope thresholds (if/else on % change). Do NOT replace with ARIMA — insufficient data density in market_snapshots. Phase 13 target: recency-weighted velocity scoring (slope + absolute volume + recency weight). ARIMA is the documented long-term upgrade path after 6-12 months of snapshot accumulation.
+* **Gemini key segregation (planned Phase 13):** Split into GEMINI_API_KEY_BACKEND (cron/ingestion) and GEMINI_API_KEY_CHAT (chat route) to double effective daily quota from 20 to 40 RPD.
 
 # 6. Current State / Next Steps
 
-* **Data Changes (Phase 8 & 9):**
-  - verified_credentials: added `skill_tags text[] DEFAULT '{}'` column (migrated + generated).
-  - monitored_keywords: auto-populated with skill tags on every credential issue and analyze call.
-  - skill_health_cache: populated as fire-and-forget side effect of /api/analyze calls.
-  - courses: dynamically populated by Gemini on every mint when a new skill_tag has zero course coverage.
-  - All old test credentials deleted (DELETE FROM verified_credentials) — clean slate.
-  - SQL seed applied to baseline all monitored_keywords into skill_health_cache as Stable/0.0.
-
 * **Last Completed:**
-  - Phase 9 — Domain-Aware Recommendation Engine + Dynamic Course Generation (complete):
-
-    course-recommender.ts (full rewrite):
-      1. Added studentDomainTags: string[] to RecommendationContext.
-      2. normalize() helper — lowercase + whitespace collapse, used consistently for tag comparison.
-      3. hasOverlap() helper — clean intersection check between two tag arrays.
-      4. scoreCourse() extracted as pure function, reused by both tiers.
-      5. Tier 1: filters courses to domain overlap with student's credential tags.
-         Gap analysis scoped to domain courses only — no cross-field gaps surfaced.
-      6. Tier 2 (explore fallback): fills remaining slots from non-domain courses.
-         reasonType = 'explore', neutral reason text — never implies field relevance.
-      7. Early return if Tier 1 fills topN — Tier 2 query never runs.
-
-    index.ts:
-      1. Extracts studentDomainTags from studentData.credentials (deduplicated flatMap).
-      2. Passes studentDomainTags to recommendCourses context.
-      3. Logs resolved domain tags for debugging.
-
-    credentials/route.ts (Step 9 added — fire-and-forget after mint):
-      1. Checks which incoming skill_tags have zero course coverage (single hasSome query).
-      2. Calls inline generateCoursesForTag (Gemini) for each uncovered tag in parallel.
-      3. Bulk inserts generated courses into courses table.
-      4. Inlined Gemini function uses web portal's own GoogleGenerativeAI instance
-         (avoids Turbopack cross-package import error).
-
-    gemini-client.ts (ai-engine):
-      1. Added GEMINI_MODEL constant as single source of truth for model name.
-      2. generateCoursesForTag exported (used by ai-engine scripts if needed).
-
-    skill-extractor.ts:
-      1. Uses GEMINI_MODEL constant instead of hardcoded model string.
-
-    RecommendationsPanel.tsx:
-      1. Added 'explore' to reasonType union and REASON_CONFIG.
-      2. Added FALLBACK_CONFIG — prevents crash on unknown reasonType from API.
-      3. Contextual banners: all-explore banner, mixed Tier1+Tier2 banner.
-
-    TopBar.tsx:
-      1. Fixed hydration mismatch — date rendered client-only via useState(null) + useEffect.
-
-    Sidebar.tsx:
-      1. Fixed active link hydration mismatch — isActive gated behind mounted boolean.
-
-  - Verified end-to-end:
-    - Accounting student sees Financial Accounting, Taxation, Cost Accounting courses (Tier 1).
-    - No Docker/Kubernetes/Agile appearing for domain-specific students.
-    - Gemini generated 3 courses each for Financial Accounting, Cost Accounting, Taxation on first mint.
-    - Explore banner shown correctly when no domain courses exist yet.
+  - Phase 10 — CVR QR Code (complete):
+    - QR generated in ExportCVRModal.tsx via `qrcode` package.
+    - QR encodes `NEXT_PUBLIC_APP_URL/verify/[credentialId]`.
+    - credentialId = `availableCertifications[0]?.id || crypto.randomUUID()`.
+    - QR embedded in all 3 ghost templates + modal preview (PDF only).
+    - Verify page works end-to-end on mobile scan via ngrok.
+  - AI Chat Markdown (complete): react-markdown + @tailwindcss/typography installed and wired.
 
 * **Known Pending Issues:**
-  - trend_slope is still synthetic. Replace deriveTrendSlope() with real linear
-    regression from market_snapshots once data density is sufficient per tag.
-  - NEXT_PUBLIC_APP_URL missing from .env — set to http://localhost:3000 in dev.
-  - Verify api/student/credentials/route.ts selects skill_tags column.
-  - Generated course links are unverified (Gemini-generated slugs). Add a
-    link-validation pass in a future phase. Marked with TODO in credentials/route.ts.
-  - Cron job issue — pending diagnosis (next item).
+  - trend_slope is synthetic — Phase 13 replaces with weighted velocity scoring.
+  - QR links to first verified_credential only — Phase 11 fixes with cvr_exports table.
+  - Gemini free tier (20 RPD) scalability ceiling — Phase 13 adds key segregation.
+  - allowedDevOrigins warning for ngrok — add to next.config.ts.
+  - Generated course URLs are unverified Gemini slugs — future link-validation pass.
 
 * **Next Steps (in order):**
-  1. Diagnose and fix daily cron job issue (daily-update.ts).
+  1. Phase 11 — Dedicated CVR Verification:
+       a. Create `cvr_exports` table in Supabase (SQL above, marked PLANNED).
+       b. Add /api/cvr/export/route.ts — authenticated POST, inserts cvr_exports row,
+          returns new UUID. Called from cvr/page.tsx on CVR generation.
+       c. Add /api/verify/cvr/[id]/route.ts — public GET, returns full CVR snapshot
+          (all skills, student info, credential_ids, generated_at).
+       d. Add /verify/cvr/[id]/page.tsx — public page showing all verified skills,
+          per-skill on-chain status, student identity, export timestamp.
+       e. Update ExportCVRModal.tsx QR to point to /verify/cvr/[id] instead of /verify/[id].
+       f. Update cvr/page.tsx to POST to /api/cvr/export and use returned UUID as credentialId.
 
-  2. Phase 10 — CVR QR Code → Verified Ledger:
-     Add QR code to generated/exported CVR encoding /verify/[credential-uuid].
-     Employer scans → lands on public verification portal.
-     Tie into ExportCVRModal or CVR preview step.
+  2. Phase 12 — AI CVR Analysis:
+     Gemini feedback on CVR: skill strength, market alignment, missing keywords.
+     Display as panel on CVR page or coach page.
 
-  3. Phase 11 — AI CVR Analysis:
-     Pass student CVR data through Gemini. Return structured feedback:
-     skill strength, market alignment, missing keywords, improvements.
-     Display as panel on CVR or coach page.
+  3. Phase 13 — Academic Defense Prep Bundle:
+       a. Weighted Velocity Scoring in decay-forecaster.ts (3-signal: slope + volume + recency).
+       b. F1 Evaluation Script — evaluate-extractor.ts, golden dataset, Precision/Recall/F1 output.
+       c. Dual Gemini key segregation — GEMINI_API_KEY_BACKEND + GEMINI_API_KEY_CHAT.
+       d. Batching audit — verify daily-update.ts batches all skills into one Gemini call.
+       e. Cost-at-scale projection for defense slide (5,000 students).
 
-  4. Passive — Trend Confidence: auto-improves to 'medium' after 4 days,
-     'high' after 7 days of cron runs. No code needed.
+     Key defense talking points:
+     - Chose zero-shot extraction over static model to solve concept drift by design.
+     - New skill (e.g. Quantum Computing) extracted, market-analyzed, course-matched on
+       first mint with zero human intervention or retraining.
+     - ARIMA evaluated but deferred — recency-weighted scoring is statistically appropriate
+       for current data density. ARIMA is the documented upgrade path.
+     - Instructor confirmed: "just experiment" — deliberate architectural experimentation
+       with a production LLM API is the approved approach.
 
-  5. Future — Production Readiness:
-     Polygon Amoy → mainnet. Fix NEXT_PUBLIC_APP_URL for schema_url.
+  4. Passive — Trend Confidence improves automatically with cron time. No code needed.
+
+  5. Future — Production: Polygon Amoy → mainnet, NEXT_PUBLIC_APP_URL for prod deploy.
 
 * **Git:**
-  - Branch: feature/phase9-domain-recommendations
-  - Commit: "fix: domain-aware course recommendations + dynamic course generation"
+  - Current branch: feature/phase10-cvr-qr
+  - Next branch: feature/phase11-cvr-dedicated-verify
+  - Merge phase10 to main before starting phase11.
 ---
