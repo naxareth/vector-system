@@ -61,7 +61,7 @@ packages
 └── web-portal
     └── vector-web
         ├── prisma
-        │   └── schema.prisma                          ← MODIFIED (skill_tags String[] on verified_credentials)
+        │   └── schema.prisma                          ← MODIFIED (skill_tags String[] on verified_credentials, skill_health_cache fields synced)
         ├── scripts
         │   ├── backfill-skill-tags.ts                 ← NEW (one-time migration, already run)
         │   └── evaluate-extractor.ts                  ← PLANNED Phase 13 (F1 score golden dataset eval)
@@ -93,7 +93,8 @@ packages
             │   │   │   └── verify-email/route.ts
             │   │   ├── chat/route.ts                  ← MODIFIED (salary + location Gemini context) ← Phase 13 key segregation
             │   │   ├── cvr
-            │   │   │   └── export/route.ts            ← PLANNED Phase 11 (INSERT into cvr_exports, return UUID)
+            │   │   │   ├── export/route.ts            ← NEW Phase 11 (INSERT into cvr_exports, return UUID)
+            │   │   │   └── analyze/route.ts           ← NEW Phase 12 (Gemini CVR analysis, skill_health_cache enrichment)
             │   │   ├── mint/route.ts
             │   │   ├── registrar
             │   │   │   ├── credentials/route.ts       ← MODIFIED (inline Gemini course gen, dynamic course pipeline, skill_tags validation)
@@ -106,21 +107,21 @@ packages
             │   │   │   └── market-insights/route.ts
             │   │   ├── verify
             │   │   │   ├── [id]/route.ts              ← NEW (public single credential verification API)
-            │   │   │   └── cvr/[id]/route.ts          ← PLANNED Phase 11 (CVR-level verification API)
+            │   │   │   └── cvr/[id]/route.ts          ← NEW Phase 11 (CVR-level verification API)
             │   │   └── verify-registrar/route.ts
             │   ├── registrar
             │   │   ├── dashboard/page.tsx             ← MODIFIED (extracts + validates skill_tags before minting)
             │   │   └── students/page.tsx
             │   ├── student
             │   │   ├── coach/page.tsx                 ← MODIFIED (react-markdown for AI chat, per-skill chart normalization)
-            │   │   ├── cvr/page.tsx                   ← MODIFIED (credentialId = availableCertifications[0]?.id || crypto.randomUUID()) ← Phase 11 update
+            │   │   ├── cvr/page.tsx                   ← MODIFIED Phase 12 (CVRAnalysisPanel wired, latestSnapshot derived pre-render)
             │   │   ├── dashboard/page.tsx
             │   │   ├── profile/page.tsx
             │   │   ├── profile/security/page.tsx
             │   │   └── skills/page.tsx                ← MODIFIED (fan-out by skill_tags, two-phase load, slope velocity UI)
             │   └── verify
             │       ├── [id]/page.tsx                  ← NEW (public single credential verify portal, no auth)
-            │       └── cvr/[id]/page.tsx              ← PLANNED Phase 11 (full CVR verification portal)
+            │       └── cvr/[id]/page.tsx              ← NEW Phase 11 (full CVR verification portal)
             ├── components
             │   ├── auth
             │   │   ├── ChallengeMFA.tsx
@@ -129,6 +130,7 @@ packages
             │   │   └── StudentRegisterForm.tsx
             │   ├── cvr
             │   │   ├── CVRFormSections.tsx            ← MODIFIED (barrel export)
+            │   │   ├── CVRAnalysisPanel.tsx           ← NEW Phase 12 (Gemini CVR feedback: score, skill strength, market alignment, gaps, recommendations)
             │   │   ├── PersonalDetailsSection.tsx
             │   │   ├── EducationSection.tsx
             │   │   ├── ExperienceSection.tsx
@@ -157,6 +159,7 @@ packages
                 ├── blockchain.ts
                 ├── db.ts
                 ├── encryption.ts
+                ├── gemini.ts                          ← NEW (centralized GEMINI_MODEL constant + geminiModel singleton for all web portal routes)
                 └── supabaseClient.ts
 
 # 4. Database Schema (PostgreSQL / Supabase)
@@ -186,7 +189,6 @@ CREATE TABLE public.courses (
   CONSTRAINT courses_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.cvr_exports (
-  -- PLANNED: create in Supabase before Phase 11
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   generated_at timestamp with time zone DEFAULT now(),
@@ -346,54 +348,59 @@ CREATE TABLE public.verified_credentials (
 * **Next.js 15 cookies:** `cookies()` returns a Promise — always `await cookies()` before calling `.get()`.
 * **skill_tags exclusion:** `skill_tags` is a top-level DB column on verified_credentials, NOT a credential_data field. Always exclude it from W3C schema required-field validation in registrar/credentials/route.ts using `key !== 'skill_tags'`.
 * **NEXT_PUBLIC_APP_URL:** Must be set in .env or schema_url will be stored as "undefined/api/schemas/...". Set to http://localhost:3000 in dev. Use `process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'` as fallback pattern everywhere.
-* **Gemini model:** Use `gemini-flash-latest` in web portal routes (chat/route.ts, credentials/route.ts). In ai-engine, use the `GEMINI_MODEL` constant exported from `gemini-client.ts`. Never hardcode model strings outside these two locations.
+* **Gemini model:** Use `gemini-2.5-flash-lite` as GEMINI_MODEL in both `src/lib/gemini.ts` (web portal) and `packages/ai-engine/src/nlp/gemini-client.ts`. Never hardcode model strings anywhere else — always import the constant. Free tier is 20 RPD / 10 RPM on this model.
+* **Centralized Gemini client:** Web portal routes must import `geminiModel` from `@/lib/gemini` instead of instantiating their own `GoogleGenerativeAI` + `getGenerativeModel`. The singleton is defined once in `src/lib/gemini.ts`. ai-engine uses its own `gemini-client.ts` independently (cross-package imports are forbidden).
 * **Cross-package imports:** Never import from `ai-engine/src` inside web portal API routes — Turbopack cannot resolve cross-package relative paths. Inline any shared logic using the web portal's own dependencies instead.
 * **Course generation:** generateCoursesForTag is inlined in credentials/route.ts (not imported from ai-engine). If the same logic is needed elsewhere in the web portal, inline it again rather than importing across packages.
 * **Hydration safety:** Never use `new Date()`, `Date.now()`, `Math.random()`, or `usePathname()`-dependent class names in initial render. Gate them behind `useState(null)` + `useEffect` or a `mounted` boolean to avoid SSR/client mismatch.
 * **p-limit version:** ai-engine uses p-limit@4 (last CJS-compatible version). Do NOT upgrade to v5+ — those are ESM-only and will break ts-node with ERR_REQUIRE_ESM.
 * **GitHub Actions Node version:** Always Node 20. Never 18 — Supabase and Hardhat deps require >=20.
-* **Gemini quota:** Free tier is 20 RPD on gemini-flash-latest. Daily cron runs with zero Gemini calls by default (no --with-gemini flag). Only pass --with-gemini for weekly/manual runs needing W3C skill sync.
+* **Gemini quota:** Free tier is 20 RPD on gemini-2.5-flash-lite. Daily cron runs with zero Gemini calls by default (no --with-gemini flag). Only pass --with-gemini for weekly/manual runs needing W3C skill sync.
 * **react-markdown:** Installed in web portal. Use for rendering AI chat responses in coach/page.tsx. Wrap in a `<div className="prose prose-sm prose-purple ...">` — do NOT pass className directly to ReactMarkdown (removed in latest version).
 * **ngrok (dev only):** For mobile QR testing, run `ngrok http 3000` in a separate terminal and update NEXT_PUBLIC_APP_URL temporarily. Revert after testing. Never commit ngrok URLs.
 * **QR code generation:** Uses `qrcode` npm package (already installed). Always generate from `NEXT_PUBLIC_APP_URL` env var with localhost fallback. QR data URL generated via `QRCode.toDataURL(verifyUrl, { width: 120, margin: 1 })`.
 * **Decay forecaster:** Current implementation uses simple slope thresholds (if/else on % change). Do NOT replace with ARIMA — insufficient data density in market_snapshots. Phase 13 target: recency-weighted velocity scoring (slope + absolute volume + recency weight). ARIMA is the documented long-term upgrade path after 6-12 months of snapshot accumulation.
 * **Gemini key segregation (planned Phase 13):** Split into GEMINI_API_KEY_BACKEND (cron/ingestion) and GEMINI_API_KEY_CHAT (chat route) to double effective daily quota from 20 to 40 RPD.
+* **skill_health_cache Prisma fields:** The Prisma model for skill_health_cache uses `skill_name` as the primary key (not `id` or `keyword`). Select/where fields are: `skill_name`, `health_score`, `trend_label`, `trend_slope`, `job_count`, `avg_salary`, `top_locations`, `confidence`, `status`, `last_updated`. The DB has a `keyword` column (unique) but Prisma maps it as `skill_name` in the generated client — always use `skill_name` in Prisma queries.
 
 # 6. Current State / Next Steps
 
 * **Last Completed:**
-  - Phase 10 — CVR QR Code (complete):
-    - QR generated in ExportCVRModal.tsx via `qrcode` package.
-    - QR encodes `NEXT_PUBLIC_APP_URL/verify/[credentialId]`.
-    - credentialId = `availableCertifications[0]?.id || crypto.randomUUID()`.
-    - QR embedded in all 3 ghost templates + modal preview (PDF only).
-    - Verify page works end-to-end on mobile scan via ngrok.
-  - AI Chat Markdown (complete): react-markdown + @tailwindcss/typography installed and wired.
+  - Phase 11 — Dedicated CVR Verification (complete):
+    - cvr_exports table live in Supabase.
+    - /api/cvr/export/route.ts — authenticated POST, inserts row, returns UUID.
+    - /api/verify/cvr/[id]/route.ts — public GET, returns full CVR snapshot.
+    - /verify/cvr/[id]/page.tsx — public portal with isLatest employer warning.
+    - CVR history panel on student CVR page.
+    - ExportCVRModal QR points to /verify/cvr/[id].
+    - CVR immutability enforced by design.
+  - Phase 12 — AI CVR Analysis (partially complete, needs full test):
+    - /api/cvr/analyze/route.ts — authenticated POST, enriches snapshot with skill_health_cache market data, calls Gemini, returns structured JSON (overallScore, summary, skillStrength, marketAlignment, missingKeywords, recommendations).
+    - CVRAnalysisPanel.tsx — 4-state component (idle, loading, error, results). Displays score ring, market alignment bar, skill chips (strong/moderate/weak), missing keywords, recommendations.
+    - cvr/page.tsx — panel wired below form, only renders when cvrHistory.length > 0. latestSnapshot derived pre-render.
+    - src/lib/gemini.ts — NEW centralized Gemini singleton (GEMINI_MODEL + geminiModel exports) for all web portal routes.
+    - prisma/schema.prisma — skill_health_cache model synced with full DB column set (health_score, trend_label, job_count, avg_salary, top_locations, confidence).
+    - npx prisma db push + npx prisma generate completed.
 
-* **Known Pending Issues:**
+* **Known Pending Issues / Phase 12 not yet fully verified:**
+  - CVRAnalysisPanel market enrichment path not confirmed working end-to-end (skill_health_cache Prisma fix applied but not tested with real populated cache data).
+  - Existing web portal routes (chat/route.ts, credentials/route.ts, analyze/route.ts) still instantiate their own GoogleGenerativeAI — not yet migrated to import geminiModel from @/lib/gemini. Migration is low-priority but should be done for consistency.
   - trend_slope is synthetic — Phase 13 replaces with weighted velocity scoring.
-  - QR links to first verified_credential only — Phase 11 fixes with cvr_exports table.
   - Gemini free tier (20 RPD) scalability ceiling — Phase 13 adds key segregation.
   - allowedDevOrigins warning for ngrok — add to next.config.ts.
   - Generated course URLs are unverified Gemini slugs — future link-validation pass.
 
 * **Next Steps (in order):**
-  1. Phase 11 — Dedicated CVR Verification:
-       a. Create `cvr_exports` table in Supabase (SQL above, marked PLANNED).
-       b. Add /api/cvr/export/route.ts — authenticated POST, inserts cvr_exports row,
-          returns new UUID. Called from cvr/page.tsx on CVR generation.
-       c. Add /api/verify/cvr/[id]/route.ts — public GET, returns full CVR snapshot
-          (all skills, student info, credential_ids, generated_at).
-       d. Add /verify/cvr/[id]/page.tsx — public page showing all verified skills,
-          per-skill on-chain status, student identity, export timestamp.
-       e. Update ExportCVRModal.tsx QR to point to /verify/cvr/[id] instead of /verify/[id].
-       f. Update cvr/page.tsx to POST to /api/cvr/export and use returned UUID as credentialId.
+  1. Finish validating Phase 12 end-to-end:
+       a. Mint a credential with skill_tags so skill_health_cache has data.
+       b. Run daily-update.ts (no --with-gemini needed) to populate cache.
+       c. Go to /student/cvr — confirm CVRAnalysisPanel appears below form.
+       d. Click "Analyze My CVR" — confirm market enrichment data appears in
+          skillStrength chips and marketAlignment insight (not just generic advice).
+       e. Confirm Re-analyze button works and returns fresh results.
+       f. Confirm error state shows cleanly if Gemini quota exceeded.
 
-  2. Phase 12 — AI CVR Analysis:
-     Gemini feedback on CVR: skill strength, market alignment, missing keywords.
-     Display as panel on CVR page or coach page.
-
-  3. Phase 13 — Academic Defense Prep Bundle:
+  2. Phase 13 — Academic Defense Prep Bundle:
        a. Weighted Velocity Scoring in decay-forecaster.ts (3-signal: slope + volume + recency).
        b. F1 Evaluation Script — evaluate-extractor.ts, golden dataset, Precision/Recall/F1 output.
        c. Dual Gemini key segregation — GEMINI_API_KEY_BACKEND + GEMINI_API_KEY_CHAT.
@@ -409,12 +416,13 @@ CREATE TABLE public.verified_credentials (
      - Instructor confirmed: "just experiment" — deliberate architectural experimentation
        with a production LLM API is the approved approach.
 
-  4. Passive — Trend Confidence improves automatically with cron time. No code needed.
+  3. Passive — Trend Confidence improves automatically with cron time. No code needed.
 
-  5. Future — Production: Polygon Amoy → mainnet, NEXT_PUBLIC_APP_URL for prod deploy.
+  4. Future — Production: Polygon Amoy → mainnet, NEXT_PUBLIC_APP_URL for prod deploy.
 
 * **Git:**
-  - Current branch: feature/phase10-cvr-qr
-  - Next branch: feature/phase11-cvr-dedicated-verify
-  - Merge phase10 to main before starting phase11.
+  - Completed branches: feature/phase10-cvr-qr, feature/phase11-cvr-dedicated-verify
+  - Current branch: feature/phase12-ai-cvr-analysis
+  - Next branch: feature/phase13-defense-prep
+  - Merge phase12 to main after full Phase 12 validation.
 ---

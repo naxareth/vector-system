@@ -8,6 +8,7 @@ import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain'
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import CVRSuccessModal from '@/components/dashboard/CVRSuccessModal';
+import CVRAnalysisPanel from '@/components/cvr/CVRAnalysisPanel'; // Phase 12
 import {
   PersonalDetailsSection,
   EducationSection,
@@ -409,6 +410,17 @@ export default function CVRPage() {
   };
 
   // ---------------------------------------------------------------------------
+  // Phase 12: Derive latest snapshot for AI analysis panel
+  // Parsed defensively here (outside JSX) to keep the render clean.
+  // ---------------------------------------------------------------------------
+  const latestSnapshot =
+    cvrHistory.length > 0
+      ? typeof cvrHistory[0].snapshot === 'string'
+        ? JSON.parse(cvrHistory[0].snapshot)
+        : cvrHistory[0].snapshot
+      : null;
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
   return (
@@ -594,6 +606,18 @@ export default function CVRPage() {
               </div>
             </div>
           </form>
+
+          {/* ----------------------------------------------------------------
+            Phase 12 — AI CVR Analysis Panel
+            Renders below the form once the student has at least one export.
+            Analyzes the latest saved CVR snapshot via Gemini.
+            latestSnapshot is derived above the return statement.
+            ---------------------------------------------------------------- */}
+          {latestSnapshot && (
+            <div className="mt-4">
+              <CVRAnalysisPanel snapshot={latestSnapshot} />
+            </div>
+          )}
         </>
       ) : (
         /* Generated CVR display */
