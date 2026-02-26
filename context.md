@@ -98,8 +98,8 @@ packages
             │   │   │   └── analyze/route.ts           ← NEW Phase 12 (Gemini CVR analysis, skill_health_cache enrichment)
             │   │   ├── mint/route.ts
             │   │   ├── registrar
-            │   │   │   ├── credentials/route.ts       ← MODIFIED (inline Gemini course gen, dynamic course pipeline, skill_tags validation)
-            │   │   │   └── log-mint/route.ts          ← MODIFIED (notification insert after mint) ← BUG: notifications not received on student end
+            │   │   │   ├── credentials/route.ts       ← MODIFIED (step 8b notification insert, supabaseAdmin for RLS bypass, full_name added to dbUser select)
+            │   │   │   └── log-mint/route.ts          ← legacy route, no longer called by registrar dashboard
             │   │   ├── schemas/route.ts
             │   │   ├── schemas/[id]/route.ts
             │   │   ├── student
@@ -151,7 +151,7 @@ packages
             │   │   ├── RegistrarLayout.tsx
             │   │   ├── SchemaBuilder.tsx              ← MODIFIED (skill_tags field locked, undeletable, on all templates)
             │   │   ├── Sidebar.tsx                    ← MODIFIED (active link hydration fix — mounted guard)
-            │   │   ├── NotificationBell.tsx           ← BUG: student not receiving notifications after registrar mints
+            │   │   ├── TopBar.tsx                     ← MODIFIED (Supabase Realtime subscription, 30s polling fallback, mark-all-read on bell open, click redirects to /verify/[id])
             │   │   └── ThemeToggle.tsx
             │   └── student
             │       ├── MarketInsightsPanel.tsx        ← MODIFIED (rich market data display)
@@ -234,6 +234,7 @@ CREATE TABLE public.notifications (
   message text,
   is_read boolean DEFAULT false,
   created_at timestamp with time zone DEFAULT now(),
+  link_url text,
   CONSTRAINT notifications_pkey PRIMARY KEY (id),
   CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -365,65 +366,58 @@ CREATE TABLE public.verified_credentials (
 * **skill_health_cache Prisma fields:** The Prisma model for skill_health_cache uses `skill_name` as the primary key (not `id` or `keyword`). Select/where fields are: `skill_name`, `health_score`, `trend_label`, `trend_slope`, `job_count`, `avg_salary`, `top_locations`, `confidence`, `status`, `last_updated`. The DB has a `keyword` column (unique) but Prisma maps it as `skill_name` in the generated client — always use `skill_name` in Prisma queries.
 * **F1 Evaluation:** Phase 13b complete. evaluate-extractor.ts + golden-dataset.json live in packages/ai-engine/src/scripts/. 20 cases across 4 credential types (academic degree, bootcamp cert, event badge, government cert including TESDA/DICT). Achieved F1: 0.61, Precision: 0.62, Recall: 0.60 with SOFT matching. Run with: npx ts-node packages/ai-engine/src/scripts/evaluate-extractor.ts --verbose. Use 13s delay (DELAY_MS=13_000) for gemini-2.5-flash 5 RPM limit.
 * **gemini-client.ts skill extraction:** Removed hardcoded 5-skill taxonomy (React, Python, Solidity, Node.js, AI/ML). Now uses open-domain zero-shot extraction across all credential types. This is the core zero-shot architectural decision — new credential types (TESDA, DICT, academic degrees) extract correctly on first mint with no retraining.
-* **Notification bug:** Student does not receive notifications after registrar mints a credential. Notification insert happens in log-mint/route.ts but NotificationBell.tsx on student end is not receiving/displaying it. Needs investigation — likely a polling issue or wrong user_id being inserted. Fix this before Phase 13c.
+* **Notification system:** Insert lives in credentials/route.ts step 8b — NOT in log-mint/route.ts (legacy, no longer called by dashboard). Uses supabaseAdmin (service role) to bypass RLS so registrar can write to student's notifications row. user_id = validatedData.user_id (student UUID). link_url = /verify/${newCredential.id}. TopBar.tsx uses Supabase Realtime (postgres_changes INSERT filter by user_id) for instant delivery + 30s polling fallback. Bell open marks all unread read in one .in() call. Click marks individual read + router.push(link_url). Supabase Replication must be enabled on notifications table: Dashboard → Database → Replication → toggle notifications on.
+* **Supabase Realtime requirement:** Any table used with supabase.channel postgres_changes must have Replication enabled in Supabase Dashboard → Database → Replication. Currently required for: notifications table.
 
 # 6. Current State / Next Steps
 
 * **Last Completed:**
   - Phase 11 — Dedicated CVR Verification (complete).
   - Phase 12 — AI CVR Analysis (complete, tested end-to-end).
-  - Phase 13a — Weighted Velocity Scoring (complete):
-    - decay-forecaster.ts rewritten with 3-signal weighted velocity model.
-    - slopeSignal (40%) + volumeSignal (30%) + recencySignal (30%) = velocityScore.
-    - velocityScore added as new field on SkillHealth interface.
-    - Confidence now factors recency — stale snapshots (>14 days) cap at medium.
-    - Backward compatible — all downstream consumers unchanged.
-  - Phase 13b — F1 Evaluation Script (complete):
-    - evaluate-extractor.ts in packages/ai-engine/src/scripts/.
-    - golden-dataset.json — 20 cases: 5 academic degrees, 5 bootcamp certs, 4 event badges, 6 government certs (TESDA NC II/III, DICT).
-    - Result: F1 0.61, Precision 0.62, Recall 0.60, 20/20 evaluated, 0 errors.
-    - gemini-client.ts fixed: removed hardcoded 5-skill taxonomy, now open-domain zero-shot.
-    - Supports --verbose, --json flags. Uses SOFT matching with 13s delay for 5 RPM.
+  - Phase 13a — Weighted Velocity Scoring (complete).
+  - Phase 13b — F1 Evaluation Script (complete). F1: 0.61, Precision: 0.62, Recall: 0.60, 20/20 cases, 0 errors.
+  - Notification Fix (complete):
+    - Root cause: insert was in log-mint/route.ts which is never called by registrar dashboard. Dashboard calls credentials/route.ts directly.
+    - Fix: notification insert moved to credentials/route.ts step 8b using supabaseAdmin (service role).
+    - TopBar.tsx upgraded with Supabase Realtime subscription + 30s polling fallback + mark-all-read on open + click-to-redirect.
+    - notifications.link_url column confirmed present in DB.
+    - Supabase Replication must be enabled on notifications table for Realtime to fire.
 
 * **Known Pending Issues:**
-  - Notification bug: student not receiving notifications after registrar mints credential. Fix before Phase 13c. Suspected cause: wrong user_id in insert or NotificationBell.tsx polling not triggering.
-  - Existing web portal routes (chat/route.ts, credentials/route.ts, analyze/route.ts) still instantiate their own GoogleGenerativeAI — not yet migrated to import geminiModel from @/lib/gemini. Low priority.
+  - Existing web portal routes (chat/route.ts, analyze/route.ts) still instantiate their own GoogleGenerativeAI — not yet migrated to import geminiModel from @/lib/gemini. Low priority.
   - Generated course URLs are unverified Gemini slugs — future link-validation pass.
   - allowedDevOrigins warning for ngrok — add to next.config.ts.
 
 * **Next Steps (in order):**
-  1. Fix notification bug — student must receive notification when registrar mints a credential.
-       - Check log-mint/route.ts: confirm correct student user_id is being inserted into notifications table.
-       - Check NotificationBell.tsx: confirm polling interval is active and hitting the right endpoint.
-       - Check /api/notifications or equivalent read route exists and returns unread count correctly.
-
-  2. Phase 13c — Dual Gemini key segregation:
-       - Split into GEMINI_API_KEY_BACKEND (cron/ingestion) and GEMINI_API_KEY_CHAT (chat route).
-       - Doubles effective daily quota from 20 to 40 RPD.
+  1. Phase 13c — Dual Gemini key segregation:
+       - Add GEMINI_API_KEY_BACKEND and GEMINI_API_KEY_CHAT to .env and GitHub Actions secrets.
        - Update chat/route.ts to use GEMINI_API_KEY_CHAT.
-       - Update daily-update.ts to use GEMINI_API_KEY_BACKEND.
+       - Update gemini-client.ts (ai-engine) and daily-update.ts to use GEMINI_API_KEY_BACKEND.
+       - Doubles effective daily quota from 20 to 40 RPD.
 
-  3. Phase 13d — Batching audit:
-       - Verify daily-update.ts batches all skills into one Gemini call.
-       - Ensure --with-gemini flag gates all LLM calls correctly.
+  2. Phase 13d — Batching audit:
+       - Verify daily-update.ts batches all skills into one Gemini call when --with-gemini is passed.
+       - Ensure no per-skill individual Gemini calls remain outside the batch.
 
-  4. Phase 13e — Cost-at-scale projection:
+  3. Phase 13e — Cost-at-scale projection:
        - Defense slide: project API cost for 5,000 students.
        - Use current RPD/RPM usage as baseline.
 
-  5. Passive — Trend Confidence improves automatically with cron time. No code needed.
+  4. Passive — Trend confidence improves automatically with cron time accumulation. No code needed.
 
-  6. Future — Production: Polygon Amoy → mainnet, NEXT_PUBLIC_APP_URL for prod deploy.
+  5. Future — Production: Polygon Amoy → mainnet, NEXT_PUBLIC_APP_URL for prod deploy.
 
 * **Key Defense Talking Points:**
-  - Zero-shot extraction solves concept drift by design — new credential types work on first mint.
+  - Zero-shot extraction solves concept drift by design — new credential types work on first mint with no retraining.
   - TESDA NC II in Bread and Pastry correctly extracts ["Baking", "Food Safety", "Pastry Making"] with no retraining.
   - F1: 0.61 baseline on 20-case golden dataset spanning 4 credential types including government certs.
   - ARIMA evaluated but deferred — recency-weighted velocity scoring is statistically appropriate for current data density.
   - Instructor confirmed: "just experiment" — deliberate architectural experimentation with production LLM API is the approved approach.
+  - Notification system uses Supabase Realtime (websocket) for sub-second delivery — demonstrates production-grade event-driven architecture.
 
 * **Git:**
   - Completed branches: feature/phase10-cvr-qr, feature/phase11-cvr-dedicated-verify, feature/phase12-ai-cvr-analysis
   - Current branch: feature/phase13-defense-prep
+  - Commits on this branch so far: Phase 13a (velocity scoring), Phase 13b (F1 eval + gemini-client fix), notification fix (credentials/route.ts + TopBar.tsx)
   - Merge phase12 to main before starting phase13 branch if not done yet.
 ---
