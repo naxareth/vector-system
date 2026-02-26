@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -43,6 +43,10 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
+  // Keep userId in a ref so Realtime callback can always access the latest value
+  // without needing to be re-registered every time user state changes.
+  const userIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     setCurrentDate(
       new Date().toLocaleDateString('en-US', {
@@ -73,33 +77,12 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
     toggleTheme = themeContext.toggleTheme;
   } catch {}
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('full_name, role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        const userData = {
-          id: session.user.id,
-          full_name: profile?.full_name
-            ? capitalizeWords(profile.full_name)
-            : (session.user.email?.split('@')[0] || 'User'),
-          role: profile?.role || 'student',
-          email: session.user.email,
-        };
-
-        setUser(userData);
-        fetchNotifications(userData.id);
-      }
-    };
-    getUser();
-  }, []);
-
-  const fetchNotifications = async (userId: string) => {
+  // ---------------------------------------------------------------------------
+  // fetchNotifications — wrapped in useCallback so it can be safely used
+  // inside both the initial useEffect and the polling interval without
+  // causing stale closure issues.
+  // ---------------------------------------------------------------------------
+  const fetchNotifications = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from('notifications')
       .select('*')
@@ -108,14 +91,88 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
       .limit(10);
 
     if (data) setNotifications(data);
-  };
+  }, []);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('full_name, role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      const userData: UserProfile = {
+        id: session.user.id,
+        full_name: profile?.full_name
+          ? capitalizeWords(profile.full_name)
+          : (session.user.email?.split('@')[0] || 'User'),
+        role: profile?.role || 'student',
+        email: session.user.email,
+      };
+
+      setUser(userData);
+      userIdRef.current = session.user.id;
+
+      // Initial fetch on mount
+      fetchNotifications(session.user.id);
+
+      // -----------------------------------------------------------------
+      // Supabase Realtime subscription
+      // Listens for INSERT events on the notifications table filtered to
+      // this user's rows. New notifications appear instantly the moment
+      // the registrar mints — no page refresh needed.
+      // -----------------------------------------------------------------
+      const channel = supabase
+        .channel(`notifications:${session.user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${session.user.id}`,
+          },
+          (payload) => {
+            // Prepend the new notification to the top of the list
+            setNotifications(prev => {
+              const newNotif = payload.new as NotificationItem;
+              // Guard against duplicates (realtime can occasionally fire twice)
+              if (prev.some(n => n.id === newNotif.id)) return prev;
+              return [newNotif, ...prev].slice(0, 10);
+            });
+          }
+        )
+        .subscribe();
+
+      // -----------------------------------------------------------------
+      // Polling fallback — every 30 seconds
+      // Realtime covers the fast path. Polling is a safety net for cases
+      // where the websocket connection drops (mobile sleep, network switch).
+      // -----------------------------------------------------------------
+      const pollInterval = setInterval(() => {
+        if (userIdRef.current) {
+          fetchNotifications(userIdRef.current);
+        }
+      }, 30_000);
+
+      // Cleanup: unsubscribe from realtime + clear polling on unmount
+      return () => {
+        supabase.removeChannel(channel);
+        clearInterval(pollInterval);
+      };
+    };
+
+    getUser();
+  }, [fetchNotifications]);
 
   // ---------------------------------------------------------------------------
   // handleNotificationClick
   //
-  // Previously: opening the dropdown marked ALL notifications as read at once.
-  // Now: each notification is marked read individually on click, then the
-  // user is redirected to link_url if one exists (e.g. /verify/[credential-id]).
+  // Marks the individual notification as read then redirects to link_url
+  // if one exists (e.g. /verify/[credential-id]).
   // ---------------------------------------------------------------------------
   const handleNotificationClick = async (notification: NotificationItem) => {
     // Mark as read locally immediately for snappy UI
@@ -135,6 +192,36 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
     if (notification.link_url) {
       setIsNotificationsOpen(false);
       router.push(notification.link_url);
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // handleOpenNotifications
+  //
+  // When the bell is opened, mark ALL unread notifications as read in the DB
+  // and update local state so the badge clears immediately.
+  // ---------------------------------------------------------------------------
+  const handleOpenNotifications = async () => {
+    const opening = !isNotificationsOpen;
+    setIsNotificationsOpen(opening);
+
+    if (opening && userIdRef.current) {
+      const unreadIds = notifications
+        .filter(n => !n.is_read)
+        .map(n => n.id);
+
+      if (unreadIds.length === 0) return;
+
+      // Optimistic local update — badge disappears instantly
+      setNotifications(prev =>
+        prev.map(n => unreadIds.includes(n.id) ? { ...n, is_read: true } : n)
+      );
+
+      // Persist all as read in one DB call
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .in('id', unreadIds);
     }
   };
 
@@ -248,7 +335,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
             <div id="tour-notifications" className="relative" ref={notificationsRef}>
               <Tooltip content="Notifications">
                 <button
-                  onClick={() => setIsNotificationsOpen(prev => !prev)}
+                  onClick={handleOpenNotifications}
                   className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -310,7 +397,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
                     ) : (
                       <div className="px-4 py-8 text-center">
                         <svg className="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
                         <p className="text-sm text-gray-400">No notifications yet.</p>
                       </div>

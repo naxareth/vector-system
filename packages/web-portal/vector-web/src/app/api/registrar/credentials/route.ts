@@ -181,6 +181,8 @@ const MintCredentialValidator = z.object({
 
 export async function POST(req: Request) {
   const cookieStore = await cookies();
+
+  // POST uses ANON key for auth session reading
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -194,12 +196,28 @@ export async function POST(req: Request) {
     }
   );
 
+  // Service role client — used only for the notification insert so it can
+  // bypass RLS and write to any user's notifications row without needing
+  // the student to be the authenticated actor.
+  const supabaseAdmin = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value },
+      },
+    }
+  );
+
   try {
     // 1. Verify Authentication & Authorization
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const dbUser = await prisma.users.findUnique({ where: { id: user.id }, select: { role: true, wallet_address: true } });
+    const dbUser = await prisma.users.findUnique({
+      where: { id: user.id },
+      select: { role: true, wallet_address: true, full_name: true },
+    });
     if (dbUser?.role !== 'registrar') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     // 2. Parse and validate base request
@@ -217,7 +235,6 @@ export async function POST(req: Request) {
 
     // 4. Validate incoming student data against the specific schema fields
     const schemaObj = schemaTemplate.json_schema as any;
-    // We want to validate against the 'properties' defined in the schema, not the schema metadata itself
     const definedProperties = schemaObj.properties || {};
     const requiredKeys = schemaObj.required || [];
 
@@ -239,8 +256,10 @@ export async function POST(req: Request) {
     }
 
     // 5. Generate standard W3C JSON-LD payload
-    const issuerDid = dbUser.wallet_address ? `did:polygon:amoy:${dbUser.wallet_address}` : `did:web:yourdomain.com:registrar:${user.id}`;
-    const schemaUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/schemas/${schemaTemplate.id}`;
+    const issuerDid = dbUser.wallet_address
+      ? `did:polygon:amoy:${dbUser.wallet_address}`
+      : `did:web:yourdomain.com:registrar:${user.id}`;
+    const schemaUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/schemas/${schemaTemplate.id}`;
 
     const w3cPayload = {
       "@context": [
@@ -261,7 +280,7 @@ export async function POST(req: Request) {
       ? encryptData(validatedData.private_notes) 
       : null;
 
-    // 7. Save to database
+    // 7. Save credential to database
     const newCredential = await prisma.verified_credentials.create({
       data: {
         user_id: validatedData.user_id,
@@ -287,25 +306,51 @@ export async function POST(req: Request) {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // 8b. 🔔 MINT NOTIFICATION
+    //
+    // Insert a notification for the student so their bell updates immediately
+    // via the Realtime subscription in TopBar.tsx.
+    //
+    // Uses supabaseAdmin (service role) so it can bypass RLS and write to the
+    // student's notifications row without the student being the auth actor.
+    //
+    // Non-fatal — credential is already saved, notification failure never
+    // blocks the 201 response back to the registrar.
+    // ─────────────────────────────────────────────────────────────────────────
+    if (newCredential?.id) {
+      const issuerName = dbUser.full_name || 'Your institution';
+      const { error: notifError } = await supabaseAdmin
+        .from('notifications')
+        .insert({
+          user_id: validatedData.user_id,
+          title: `New Credential Issued: ${validatedData.skill_name}`,
+          message: `${issuerName} has issued you a verified credential for "${validatedData.skill_name}". Tap to view your verified record.`,
+          type: 'success',
+          is_read: false,
+          link_url: `/verify/${newCredential.id}`,
+        });
+
+      if (notifError) {
+        // Non-fatal — log but do not surface to registrar
+        console.error('[credentials] Notification insert failed:', notifError.message);
+      } else {
+        console.log(`[credentials] Notification sent to student ${validatedData.user_id} for credential ${newCredential.id}`);
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ─────────────────────────────────────────────────────────────────────────
     // 9. 🎓 DYNAMIC COURSE GENERATION (Phase 9)
     //
     // For each incoming skill_tag, check if the courses table already has
     // coverage. If a tag has zero matching courses, call Gemini to generate
     // 2-3 relevant courses and insert them.
     //
-    // This runs fire-and-forget — no await on the outer block — so it never
-    // delays the 201 response back to the registrar.
-    //
-    // This ensures the recommendation engine always has domain-relevant
-    // courses available after a credential is minted, regardless of what
-    // field the credential is in.
+    // Fire-and-forget — never delays the 201 response back to the registrar.
     // ─────────────────────────────────────────────────────────────────────────
     if (validatedData.skill_tags.length > 0) {
       (async () => {
         try {
-          // Step 9a: Find which tags have zero course coverage in one query.
-          // We fetch all courses whose skill_tags overlap with the incoming tags,
-          // then determine which incoming tags are still uncovered.
           const coveredCourses = await prisma.courses.findMany({
             where: {
               skill_tags: {
@@ -315,7 +360,6 @@ export async function POST(req: Request) {
             select: { skill_tags: true },
           });
 
-          // Flatten all tags that already have at least one course covering them
           const coveredTags = new Set(
             coveredCourses.flatMap((c) => c.skill_tags ?? [])
           );
@@ -331,7 +375,6 @@ export async function POST(req: Request) {
 
           console.log(`[course-gen] Uncovered tags detected: ${uncoveredTags.join(', ')} — generating courses`);
 
-          // Step 9b: Generate courses for each uncovered tag in parallel
           const generatedBatches = await Promise.all(
             uncoveredTags.map((tag) => generateCoursesForTag(tag))
           );
@@ -343,10 +386,6 @@ export async function POST(req: Request) {
             return;
           }
 
-          // Step 9c: Bulk insert generated courses
-          // createMany is used for efficiency; skipDuplicates guards against
-          // any race condition where two mints fire simultaneously for the
-          // same uncovered tag.
           await prisma.courses.createMany({
             data: allGenerated.map((c) => ({
               title: c.title,
@@ -356,13 +395,12 @@ export async function POST(req: Request) {
               // Add a link-validation pass in a future phase.
               skill_tags: c.skill_tags,
             })),
-            skipDuplicates: false, // titles are not unique-constrained, so allow
+            skipDuplicates: false,
           });
 
           console.log(`[course-gen] Inserted ${allGenerated.length} course(s) for tags: ${uncoveredTags.join(', ')}`);
 
         } catch (courseGenErr) {
-          // Non-fatal: log but never surface to the registrar
           console.error('[course-gen] Dynamic course generation failed:', courseGenErr);
         }
       })();
