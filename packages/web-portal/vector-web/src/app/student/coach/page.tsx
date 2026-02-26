@@ -194,18 +194,15 @@ export default function CoachPage() {
   // ---------------------------------------------------------------------------
   // renderTrendGraph
   //
-  // Previous issues:
-  //   1. Global min/max: Python at 134k dominated the y-axis, making React (4k)
-  //      and others render as a flat line at the bottom.
-  //   2. Only 2 data points stretched across full SVG width looked broken.
+  // Fixed pixel viewBox (600×160) with preserveAspectRatio="xMidYMid meet" —
+  // avoids the distortion that came from preserveAspectRatio="none" which was
+  // stretching circle radii and stroke widths non-uniformly.
   //
-  // Fixes:
-  //   1. Per-skill normalization — each skill line uses its own min/max so all
-  //      lines fill the vertical space regardless of their absolute scale.
-  //      A legend shows actual job counts so the context isn't lost.
-  //   2. Low-data warning shown when fewer than 4 snapshots exist.
-  //   3. Points constrained to actual data range on x-axis — no more stretching
-  //      2 points across the full width. Chart width scales to point count.
+  // Smooth cubic bezier curves replace polyline for clean, professional lines.
+  //
+  // Per-skill normalization: each skill maps its own min/max to the Y range
+  // so all lines fill the vertical space regardless of absolute job count.
+  // A legend with actual job counts preserves the real-world context.
   // ---------------------------------------------------------------------------
   const renderTrendGraph = () => {
     if (realHistory.length === 0) return null;
@@ -215,11 +212,20 @@ export default function CoachPage() {
       : [selectedSkillView];
 
     const colors = ['#9333ea', '#22c55e', '#ef4444', '#3b82f6', '#f59e0b'];
-    const W = 100; // viewBox width (percentage units)
-    const H = 100; // viewBox height (percentage units)
+
+    // Fixed pixel coordinate space — ~35% wider/taller than original
+    const VW = 820;
+    const VH = 220;
+    const PAD_LEFT = 8;
+    const PAD_RIGHT = 8;
+    const PAD_TOP = 10;
+    const PAD_BOTTOM = 20; // room for date labels
+    const chartW = VW - PAD_LEFT - PAD_RIGHT;
+    const chartH = VH - PAD_TOP - PAD_BOTTOM;
+
     const hasEnoughData = realHistory.length >= 4;
 
-    // Build per-skill value arrays for normalization
+    // Per-skill ranges
     const skillRanges: Record<string, { min: number; max: number; latest: number }> = {};
     activeSkills.forEach(skill => {
       const values = realHistory.map(d => Number(d[skill] || 0)).filter(v => v > 0);
@@ -232,6 +238,24 @@ export default function CoachPage() {
     });
 
     const visibleSkills = activeSkills.filter(s => skillRanges[s]);
+
+    // Smooth cubic bezier path builder
+    const smoothPath = (pts: { x: number; y: number }[]): string => {
+      if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+      if (pts.length === 2) return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
+      let d = `M ${pts[0].x} ${pts[0].y}`;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i];
+        const p1 = pts[i + 1];
+        const tension = 0.4;
+        const cp1x = p0.x + (p1.x - p0.x) * tension;
+        const cp1y = p0.y;
+        const cp2x = p1.x - (p1.x - p0.x) * tension;
+        const cp2y = p1.y;
+        d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x} ${p1.y}`;
+      }
+      return d;
+    };
 
     return (
       <div className="space-y-3">
@@ -247,107 +271,124 @@ export default function CoachPage() {
         )}
 
         {/* Chart */}
-        <div className="relative" style={{ height: '200px' }}>
-          {/* Y-axis label */}
-          <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[10px] text-gray-300 pointer-events-none w-6">
-            <span>100%</span>
-            <span>50%</span>
-            <span>0%</span>
-          </div>
-
+        <div className="relative w-full" style={{ height: '180px' }}>
           <svg
-            className="absolute inset-0 h-full w-full overflow-visible"
-            viewBox={`0 0 ${W} ${H}`}
-            preserveAspectRatio="none"
-            style={{ paddingLeft: '24px' }}
+            viewBox={`0 0 ${VW} ${VH}`}
+            preserveAspectRatio="xMidYMid meet"
+            className="w-full h-full"
           >
-            {/* Grid lines */}
-            {[0, 50, 100].map(y => (
-              <line
-                key={y}
-                x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`}
-                stroke="#f3f4f6"
-                strokeWidth="0.5"
-                vectorEffect="non-scaling-stroke"
-              />
-            ))}
+            {/* Gradient defs */}
+            <defs>
+              {visibleSkills.map((skill, index) => (
+                <linearGradient key={skill} id={`grad-${index}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={colors[index % colors.length]} stopOpacity="0.15" />
+                  <stop offset="100%" stopColor={colors[index % colors.length]} stopOpacity="0" />
+                </linearGradient>
+              ))}
+            </defs>
+
+            {/* Subtle horizontal grid lines */}
+            {[0, 0.25, 0.5, 0.75, 1].map(frac => {
+              const y = PAD_TOP + frac * chartH;
+              return (
+                <line
+                  key={frac}
+                  x1={PAD_LEFT} y1={y}
+                  x2={PAD_LEFT + chartW} y2={y}
+                  stroke="#f3f4f6"
+                  strokeWidth="1"
+                />
+              );
+            })}
 
             {visibleSkills.map((skill, index) => {
               const { min, max } = skillRanges[skill];
-              const range = (max - min) || 1;
+              const range = max - min || 1;
               const color = colors[index % colors.length];
 
-              // Only use history points where this skill has data
               const dataPoints = realHistory
-                .map((point, i) => ({ i, val: Number(point[skill] || 0), date: point.date }))
+                .map((point) => ({ val: Number(point[skill] || 0), date: point.date }))
                 .filter(p => p.val > 0);
 
               if (dataPoints.length < 1) return null;
 
-              // X positions spread across full width based on index within dataPoints
-              const pts = dataPoints.map((p, j) => {
-                const x = dataPoints.length === 1 ? 50 : (j / (dataPoints.length - 1)) * W;
-                // Per-skill normalization: maps this skill's own range to 0–100% height
-                const y = H - ((p.val - min) / range) * H;
-                return { x, y, val: p.val, date: p.date };
-              });
+              const pts = dataPoints.map((p, j) => ({
+                x: PAD_LEFT + (dataPoints.length === 1
+                  ? chartW / 2
+                  : (j / (dataPoints.length - 1)) * chartW),
+                y: PAD_TOP + chartH - ((p.val - min) / range) * chartH,
+                val: p.val,
+                date: p.date,
+              }));
 
-              const pointsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
+              const pathD = smoothPath(pts);
+              const areaD = `${pathD} L ${pts[pts.length - 1].x} ${PAD_TOP + chartH} L ${pts[0].x} ${PAD_TOP + chartH} Z`;
 
               return (
                 <g key={skill}>
-                  <polyline
-                    points={pointsStr}
+                  {/* Area fill */}
+                  <path d={areaD} fill={`url(#grad-${index})`} />
+
+                  {/* Smooth line */}
+                  <path
+                    d={pathD}
                     fill="none"
                     stroke={color}
-                    strokeWidth="2.5"
-                    vectorEffect="non-scaling-stroke"
-                    className="drop-shadow-sm"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
+
+                  {/* Data point dots — crisp fixed-size circles */}
                   {pts.map((p, j) => (
                     <g key={j}>
-                      <circle
-                        cx={p.x}
-                        cy={p.y}
-                        r="3"
-                        fill="white"
-                        stroke={color}
-                        strokeWidth="2"
-                        vectorEffect="non-scaling-stroke"
-                        className="cursor-pointer"
-                      />
-                      {/* Tooltip on hover via title */}
+                      <circle cx={p.x} cy={p.y} r="3.5" fill="white" stroke={color} strokeWidth="2" />
                       <title>{`${skill}: ${p.val.toLocaleString()} jobs (${p.date})`}</title>
                     </g>
                   ))}
                 </g>
               );
             })}
-          </svg>
 
-          {/* X-axis date labels */}
-          <div className="absolute bottom-0 left-6 right-0 flex justify-between text-[10px] text-gray-400">
-            {realHistory.length === 1 ? (
-              <span className="mx-auto">{realHistory[0].date}</span>
-            ) : (
-              (() => {
-                const step = Math.ceil(realHistory.length / 5);
-                return realHistory
-                  .filter((_, i) => i === 0 || i === realHistory.length - 1 || i % step === 0)
-                  .map((d, i) => <span key={i}>{d.date}</span>);
-              })()
-            )}
-          </div>
+            {/* X-axis date labels inside the SVG — consistent sizing */}
+            {(() => {
+              const step = Math.max(1, Math.ceil(realHistory.length / 5));
+              return realHistory
+                .map((d, i) => ({ d, i }))
+                .filter(({ i }) => i === 0 || i === realHistory.length - 1 || i % step === 0)
+                .map(({ d, i }) => {
+                  const x = PAD_LEFT + (realHistory.length === 1
+                    ? chartW / 2
+                    : (i / (realHistory.length - 1)) * chartW);
+                  return (
+                    <text
+                      key={i}
+                      x={x}
+                      y={VH - 4}
+                      textAnchor={i === 0 ? 'start' : i === realHistory.length - 1 ? 'end' : 'middle'}
+                      fontSize="9"
+                      fill="#9ca3af"
+                    >
+                      {d.date}
+                    </text>
+                  );
+                });
+            })()}
+          </svg>
         </div>
 
         {/* Legend with actual job counts */}
-        {visibleSkills.length > 1 && (
+        {visibleSkills.length > 0 && (
           <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
             {visibleSkills.map((skill, index) => (
               <div key={skill} className="flex items-center gap-1.5">
                 <span
-                  className="w-3 h-0.5 rounded-full inline-block"
-                  style={{ backgroundColor: colors[index % colors.length] }}
+                  className="inline-block rounded-full flex-shrink-0"
+                  style={{
+                    width: '20px',
+                    height: '2px',
+                    backgroundColor: colors[index % colors.length],
+                  }}
                 />
                 <span className="text-xs text-gray-500">
                   {skill}
