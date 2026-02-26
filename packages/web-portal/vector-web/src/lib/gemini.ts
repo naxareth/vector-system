@@ -12,7 +12,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // to double the effective daily quota from 20 to 40 RPD.
 // ---------------------------------------------------------------------------
 
-export const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+export const GEMINI_MODEL = 'gemini-2.5-flash';
 
 export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 

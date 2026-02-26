@@ -34,14 +34,16 @@ packages
 │       │   ├── market-provider.ts                     ← MODIFIED (fetchRichMarketData wired)
 │       │   └── jsearch-client.ts
 │       ├── nlp
-│       │   ├── gemini-client.ts                       ← MODIFIED (GEMINI_MODEL constant, generateCoursesForTag export)
+│       │   ├── gemini-client.ts                       ← MODIFIED (open-domain skill extraction prompt, removed hardcoded 5-skill taxonomy, generateCoursesForTag export)
 │       │   └── skill-extractor.ts                     ← MODIFIED (uses GEMINI_MODEL constant)
 │       ├── predictions
-│       │   └── decay-forecaster.ts                    ← MODIFIED (% slope thresholds + confidence) ← Phase 13 target
+│       │   └── decay-forecaster.ts                    ← MODIFIED Phase 13a (3-signal weighted velocity: slope 40% + volume 30% + recency 30%, velocityScore field added to SkillHealth interface)
 │       ├── recommendations
 │       │   └── course-recommender.ts                  ← MODIFIED (Tier 1/Tier 2 domain filter, normalize, explore fallback)
 │       ├── scripts
-│       │   ├── daily-update.ts                        ← MODIFIED (--with-gemini flag gates all Gemini calls) ← Phase 13 batching audit
+│       │   ├── daily-update.ts                        ← MODIFIED (--with-gemini flag gates all Gemini calls) ← Phase 13d batching audit pending
+│       │   ├── evaluate-extractor.ts                  ← NEW Phase 13b (F1 eval script, --verbose/--json flags, SOFT match mode, 13s delay for 5 RPM)
+│       │   ├── golden-dataset.json                    ← NEW Phase 13b (20 cases: 5 academic, 5 bootcamp, 4 event, 6 govt/TESDA/DICT)
 │       │   └── ingest-job-data.ts
 │       └── index.ts                                   ← MODIFIED (studentDomainTags extraction, passes to recommendCourses)
 │
@@ -63,8 +65,7 @@ packages
         ├── prisma
         │   └── schema.prisma                          ← MODIFIED (skill_tags String[] on verified_credentials, skill_health_cache fields synced)
         ├── scripts
-        │   ├── backfill-skill-tags.ts                 ← NEW (one-time migration, already run)
-        │   └── evaluate-extractor.ts                  ← PLANNED Phase 13 (F1 score golden dataset eval)
+        │   └── backfill-skill-tags.ts                 ← NEW (one-time migration, already run)
         └── src
             ├── app
             │   ├── (auth)
@@ -91,14 +92,14 @@ packages
             │   │   │   ├── send-verification/route.ts
             │   │   │   ├── verify-captcha/route.ts
             │   │   │   └── verify-email/route.ts
-            │   │   ├── chat/route.ts                  ← MODIFIED (salary + location Gemini context) ← Phase 13 key segregation
+            │   │   ├── chat/route.ts                  ← MODIFIED (salary + location Gemini context) ← Phase 13c key segregation pending
             │   │   ├── cvr
             │   │   │   ├── export/route.ts            ← NEW Phase 11 (INSERT into cvr_exports, return UUID)
             │   │   │   └── analyze/route.ts           ← NEW Phase 12 (Gemini CVR analysis, skill_health_cache enrichment)
             │   │   ├── mint/route.ts
             │   │   ├── registrar
             │   │   │   ├── credentials/route.ts       ← MODIFIED (inline Gemini course gen, dynamic course pipeline, skill_tags validation)
-            │   │   │   └── log-mint/route.ts          ← MODIFIED (notification insert after mint)
+            │   │   │   └── log-mint/route.ts          ← MODIFIED (notification insert after mint) ← BUG: notifications not received on student end
             │   │   ├── schemas/route.ts
             │   │   ├── schemas/[id]/route.ts
             │   │   ├── student
@@ -150,7 +151,7 @@ packages
             │   │   ├── RegistrarLayout.tsx
             │   │   ├── SchemaBuilder.tsx              ← MODIFIED (skill_tags field locked, undeletable, on all templates)
             │   │   ├── Sidebar.tsx                    ← MODIFIED (active link hydration fix — mounted guard)
-            │   │   ├── NotificationBell.tsx
+            │   │   ├── NotificationBell.tsx           ← BUG: student not receiving notifications after registrar mints
             │   │   └── ThemeToggle.tsx
             │   └── student
             │       ├── MarketInsightsPanel.tsx        ← MODIFIED (rich market data display)
@@ -348,81 +349,81 @@ CREATE TABLE public.verified_credentials (
 * **Next.js 15 cookies:** `cookies()` returns a Promise — always `await cookies()` before calling `.get()`.
 * **skill_tags exclusion:** `skill_tags` is a top-level DB column on verified_credentials, NOT a credential_data field. Always exclude it from W3C schema required-field validation in registrar/credentials/route.ts using `key !== 'skill_tags'`.
 * **NEXT_PUBLIC_APP_URL:** Must be set in .env or schema_url will be stored as "undefined/api/schemas/...". Set to http://localhost:3000 in dev. Use `process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'` as fallback pattern everywhere.
-* **Gemini model:** Use `gemini-2.5-flash-lite` as GEMINI_MODEL in both `src/lib/gemini.ts` (web portal) and `packages/ai-engine/src/nlp/gemini-client.ts`. Never hardcode model strings anywhere else — always import the constant. Free tier is 20 RPD / 10 RPM on this model.
+* **Gemini model:** Use `gemini-2.5-flash` as GEMINI_MODEL in both `src/lib/gemini.ts` (web portal) and `packages/ai-engine/src/nlp/gemini-client.ts`. Never hardcode model strings anywhere else — always import the constant. Free tier is 5 RPM / 20 RPD on this model.
 * **Centralized Gemini client:** Web portal routes must import `geminiModel` from `@/lib/gemini` instead of instantiating their own `GoogleGenerativeAI` + `getGenerativeModel`. The singleton is defined once in `src/lib/gemini.ts`. ai-engine uses its own `gemini-client.ts` independently (cross-package imports are forbidden).
 * **Cross-package imports:** Never import from `ai-engine/src` inside web portal API routes — Turbopack cannot resolve cross-package relative paths. Inline any shared logic using the web portal's own dependencies instead.
 * **Course generation:** generateCoursesForTag is inlined in credentials/route.ts (not imported from ai-engine). If the same logic is needed elsewhere in the web portal, inline it again rather than importing across packages.
 * **Hydration safety:** Never use `new Date()`, `Date.now()`, `Math.random()`, or `usePathname()`-dependent class names in initial render. Gate them behind `useState(null)` + `useEffect` or a `mounted` boolean to avoid SSR/client mismatch.
 * **p-limit version:** ai-engine uses p-limit@4 (last CJS-compatible version). Do NOT upgrade to v5+ — those are ESM-only and will break ts-node with ERR_REQUIRE_ESM.
 * **GitHub Actions Node version:** Always Node 20. Never 18 — Supabase and Hardhat deps require >=20.
-* **Gemini quota:** Free tier is 20 RPD on gemini-2.5-flash-lite. Daily cron runs with zero Gemini calls by default (no --with-gemini flag). Only pass --with-gemini for weekly/manual runs needing W3C skill sync.
+* **Gemini quota:** Free tier is 20 RPD on gemini-2.5-flash. Daily cron runs with zero Gemini calls by default (no --with-gemini flag). Only pass --with-gemini for weekly/manual runs needing W3C skill sync.
 * **react-markdown:** Installed in web portal. Use for rendering AI chat responses in coach/page.tsx. Wrap in a `<div className="prose prose-sm prose-purple ...">` — do NOT pass className directly to ReactMarkdown (removed in latest version).
 * **ngrok (dev only):** For mobile QR testing, run `ngrok http 3000` in a separate terminal and update NEXT_PUBLIC_APP_URL temporarily. Revert after testing. Never commit ngrok URLs.
 * **QR code generation:** Uses `qrcode` npm package (already installed). Always generate from `NEXT_PUBLIC_APP_URL` env var with localhost fallback. QR data URL generated via `QRCode.toDataURL(verifyUrl, { width: 120, margin: 1 })`.
-* **Decay forecaster:** Current implementation uses simple slope thresholds (if/else on % change). Do NOT replace with ARIMA — insufficient data density in market_snapshots. Phase 13 target: recency-weighted velocity scoring (slope + absolute volume + recency weight). ARIMA is the documented long-term upgrade path after 6-12 months of snapshot accumulation.
-* **Gemini key segregation (planned Phase 13):** Split into GEMINI_API_KEY_BACKEND (cron/ingestion) and GEMINI_API_KEY_CHAT (chat route) to double effective daily quota from 20 to 40 RPD.
+* **Decay forecaster:** Phase 13a complete. Uses 3-signal weighted velocity scoring: slopeSignal (40%) + volumeSignal (30%) + recencySignal (30%). velocityScore added as first-class output field on SkillHealth. healthScore === velocityScore currently — kept separate for future divergence. Do NOT replace with ARIMA — insufficient data density. ARIMA is the documented long-term upgrade path after 6-12 months of snapshot accumulation.
+* **Gemini key segregation (planned Phase 13c):** Split into GEMINI_API_KEY_BACKEND (cron/ingestion) and GEMINI_API_KEY_CHAT (chat route) to double effective daily quota from 20 to 40 RPD.
 * **skill_health_cache Prisma fields:** The Prisma model for skill_health_cache uses `skill_name` as the primary key (not `id` or `keyword`). Select/where fields are: `skill_name`, `health_score`, `trend_label`, `trend_slope`, `job_count`, `avg_salary`, `top_locations`, `confidence`, `status`, `last_updated`. The DB has a `keyword` column (unique) but Prisma maps it as `skill_name` in the generated client — always use `skill_name` in Prisma queries.
+* **F1 Evaluation:** Phase 13b complete. evaluate-extractor.ts + golden-dataset.json live in packages/ai-engine/src/scripts/. 20 cases across 4 credential types (academic degree, bootcamp cert, event badge, government cert including TESDA/DICT). Achieved F1: 0.61, Precision: 0.62, Recall: 0.60 with SOFT matching. Run with: npx ts-node packages/ai-engine/src/scripts/evaluate-extractor.ts --verbose. Use 13s delay (DELAY_MS=13_000) for gemini-2.5-flash 5 RPM limit.
+* **gemini-client.ts skill extraction:** Removed hardcoded 5-skill taxonomy (React, Python, Solidity, Node.js, AI/ML). Now uses open-domain zero-shot extraction across all credential types. This is the core zero-shot architectural decision — new credential types (TESDA, DICT, academic degrees) extract correctly on first mint with no retraining.
+* **Notification bug:** Student does not receive notifications after registrar mints a credential. Notification insert happens in log-mint/route.ts but NotificationBell.tsx on student end is not receiving/displaying it. Needs investigation — likely a polling issue or wrong user_id being inserted. Fix this before Phase 13c.
 
 # 6. Current State / Next Steps
 
 * **Last Completed:**
-  - Phase 11 — Dedicated CVR Verification (complete):
-    - cvr_exports table live in Supabase.
-    - /api/cvr/export/route.ts — authenticated POST, inserts row, returns UUID.
-    - /api/verify/cvr/[id]/route.ts — public GET, returns full CVR snapshot.
-    - /verify/cvr/[id]/page.tsx — public portal with isLatest employer warning.
-    - CVR history panel on student CVR page.
-    - ExportCVRModal QR points to /verify/cvr/[id].
-    - CVR immutability enforced by design.
-  - Phase 12 — AI CVR Analysis (partially complete, needs full test):
-    - /api/cvr/analyze/route.ts — authenticated POST, enriches snapshot with skill_health_cache market data, calls Gemini, returns structured JSON (overallScore, summary, skillStrength, marketAlignment, missingKeywords, recommendations).
-    - CVRAnalysisPanel.tsx — 4-state component (idle, loading, error, results). Displays score ring, market alignment bar, skill chips (strong/moderate/weak), missing keywords, recommendations.
-    - cvr/page.tsx — panel wired below form, only renders when cvrHistory.length > 0. latestSnapshot derived pre-render.
-    - src/lib/gemini.ts — NEW centralized Gemini singleton (GEMINI_MODEL + geminiModel exports) for all web portal routes.
-    - prisma/schema.prisma — skill_health_cache model synced with full DB column set (health_score, trend_label, job_count, avg_salary, top_locations, confidence).
-    - npx prisma db push + npx prisma generate completed.
+  - Phase 11 — Dedicated CVR Verification (complete).
+  - Phase 12 — AI CVR Analysis (complete, tested end-to-end).
+  - Phase 13a — Weighted Velocity Scoring (complete):
+    - decay-forecaster.ts rewritten with 3-signal weighted velocity model.
+    - slopeSignal (40%) + volumeSignal (30%) + recencySignal (30%) = velocityScore.
+    - velocityScore added as new field on SkillHealth interface.
+    - Confidence now factors recency — stale snapshots (>14 days) cap at medium.
+    - Backward compatible — all downstream consumers unchanged.
+  - Phase 13b — F1 Evaluation Script (complete):
+    - evaluate-extractor.ts in packages/ai-engine/src/scripts/.
+    - golden-dataset.json — 20 cases: 5 academic degrees, 5 bootcamp certs, 4 event badges, 6 government certs (TESDA NC II/III, DICT).
+    - Result: F1 0.61, Precision 0.62, Recall 0.60, 20/20 evaluated, 0 errors.
+    - gemini-client.ts fixed: removed hardcoded 5-skill taxonomy, now open-domain zero-shot.
+    - Supports --verbose, --json flags. Uses SOFT matching with 13s delay for 5 RPM.
 
-* **Known Pending Issues / Phase 12 not yet fully verified:**
-  - CVRAnalysisPanel market enrichment path not confirmed working end-to-end (skill_health_cache Prisma fix applied but not tested with real populated cache data).
-  - Existing web portal routes (chat/route.ts, credentials/route.ts, analyze/route.ts) still instantiate their own GoogleGenerativeAI — not yet migrated to import geminiModel from @/lib/gemini. Migration is low-priority but should be done for consistency.
-  - trend_slope is synthetic — Phase 13 replaces with weighted velocity scoring.
-  - Gemini free tier (20 RPD) scalability ceiling — Phase 13 adds key segregation.
-  - allowedDevOrigins warning for ngrok — add to next.config.ts.
+* **Known Pending Issues:**
+  - Notification bug: student not receiving notifications after registrar mints credential. Fix before Phase 13c. Suspected cause: wrong user_id in insert or NotificationBell.tsx polling not triggering.
+  - Existing web portal routes (chat/route.ts, credentials/route.ts, analyze/route.ts) still instantiate their own GoogleGenerativeAI — not yet migrated to import geminiModel from @/lib/gemini. Low priority.
   - Generated course URLs are unverified Gemini slugs — future link-validation pass.
+  - allowedDevOrigins warning for ngrok — add to next.config.ts.
 
 * **Next Steps (in order):**
-  1. Finish validating Phase 12 end-to-end:
-       a. Mint a credential with skill_tags so skill_health_cache has data.
-       b. Run daily-update.ts (no --with-gemini needed) to populate cache.
-       c. Go to /student/cvr — confirm CVRAnalysisPanel appears below form.
-       d. Click "Analyze My CVR" — confirm market enrichment data appears in
-          skillStrength chips and marketAlignment insight (not just generic advice).
-       e. Confirm Re-analyze button works and returns fresh results.
-       f. Confirm error state shows cleanly if Gemini quota exceeded.
+  1. Fix notification bug — student must receive notification when registrar mints a credential.
+       - Check log-mint/route.ts: confirm correct student user_id is being inserted into notifications table.
+       - Check NotificationBell.tsx: confirm polling interval is active and hitting the right endpoint.
+       - Check /api/notifications or equivalent read route exists and returns unread count correctly.
 
-  2. Phase 13 — Academic Defense Prep Bundle:
-       a. Weighted Velocity Scoring in decay-forecaster.ts (3-signal: slope + volume + recency).
-       b. F1 Evaluation Script — evaluate-extractor.ts, golden dataset, Precision/Recall/F1 output.
-       c. Dual Gemini key segregation — GEMINI_API_KEY_BACKEND + GEMINI_API_KEY_CHAT.
-       d. Batching audit — verify daily-update.ts batches all skills into one Gemini call.
-       e. Cost-at-scale projection for defense slide (5,000 students).
+  2. Phase 13c — Dual Gemini key segregation:
+       - Split into GEMINI_API_KEY_BACKEND (cron/ingestion) and GEMINI_API_KEY_CHAT (chat route).
+       - Doubles effective daily quota from 20 to 40 RPD.
+       - Update chat/route.ts to use GEMINI_API_KEY_CHAT.
+       - Update daily-update.ts to use GEMINI_API_KEY_BACKEND.
 
-     Key defense talking points:
-     - Chose zero-shot extraction over static model to solve concept drift by design.
-     - New skill (e.g. Quantum Computing) extracted, market-analyzed, course-matched on
-       first mint with zero human intervention or retraining.
-     - ARIMA evaluated but deferred — recency-weighted scoring is statistically appropriate
-       for current data density. ARIMA is the documented upgrade path.
-     - Instructor confirmed: "just experiment" — deliberate architectural experimentation
-       with a production LLM API is the approved approach.
+  3. Phase 13d — Batching audit:
+       - Verify daily-update.ts batches all skills into one Gemini call.
+       - Ensure --with-gemini flag gates all LLM calls correctly.
 
-  3. Passive — Trend Confidence improves automatically with cron time. No code needed.
+  4. Phase 13e — Cost-at-scale projection:
+       - Defense slide: project API cost for 5,000 students.
+       - Use current RPD/RPM usage as baseline.
 
-  4. Future — Production: Polygon Amoy → mainnet, NEXT_PUBLIC_APP_URL for prod deploy.
+  5. Passive — Trend Confidence improves automatically with cron time. No code needed.
+
+  6. Future — Production: Polygon Amoy → mainnet, NEXT_PUBLIC_APP_URL for prod deploy.
+
+* **Key Defense Talking Points:**
+  - Zero-shot extraction solves concept drift by design — new credential types work on first mint.
+  - TESDA NC II in Bread and Pastry correctly extracts ["Baking", "Food Safety", "Pastry Making"] with no retraining.
+  - F1: 0.61 baseline on 20-case golden dataset spanning 4 credential types including government certs.
+  - ARIMA evaluated but deferred — recency-weighted velocity scoring is statistically appropriate for current data density.
+  - Instructor confirmed: "just experiment" — deliberate architectural experimentation with production LLM API is the approved approach.
 
 * **Git:**
-  - Completed branches: feature/phase10-cvr-qr, feature/phase11-cvr-dedicated-verify
-  - Current branch: feature/phase12-ai-cvr-analysis
-  - Next branch: feature/phase13-defense-prep
-  - Merge phase12 to main after full Phase 12 validation.
+  - Completed branches: feature/phase10-cvr-qr, feature/phase11-cvr-dedicated-verify, feature/phase12-ai-cvr-analysis
+  - Current branch: feature/phase13-defense-prep
+  - Merge phase12 to main before starting phase13 branch if not done yet.
 ---
