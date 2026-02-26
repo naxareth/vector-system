@@ -45,7 +45,7 @@ export default function VerifiedCertificationsBlock({
               className={`p-4 rounded-lg border flex justify-between items-center ${
                 isAdded
                   ? 'bg-green-50 border-green-200 opacity-70'
-                  : 'bg-white border-purple-200 shadow-sm'
+                  : 'bg-white border-[#06B4C9]/20 shadow-sm'
               }`}
             >
               <div>
@@ -61,7 +61,7 @@ export default function VerifiedCertificationsBlock({
                 className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${
                   isAdded
                     ? 'text-green-700 bg-green-100 cursor-default'
-                    : 'text-white bg-purple-600 hover:bg-purple-700'
+                    : 'text-white bg-[#06B4C9] hover:bg-[#06B4C9]/80'
                 }`}
               >
                 {isAdded ? 'Added ✓' : '+ Add to CVR'}

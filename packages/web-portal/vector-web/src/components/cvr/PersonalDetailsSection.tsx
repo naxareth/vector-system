@@ -23,7 +23,7 @@ export default function PersonalDetailsSection({
     `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
       errors[field]
         ? 'border-red-500 focus:ring-red-500'
-        : 'border-gray-300 focus:ring-purple-500'
+        : 'border-gray-300 focus:ring-[#06B4C9]'
     }`;
 
   return (
@@ -79,7 +79,7 @@ export default function PersonalDetailsSection({
               type="tel"
               value={formData.phone}
               onChange={(e) => onChange('phone', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06B4C9] text-gray-900"
               placeholder="+63 912 345 6789"
             />
           </div>

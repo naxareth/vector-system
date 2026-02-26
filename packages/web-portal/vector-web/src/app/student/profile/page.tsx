@@ -223,7 +223,7 @@ export default function ProfilePage() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#06B4C9]"></div>
         </div>
       </DashboardLayout>
     );
@@ -240,7 +240,7 @@ export default function ProfilePage() {
               <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your account information and preferences</p>
             </div>
             {!isEditing && (
-              <button onClick={() => setIsEditing(true)} className="w-full sm:w-auto px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center gap-2">
+              <button onClick={() => setIsEditing(true)} className="w-full sm:w-auto px-6 py-2 bg-[#06B4C9] text-white rounded-lg hover:bg-[#06B4C9]/80 transition-colors font-medium flex items-center justify-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 <span className="sm:inline">Edit Profile</span>
               </button>
@@ -254,7 +254,7 @@ export default function ProfilePage() {
             {/* Profile Photo Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
               <div className="flex items-center gap-4 sm:gap-6">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-2xl sm:text-3xl flex-shrink-0">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-[#06B4C9] to-[#011018] rounded-full flex items-center justify-center text-white font-bold text-2xl sm:text-3xl flex-shrink-0">
                   {formData.firstName?.[0]}{formData.lastName?.[0]}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -272,13 +272,13 @@ export default function ProfilePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
                     <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} disabled={!isEditing} 
-                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
                     {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
                     <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} disabled={!isEditing} 
-                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
                      {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
                   </div>
                   <div>
@@ -288,18 +288,18 @@ export default function ProfilePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
                     <input type="tel" name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing} 
-                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
                       {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
                     <input type="text" name="location" value={formData.location} onChange={handleChange} disabled={!isEditing} placeholder="e.g., Manila, Philippines" 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none disabled:bg-gray-50" />
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50" />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
                     <textarea name="bio" value={formData.bio} onChange={handleChange} rows={4} disabled={!isEditing} 
-                      className={`w-full px-4 py-2 border rounded-lg outline-none resize-none disabled:bg-gray-50 ${errors.bio ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                      className={`w-full px-4 py-2 border rounded-lg outline-none resize-none disabled:bg-gray-50 ${errors.bio ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
                     {errors.bio && <p className="text-red-500 text-xs mt-1">{errors.bio}</p>}
                   </div>
                   <div className="md:col-span-2">
@@ -316,17 +316,17 @@ export default function ProfilePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">University</label>
                     <input type="text" name="university" value={formData.university} onChange={handleChange} disabled={!isEditing} 
-                       className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.university ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                       className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.university ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
                     {errors.university && <p className="text-red-500 text-xs mt-1">{errors.university}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Major</label>
-                    <input type="text" name="major" value={formData.major} onChange={handleChange} disabled={!isEditing} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none disabled:bg-gray-50" />
+                    <input type="text" name="major" value={formData.major} onChange={handleChange} disabled={!isEditing} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Expected Graduation Year</label>
                     <input type="text" name="graduationYear" value={formData.graduationYear} onChange={handleChange} disabled={!isEditing} 
-                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.graduationYear ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
+                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.graduationYear ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
                     {errors.graduationYear && <p className="text-red-500 text-xs mt-1">{errors.graduationYear}</p>}
                   </div>
                 </div>
@@ -350,10 +350,10 @@ export default function ProfilePage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">Theme Preference</label>
                   <div className="flex items-center gap-4">
-                    <button type="button" onClick={toggleTheme} className={`flex-1 sm:flex-none px-6 py-3 rounded-lg border-2 transition-all ${theme === 'light' ? 'border-purple-600 bg-purple-50 text-purple-700' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'}`}>
+                    <button type="button" onClick={toggleTheme} className={`flex-1 sm:flex-none px-6 py-3 rounded-lg border-2 transition-all ${theme === 'light' ? 'border-[#06B4C9] bg-[#06B4C9]/10 text-[#06B4C9]' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'}`}>
                       <span className="font-medium">Light Mode</span>
                     </button>
-                    <button type="button" onClick={toggleTheme} className={`flex-1 sm:flex-none px-6 py-3 rounded-lg border-2 transition-all ${theme === 'dark' ? 'border-purple-600 bg-purple-50 text-purple-700' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'}`}>
+                    <button type="button" onClick={toggleTheme} className={`flex-1 sm:flex-none px-6 py-3 rounded-lg border-2 transition-all ${theme === 'dark' ? 'border-[#06B4C9] bg-[#06B4C9]/10 text-[#06B4C9]' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'}`}>
                       <span className="font-medium">Dark Mode</span>
                     </button>
                   </div>
@@ -363,7 +363,7 @@ export default function ProfilePage() {
               {isEditing && (
                 <div className="flex flex-col sm:flex-row justify-end gap-3">
                   <button type="button" onClick={handleCancel} className="w-full sm:w-auto px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Cancel</button>
-                  <button type="submit" disabled={saving} className="w-full sm:w-auto px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  <button type="submit" disabled={saving} className="w-full sm:w-auto px-6 py-2 bg-[#06B4C9] text-white rounded-lg hover:bg-[#06B4C9]/80 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                     {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
@@ -395,7 +395,7 @@ export default function ProfilePage() {
                         <span className={`w-4 h-4 rounded-full border ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}></span>
                         <span className={`text-xs ${item.completed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>{item.label}</span>
                       </div>
-                      <span className={`text-xs font-medium ${item.completed ? 'text-green-600' : 'text-purple-600'}`}>{item.completed ? '' : `+${item.weight}%`}</span>
+                      <span className={`text-xs font-medium ${item.completed ? 'text-green-600' : 'text-[#06B4C9]'}`}>{item.completed ? '' : `+${item.weight}%`}</span>
                     </div>
                   ))}
                 </div>
@@ -407,7 +407,7 @@ export default function ProfilePage() {
                          <span className={`w-4 h-4 rounded-full border ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}></span>
                         <span className={`text-xs ${item.completed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>{item.label}</span>
                       </div>
-                      <span className={`text-xs font-medium ${item.completed ? 'text-green-600' : 'text-purple-600'}`}>{item.completed ? '' : `+${item.weight}%`}</span>
+                      <span className={`text-xs font-medium ${item.completed ? 'text-green-600' : 'text-[#06B4C9]'}`}>{item.completed ? '' : `+${item.weight}%`}</span>
                     </div>
                   ))}
                 </div>

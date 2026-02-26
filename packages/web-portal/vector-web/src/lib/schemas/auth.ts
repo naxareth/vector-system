@@ -7,13 +7,24 @@ const passwordValidation = new RegExp(
 
 // Base schema for shared fields
 const baseRegisterSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters").max(50, "First name is too long"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters").max(50, "Last name is too long"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().regex(passwordValidation, {
-    message: "Password must be 12+ chars, include uppercase, lowercase, number, and special char.",
-  }),
-  confirmPassword: z.string(),
+  firstName: z.string({ required_error: "Please fill out this field" })
+    .min(1, "Please fill out this field")
+    .min(2, "Must be at least 2 characters")
+    .max(50, "Must be 50 characters or fewer"),
+  lastName: z.string({ required_error: "Please fill out this field" })
+    .min(1, "Please fill out this field")
+    .min(2, "Must be at least 2 characters")
+    .max(50, "Must be 50 characters or fewer"),
+  email: z.string({ required_error: "Please fill out this field" })
+    .min(1, "Please fill out this field")
+    .email("Please enter a valid email address"),
+  password: z.string({ required_error: "Please fill out this field" })
+    .min(1, "Please fill out this field")
+    .regex(passwordValidation, {
+      message: "Must be 12+ chars with uppercase, lowercase, number & special char",
+    }),
+  confirmPassword: z.string({ required_error: "Please fill out this field" })
+    .min(1, "Please fill out this field"),
 });
 
 // Student specific schema
