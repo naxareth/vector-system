@@ -283,7 +283,7 @@ export default function SchemaBuilder() {
                     key={field.id}
                     className={`flex items-start gap-4 p-4 rounded-xl border shadow-sm transition-colors group ${
                       isSkillTags
-                        ? 'bg-purple-50 border-purple-200'
+                        ? 'bg-[#06B4C9]/10 border-[#06B4C9]'
                         : 'bg-white border-gray-200 hover:border-blue-300'
                     }`}
                   >
@@ -303,12 +303,12 @@ export default function SchemaBuilder() {
                           readOnly={isSkillTags}
                           placeholder="e.g., Final Grade"
                           className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-md outline-none ${
-                            isSkillTags ? 'bg-purple-100 text-purple-800 font-semibold cursor-not-allowed' : 'focus:ring-1 focus:ring-blue-500'
+                            isSkillTags ? 'bg-[#06B4C9]/10 text-[#06B4C9] font-semibold cursor-not-allowed' : 'focus:ring-1 focus:ring-blue-500'
                           }`}
                           required
                         />
                         {isSkillTags && (
-                          <p className="text-[10px] text-purple-600 mt-1">
+                          <p className="text-[10px] text-[#06B4C9] mt-1">
                             Required for market intelligence — e.g. "React, Node.js, PostgreSQL"
                           </p>
                         )}

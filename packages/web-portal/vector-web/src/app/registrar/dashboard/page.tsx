@@ -224,7 +224,7 @@ export default function RegistrarDashboard() {
               <select
                 value={batchSchemaId}
                 onChange={(e) => { setBatchSchemaId(e.target.value); setCsvResult(null); }}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none bg-white"
               >
                 <option value="">— Select a credential template —</option>
                 {schemas.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
@@ -233,7 +233,7 @@ export default function RegistrarDashboard() {
                 const s = schemas.find(x => x.id === batchSchemaId);
                 const schemaFields = s ? Object.keys(s.json_schema.properties) : [];
                 return (
-                  <div className="mt-2 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
+                  <div className="mt-2 bg-[#06B4C9]/10 border border-purple-200 rounded-lg px-3 py-2">
                     <p className="text-xs text-purple-700">
                       <span className="font-semibold">Required columns:</span>{' '}
                       <code className="bg-purple-100 px-1 rounded">student_id, wallet_address, {schemaFields.join(', ')}</code>
@@ -450,7 +450,7 @@ export default function RegistrarDashboard() {
                             setMintingProgress({ isOpen: true, progress: 0, status: 'error', message: error.message || 'Batch minting failed' });
                           }
                         }}
-                        className="mt-4 w-full py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-all shadow-lg"
+                        className="mt-4 w-full py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-[#06B4C9] transition-all shadow-lg"
                       >
                         Mint {csvResult.rows.length} Credential{csvResult.rows.length > 1 ? 's' : ''} on Blockchain
                       </button>
@@ -559,7 +559,7 @@ export default function RegistrarDashboard() {
                             <input
                               type={fieldDetails.type === 'number' ? 'number' : fieldDetails.type === 'date' ? 'date' : 'text'}
                               onChange={(e) => handleDynamicInputChange(key, fieldDetails.type === 'number' ? Number(e.target.value) : e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9]"
                               placeholder={`Enter ${fieldDetails.title.toLowerCase()}...`}
                             />
                           )}
@@ -576,19 +576,15 @@ export default function RegistrarDashboard() {
                 <input
                   type="text"
                   onChange={(e) => setStaticData({ ...staticData, certificateNumber: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9]"
                   placeholder="e.g. W3C-2027-001"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex justify-between">
-                  <span>Confidential Remarks</span>
-                  <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100 font-bold">🔒 Encrypted Storage</span>
-                </label>
                 <textarea
                   onChange={(e) => setStaticData({ ...staticData, privateNotes: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9]"
                   rows={3}
                   placeholder="Internal registrar notes..."
                 />
@@ -614,7 +610,7 @@ export default function RegistrarDashboard() {
               <p className="mb-4 text-gray-600">{mintingProgress.message}</p>
               <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden mb-6">
                 <div
-                  className={`h-full transition-all duration-500 ${mintingProgress.status === 'error' ? 'bg-red-500' : 'bg-purple-600'}`}
+                  className={`h-full transition-all duration-500 ${mintingProgress.status === 'error' ? 'bg-red-500' : 'bg-[#06B4C9]'}`}
                   style={{ width: `${mintingProgress.progress}%` }}
                 />
               </div>
