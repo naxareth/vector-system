@@ -63,7 +63,7 @@ const FALLBACK_CONFIG = {
 export default function RecommendationsPanel({ recommendations, loading }: Props) {
   if (loading) {
     return (
-      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+      <div className="bg-white rounded-xl p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Recommended Actions</h2>
@@ -81,18 +81,21 @@ export default function RecommendationsPanel({ recommendations, loading }: Props
 
   if (!recommendations || recommendations.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+      <div className="bg-white rounded-xl p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Recommended Actions</h2>
             <p className="text-xs text-gray-500">AI-powered course suggestions based on market data</p>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center py-8 gap-3 text-gray-400">
-          <svg className="w-8 h-8 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-          <span className="text-sm font-medium">No recommendations yet — check back after more market data accumulates.</span>
+        <div className="flex flex-col items-center justify-center py-10 gap-3">
+          <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
+            <svg className="w-7 h-7 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-gray-700">No recommendations yet</p>
+          <p className="text-xs text-gray-400">Suggestions appear after more market data accumulates</p>
         </div>
       </div>
     );
@@ -105,7 +108,7 @@ export default function RecommendationsPanel({ recommendations, loading }: Props
   const hasTier1 = recommendations.some(r => r.reasonType !== 'explore');
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>

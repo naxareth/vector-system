@@ -236,7 +236,7 @@ export default function SkillsPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 ">
+      <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Skills</h1>
         <p className="text-sm text-gray-500">Your verified credentials and market health</p>
       </div>
@@ -248,12 +248,26 @@ export default function SkillsPage() {
       )}
 
       {!credentialsLoading && skillCards.length === 0 && (
-        <div className="bg-white rounded-xl p-12 border-2 border-dashed border-gray-200 text-center">
-          <h3 className="text-lg font-medium text-gray-900 mb-1">No Verified Skills Found</h3>
-          <p className="text-gray-500 mb-6 max-w-sm mx-auto text-sm">
-            {!userWallet ? "Connect your wallet on the dashboard to view your blockchain credentials." : "No VECTOR credentials were found for your account."}
+        <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
+          <div className="w-16 h-16 rounded-full bg-gray-100 mx-auto mb-5 flex items-center justify-center">
+            <svg
+              className="w-8 h-8 text-gray-400"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+            >
+              <rect x="4" y="10" width="3" height="7" rx="1" />
+              <rect x="10.5" y="7" width="3" height="10" rx="1" />
+              <rect x="17" y="4" width="3" height="13" rx="1" />
+              <path d="M3 20h18" strokeLinecap="round" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-medium text-gray-800 mb-2">No skill analytics available yet</h3>
+          <p className="text-gray-500 max-w-md mx-auto text-sm">
+            Connect your wallet and upload credentials to see performance trends
           </p>
-          <Link href="/student/dashboard" className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">Go to Dashboard</Link>
         </div>
       )}
 

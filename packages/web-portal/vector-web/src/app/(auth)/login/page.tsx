@@ -4,6 +4,8 @@ import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+import mockupImg from './mockup.png';
 import { z } from 'zod';
 import { ChallengeMFA } from '@/components/auth/ChallengeMFA'; 
 import { Eye, EyeOff } from 'lucide-react';
@@ -30,6 +32,8 @@ export default function LoginPage() {
 
   // Check for successful password reset redirect
   const isResetSuccess = searchParams.get('reset') === 'success';
+  // Check if coming from registrar signup flow
+  const isRegistrarFlow = searchParams.get('role') === 'registrar';
 
   // MFA State
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -209,7 +213,7 @@ export default function LoginPage() {
           {/* Logo + branding */}
           <Link href="/" className="inline-flex items-center gap-3 mb-8">
             <div className="w-10 h-10 bg-[#011018] rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">V</span>
+              <span className="text-[#06B4C9] font-bold text-sm">V</span>
             </div>
             <span className="text-xl font-bold text-gray-900">Vector</span>
           </Link>
@@ -307,7 +311,7 @@ export default function LoginPage() {
             <button 
               type="submit" 
               disabled={loading || !turnstileToken} 
-              className="w-full bg-[#011018] hover:bg-[#02202f] text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center active:scale-[0.98]"
+              className="w-full bg-[#06B4C9] hover:bg-[#06B4C9]/80 text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center active:scale-[0.98]"
             >
               {loading ? (
                 <>
@@ -353,11 +357,26 @@ export default function LoginPage() {
               Create an account
             </Link>
           </p>
+
+          {!isRegistrarFlow && (
+            <p className="text-xs text-gray-400 text-center mt-4">
+              Registering your institution?{' '}
+              <Link href="/registrar-register" className="font-semibold text-[#06B4C9] hover:underline">
+                Register as a Registrar
+              </Link>
+            </p>
+          )}
         </div>
 
         {/* ── Right column: accent image panel ── */}
-        <div className="hidden md:flex rounded-2xl m-3 bg-[#011018] items-center justify-center">
-          <span className="text-gray-400 text-sm tracking-wide">Image Here</span>
+        <div className="hidden md:flex rounded-2xl m-3 items-center justify-center overflow-hidden relative" style={{ background: 'radial-gradient(circle at 50% 100%, #06B4C9 0%, #033a44 35%, #011018 70%)' }}>
+          <Image
+            src={mockupImg}
+            alt="Vector platform preview"
+            fill
+            className="object-contain p-2 drop-shadow-2xl"
+            priority
+          />
         </div>
       </div>
     </main>

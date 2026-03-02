@@ -210,7 +210,7 @@ export default function StudentRegisterForm() {
       <button
         type="submit"
         disabled={isSubmitting || !turnstileToken}
-        className="w-full bg-[#011018] hover:bg-[#02202f] text-white font-semibold py-3 rounded-lg transition-all active:scale-[0.98] shadow-sm disabled:opacity-50"
+        className="w-full bg-[#06B4C9] hover:bg-[#06B4C9]/80 text-white font-semibold py-3 rounded-lg transition-all active:scale-[0.98] shadow-sm disabled:opacity-50"
       >
         {isSubmitting ? 'Processing...' : 'Create Student Account'}
       </button>

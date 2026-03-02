@@ -31,7 +31,7 @@ export default function VerifiedCertificationsBlock({
       <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
         Available Verified Certifications
         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-          Blockchain Synced
+          Verified
         </span>
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
