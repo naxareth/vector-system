@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VECTOR — System Flow Diagram</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+  .header { padding: 24px 32px 16px; border-bottom: 1px solid #1e2435; }
+  .header h1 { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+  .header p { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+  .tabs { display: flex; gap: 4px; padding: 16px 32px 0; border-bottom: 1px solid #1e2435; }
+  .tab { padding: 8px 18px; border-radius: 8px 8px 0 0; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid transparent; border-bottom: none; transition: all 0.15s; color: #64748b; background: transparent; }
+  .tab.active { background: #1e2435; color: #fff; border-color: #2d3748; }
+  .tab:hover:not(.active) { color: #94a3b8; }
+
+  .content { padding: 28px 32px; display: none; }
+  .content.active { display: block; }
+
+  /* ── FLOW DIAGRAM ── */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+
+  .flow-section { margin-bottom: 32px; }
+  .flow-section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    color: #475569; margin-bottom: 14px; display: flex; align-items: center; gap-8px;
+  }
+
+  .flow-row { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin-bottom: 6px; }
+
+  .node {
+    border-radius: 10px; padding: 10px 16px; font-size: 12px; font-weight: 600;
+    white-space: nowrap; position: relative; cursor: default;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border: 1px solid transparent;
+  }
+  .node:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+
+  .node-actor   { background: #1e3a5f; border-color: #2563eb; color: #93c5fd; }
+  .node-page    { background: #1a2e1a; border-color: #16a34a; color: #86efac; }
+  .node-api     { background: #2d1f3d; border-color: #7c3aed; color: #c4b5fd; }
+  .node-db      { background: #2d2010; border-color: #d97706; color: #fcd34d; }
+  .node-chain   { background: #1f2d3d; border-color: #0ea5e9; color: #7dd3fc; }
+  .node-ai      { background: #1f2d25; border-color: #06b6d4; color: #67e8f9; }
+  .node-ext     { background: #2d1f1f; border-color: #dc2626; color: #fca5a5; }
+  .node-cron    { background: #2a2010; border-color: #ca8a04; color: #fde68a; }
+
+  .arrow { color: #334155; font-size: 18px; padding: 0 6px; flex-shrink: 0; }
+  .arrow-down { color: #334155; font-size: 16px; padding: 4px 0; text-align: center; width: 100%; }
+  .arrow-label { font-size: 10px; color: #475569; padding: 0 4px; white-space: nowrap; }
+
+  .connector { display: flex; flex-direction: column; align-items: flex-start; margin-left: 24px; border-left: 1px solid #1e2435; padding-left: 20px; margin-bottom: 8px; gap: 6px; }
+  .connector-item { display: flex; align-items: center; gap: 0; }
+  .connector-item::before { content: '└'; color: #334155; margin-right: 8px; font-size: 14px; }
+
+  .badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+  .badge-new   { background: #064e3b; color: #6ee7b7; }
+  .badge-async { background: #1e1b4b; color: #a5b4fc; }
+  .badge-rt    { background: #1e3a2d; color: #6ee7b7; }
+
+  .divider { border: none; border-top: 1px solid #1e2435; margin: 24px 0; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+  .legend-item { display: flex; align-items: center; gap-6px; font-size: 11px; color: #94a3b8; gap: 6px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ── DATA FLOW TABLE ── */
+  .flow-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .flow-table th { text-align: left; padding: 10px 14px; background: #1e2435; color: #94a3b8; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .flow-table td { padding: 10px 14px; border-bottom: 1px solid #1e2435; vertical-align: top; }
+  .flow-table tr:hover td { background: #141824; }
+  .flow-table .source { color: #93c5fd; font-weight: 600; }
+  .flow-table .dest { color: #c4b5fd; font-weight: 600; }
+  .flow-table .payload { color: #94a3b8; font-family: 'Courier New', monospace; font-size: 11px; }
+  .flow-table .trigger { color: #6ee7b7; }
+
+  /* ── ARCH ── */
+  .arch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .arch-card { background: #141824; border: 1px solid #1e2435; border-radius: 12px; padding: 18px; }
+  .arch-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+  .arch-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .arch-card li { font-size: 11px; color: #94a3b8; display: flex; align-items: flex-start; gap: 6px; line-height: 1.5; }
+  .arch-card li::before { content: '→'; color: #475569; flex-shrink: 0; margin-top: 1px; }
+
+  .pill { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .pill-blue   { background: #1e3a5f; color: #93c5fd; }
+  .pill-green  { background: #1a2e1a; color: #86efac; }
+  .pill-purple { background: #2d1f3d; color: #c4b5fd; }
+  .pill-yellow { background: #2d2010; color: #fcd34d; }
+  .pill-cyan   { background: #1f2d3d; color: #7dd3fc; }
+  .pill-red    { background: #2d1f1f; color: #fca5a5; }
+
+  @media (max-width: 900px) {
+    .arch-grid { grid-template-columns: 1fr 1fr; }
+    .content { padding: 20px 16px; }
+    .tabs { padding: 12px 16px 0; }
+    .header { padding: 18px 16px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>VECTOR — System Flow Diagram</h1>
+  <p>Decentralized Micro-Credentialing System · Complete data flow, user flow & architecture overview</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('userflow')">User Flows</div>
+  <div class="tab" onclick="switchTab('dataflow')">Data Flow Table</div>
+  <div class="tab" onclick="switchTab('arch')">Architecture</div>
+  <div class="tab" onclick="switchTab('aiflow')">AI Pipeline</div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 1 — USER FLOWS
+══════════════════════════════════════════════ -->
+<div class="content active" id="tab-userflow">
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#2563eb"></div> Actor / User</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div> Page / UI</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> API Route</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div> Database (Supabase)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div> Blockchain (Polygon Amoy)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#06b6d4"></div> AI / Gemini</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div> External API</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ca8a04"></div> Cron / GitHub Actions</div>
+  </div>
+
+  <!-- FLOW 1: Auth -->
+  <div class="flow-section">
+    <div class="flow-section-title">① Authentication Flow</div>
+    <div class="flow-row">
+      <div class="node node-actor">Student / Registrar</div>
+      <div class="arrow">→</div>
+      <div class="node node-page">/login or /register</div>
+      <div class="arrow">→</div>
+      <div class="node node-api">/api/auth/verify-captcha</div>
+      <div class="arrow">→</div>
+      <div class="node node-api">/api/auth/send-verification</div>
+      <div class="arrow">→</div>
+      <div class="node node-db">verification_codes table</div>
+    </div>
+    <div class="connector">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-page">Email link clicked</div>
+          <div class="arrow">→</div>
+          <div class="node node-api">/api/auth/callback</div>
+          <div class="arrow">→</div>
+          <div class="node node-db">users table (status → active)</div>
+          <div class="arrow">→</div>
+          <div class="node node-page">Role-based redirect (student/registrar/admin)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- FLOW 2: Registrar mints credential -->
+  <div class="flow-section">
+    <div class="flow-section-title">② Registrar — Credential Issuance Flow (Core Flow)</div>
+    <div class="flow-row">
+      <div class="node node-actor">Registrar</div>
+      <div class="arrow">→</div>
+      <div class="node node-page">/registrar/dashboard</div>
+      <div class="arrow">→</div>
+      <div class="arrow-label">Selects student + schema + fills fields</div>
+      <div class="node node-chain">MetaMask → Polygon Amoy</div>
+      <div class="arrow-label" style="margin-left:8px">mintSkill() tx</div>
+    </div>
+    <div class="connector">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-page">tx.wait() confirmed</div>
+          <div class="arrow">→</div>
+          <div class="node node-api">POST /api/registrar/credentials</div>
+        </div>
+      </div>
+    </div>
+    <div class="connector" style="margin-left:44px">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-db">verified_credentials (W3C JSON-LD + skill_tags)</div>
+        </div>
+      </div>
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-db">monitored_keywords (new skill_tags upserted)</div>
+        </div>
+      </div>
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-db">notifications (student notified) <span class="badge badge-rt">Realtime</span></div>
+        </div>
+      </div>
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-ai">Gemini → generate courses for uncovered tags</div>
+          <div class="arrow">→</div>
+          <div class="node node-db">courses table</div>
+          <span class="badge badge-async">fire & forget</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- FLOW 3: Student notification + view -->
+  <div class="flow-section">
+    <div class="flow-section-title">③ Student — Receives Notification &amp; Views Credential</div>
+    <div class="flow-row">
+      <div class="node node-db">notifications INSERT</div>
+      <div class="arrow">→</div>
+      <div class="node node-ai">Supabase Realtime (websocket)</div>
+      <div class="arrow">→</div>
+      <div class="node node-page">TopBar.tsx bell badge updates instantly</div>
+    </div>
+    <div class="connector">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-page">Student clicks notification</div>
+          <div class="arrow">→</div>
+          <div class="node node-api">mark is_read=true</div>
+          <div class="arrow">→</div>
+          <div class="node node-page">/verify/[credential-id]</div>
+          <div class="arrow">→</div>
+          <div class="node node-api">GET /api/verify/[id]</div>
+          <div class="arrow">→</div>
+          <div class="node node-db">verified_credentials</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- FLOW 4: Student career intelligence -->
+  <div class="flow-section">
+    <div class="flow-section-title">④ Student — Career Intelligence &amp; AI Analysis</div>
+    <div class="flow-row">
+      <div class="node node-actor">Student</div>
+      <div class="arrow">→</div>
+      <div class="node node-page">/student/coach</div>
+      <div class="arrow">→</div>
+      <div class="node node-chain">Read wallet balanceOf()</div>
+      <div class="arrow">→</div>
+      <div class="node node-api">POST /api/analyze</div>
+    </div>
+    <div class="connector">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-db">skill_health_cache (read)</div>
+          <div class="arrow">→</div>
+          <div class="node node-page">skillHealth[] + history[]</div>
+          <div class="arrow">→</div>
+          <div class="node node-page">Trend graph + Score + Alignment</div>
+        </div>
+      </div>
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-db">courses table (read)</div>
+          <div class="arrow">→</div>
+          <div class="node node-page">RecommendationsPanel (Tier 1 / Tier 2)</div>
+        </div>
+      </div>
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-page">Student sends chat message</div>
+          <div class="arrow">→</div>
+          <div class="node node-api">POST /api/chat</div>
+          <div class="arrow">→</div>
+          <div class="node node-ai">Gemini (salary + location context)</div>
+          <div class="arrow">→</div>
+          <div class="node node-page">AI reply (react-markdown)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- FLOW 5: CVR -->
+  <div class="flow-section">
+    <div class="flow-section-title">⑤ Student — CVR Export &amp; Verification</div>
+    <div class="flow-row">
+      <div class="node node-actor">Student</div>
+      <div class="arrow">→</div>
+      <div class="node node-page">/student/cvr</div>
+      <div class="arrow">→</div>
+      <div class="node node-page">Fill CVR form + pick template</div>
+      <div class="arrow">→</div>
+      <div class="node node-api">POST /api/cvr/export</div>
+      <div class="arrow">→</div>
+      <div class="node node-db">cvr_exports (snapshot + UUID)</div>
+    </div>
+    <div class="connector">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-page">ExportCVRModal → QR code generated</div>
+          <div class="arrow">→</div>
+          <div class="node node-page">/verify/cvr/[uuid]</div>
+          <div class="arrow">→</div>
+          <div class="node node-api">GET /api/verify/cvr/[id]</div>
+          <div class="arrow">→</div>
+          <div class="node node-page">Public employer view (isLatest warning)</div>
+        </div>
+      </div>
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-page">Click "Analyze My CVR"</div>
+          <div class="arrow">→</div>
+          <div class="node node-api">POST /api/cvr/analyze</div>
+          <div class="arrow">→</div>
+          <div class="node node-ai">Gemini + skill_health_cache enrichment</div>
+          <div class="arrow">→</div>
+          <div class="node node-page">CVRAnalysisPanel (score, gaps, recs)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- FLOW 6: Daily cron -->
+  <div class="flow-section">
+    <div class="flow-section-title">⑥ Background — Daily Market Intelligence Cron</div>
+    <div class="flow-row">
+      <div class="node node-cron">GitHub Actions (daily-market-tracker.yml)</div>
+      <div class="arrow">→</div>
+      <div class="node node-cron">daily-update.ts</div>
+      <div class="arrow">→</div>
+      <div class="node node-db">monitored_keywords (read active)</div>
+    </div>
+    <div class="connector">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-ext">Adzuna API (job count + salary + location)</div>
+          <div class="arrow">→</div>
+          <div class="node node-db">market_snapshots (INSERT)</div>
+        </div>
+      </div>
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-ai">decay-forecaster (slope 40% + volume 30% + recency 30%)</div>
+          <div class="arrow">→</div>
+          <div class="node node-db">skill_health_cache (UPSERT velocityScore + trend)</div>
+        </div>
+      </div>
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-ai">Gemini (--with-gemini flag only)</div>
+          <div class="arrow">→</div>
+          <div class="node node-db">courses table (generate for uncovered tags)</div>
+          <span class="badge badge-async" style="margin-left:8px">weekly / manual</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- FLOW 7: Public verify -->
+  <div class="flow-section">
+    <div class="flow-section-title">⑦ Public / Employer — Credential Verification (No Auth)</div>
+    <div class="flow-row">
+      <div class="node node-actor">Employer / Public</div>
+      <div class="arrow">→</div>
+      <div class="node node-page">Scans QR or opens /verify/[id]</div>
+      <div class="arrow">→</div>
+      <div class="node node-api">GET /api/verify/[id]</div>
+      <div class="arrow">→</div>
+      <div class="node node-db">verified_credentials (read)</div>
+      <div class="arrow">→</div>
+      <div class="node node-chain">Verify token on Polygon Amoy</div>
+      <div class="arrow">→</div>
+      <div class="node node-page">W3C JSON-LD credential displayed</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 2 — DATA FLOW TABLE
+══════════════════════════════════════════════ -->
+<div class="content" id="tab-dataflow">
+  <table class="flow-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Trigger</th>
+        <th>Source</th>
+        <th>Destination</th>
+        <th>Payload / Data</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td class="trigger">Student registers</td>
+        <td class="source">/register page</td>
+        <td class="dest">Supabase Auth + users table</td>
+        <td class="payload">email, full_name, role, student_id</td>
+        <td>Email verification required before login</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td class="trigger">Admin approves registrar</td>
+        <td class="source">/admin/dashboard</td>
+        <td class="dest">users table</td>
+        <td class="payload">status → active, role → registrar</td>
+        <td>RBAC gated — super_admin only</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td class="trigger">Registrar mints credential</td>
+        <td class="source">POST /api/registrar/credentials</td>
+        <td class="dest">verified_credentials</td>
+        <td class="payload">user_id, skill_name, skill_tags[], token_id, tx_hash, W3C JSON-LD, encrypted private_notes</td>
+        <td>Zod validated. Private notes AES encrypted before insert.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td class="trigger">Same mint — skill_tags fan-out</td>
+        <td class="source">POST /api/registrar/credentials</td>
+        <td class="dest">monitored_keywords</td>
+        <td class="payload">keyword, is_active=true</td>
+        <td>skipDuplicates — no duplicates on re-mint</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td class="trigger">Same mint — student notification</td>
+        <td class="source">POST /api/registrar/credentials (supabaseAdmin)</td>
+        <td class="dest">notifications</td>
+        <td class="payload">user_id (student), title, message, type=success, link_url=/verify/[id]</td>
+        <td>Service role bypasses RLS. Realtime pushes to TopBar.tsx instantly.</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td class="trigger">Same mint — course generation</td>
+        <td class="source">Gemini API (fire & forget)</td>
+        <td class="dest">courses table</td>
+        <td class="payload">title, provider, link, skill_tags[]</td>
+        <td>Only runs for uncovered tags. Never blocks mint response.</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td class="trigger">Daily cron runs</td>
+        <td class="source">GitHub Actions → daily-update.ts</td>
+        <td class="dest">market_snapshots</td>
+        <td class="payload">keyword, job_count, avg_salary, location_data, recorded_at</td>
+        <td>Adzuna API. One snapshot per keyword per day.</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td class="trigger">After snapshots inserted</td>
+        <td class="source">decay-forecaster.ts</td>
+        <td class="dest">skill_health_cache</td>
+        <td class="payload">skill_name, health_score, trend_label, velocityScore, confidence, avg_salary, top_locations</td>
+        <td>3-signal: slope 40% + volume 30% + recency 30%</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td class="trigger">Student loads /student/coach</td>
+        <td class="source">POST /api/analyze</td>
+        <td class="dest">skill_health_cache (read) + courses (read)</td>
+        <td class="payload">studentId, skillsOverride[]</td>
+        <td>Returns skillHealth[], history[], recommendations[], atRiskSkills[]</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td class="trigger">Student sends chat message</td>
+        <td class="source">POST /api/chat</td>
+        <td class="dest">Gemini API</td>
+        <td class="payload">message, context (skills, salary, location, recommendations)</td>
+        <td>Salary + location injected as context. GEMINI_API_KEY_CHAT (Phase 13c).</td>
+      </tr>
+      <tr>
+        <td>11</td>
+        <td class="trigger">Student exports CVR</td>
+        <td class="source">POST /api/cvr/export</td>
+        <td class="dest">cvr_exports</td>
+        <td class="payload">user_id, template, credential_ids[], snapshot (full CVR JSON)</td>
+        <td>Returns UUID. Immutable — never updated after insert.</td>
+      </tr>
+      <tr>
+        <td>12</td>
+        <td class="trigger">Employer scans QR</td>
+        <td class="source">GET /api/verify/cvr/[id]</td>
+        <td class="dest">cvr_exports (read)</td>
+        <td class="payload">UUID → full CVR snapshot</td>
+        <td>Public, no auth. isLatest flag warns if newer export exists.</td>
+      </tr>
+      <tr>
+        <td>13</td>
+        <td class="trigger">Student analyzes CVR</td>
+        <td class="source">POST /api/cvr/analyze</td>
+        <td class="dest">Gemini API + skill_health_cache</td>
+        <td class="payload">CVR snapshot enriched with market data</td>
+        <td>Returns overallScore, skillStrength[], marketAlignment, missingKeywords[], recommendations[]</td>
+      </tr>
+      <tr>
+        <td>14</td>
+        <td class="trigger">Credential public verify</td>
+        <td class="source">GET /api/verify/[id]</td>
+        <td class="dest">verified_credentials + Polygon Amoy</td>
+        <td class="payload">credential id → W3C JSON-LD + on-chain token check</td>
+        <td>No auth required. Used by QR scanner and notification link_url.</td>
+      </tr>
+      <tr>
+        <td>15</td>
+        <td class="trigger">Skill extractor F1 eval</td>
+        <td class="source">evaluate-extractor.ts (manual)</td>
+        <td class="dest">Gemini API → golden-dataset.json</td>
+        <td class="payload">20 credential titles → extracted skill tags</td>
+        <td>F1: 0.61, P: 0.62, R: 0.60. SOFT match. 13s delay for 5 RPM.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 3 — ARCHITECTURE
+══════════════════════════════════════════════ -->
+<div class="content" id="tab-arch">
+  <div class="arch-grid">
+
+    <div class="arch-card">
+      <h3 style="color:#86efac">📦 packages/web-portal</h3>
+      <ul>
+        <li>Next.js 15 App Router — Student, Registrar, Admin portals</li>
+        <li>Supabase SSR client for auth + DB access</li>
+        <li>Prisma ORM for type-safe DB queries</li>
+        <li>lib/gemini.ts — centralized Gemini singleton</li>
+        <li>lib/encryption.ts — AES for private_notes</li>
+        <li>TopBar.tsx — Supabase Realtime notifications</li>
+        <li>All API routes under /app/api/</li>
+      </ul>
+    </div>
+
+    <div class="arch-card">
+      <h3 style="color:#c4b5fd">🤖 packages/ai-engine</h3>
+      <ul>
+        <li>Standalone Node.js service (ts-node)</li>
+        <li>adzuna-client.ts — job market data ingestion</li>
+        <li>decay-forecaster.ts — 3-signal velocity scoring</li>
+        <li>skill-extractor.ts — zero-shot Gemini NLP</li>
+        <li>course-recommender.ts — Tier 1/Tier 2 domain matching</li>
+        <li>daily-update.ts — orchestrates full pipeline</li>
+        <li>evaluate-extractor.ts — F1 eval (Phase 13b)</li>
+      </ul>
+    </div>
+
+    <div class="arch-card">
+      <h3 style="color:#7dd3fc">⛓ packages/blockchain-core</h3>
+      <ul>
+        <li>VectorToken.sol — ERC-1155 multi-token contract</li>
+        <li>Deployed on Polygon Amoy Testnet</li>
+        <li>mintSkill() — registrar issues token to student wallet</li>
+        <li>balanceOf() — student wallet ownership check</li>
+        <li>Hardhat for compile + deploy + test</li>
+        <li>manage-registrars.js — whitelist registrar addresses</li>
+      </ul>
+    </div>
+
+    <div class="arch-card">
+      <h3 style="color:#fcd34d">🗄 Database (Supabase/PostgreSQL)</h3>
+      <ul>
+        <li>users — auth identity + role + wallet_address</li>
+        <li>verified_credentials — W3C JSON-LD + skill_tags[]</li>
+        <li>notifications — bell alerts + link_url (Realtime enabled)</li>
+        <li>skill_health_cache — AI market scores per keyword</li>
+        <li>market_snapshots — daily job count history</li>
+        <li>monitored_keywords — skills tracked by cron</li>
+        <li>courses — AI-generated course catalog</li>
+        <li>cvr_exports — immutable CVR snapshots</li>
+      </ul>
+    </div>
+
+    <div class="arch-card">
+      <h3 style="color:#67e8f9">🧠 AI / Gemini Integration</h3>
+      <ul>
+        <li>gemini-2.5-flash — production model (5 RPM / 20 RPD free tier)</li>
+        <li>Zero-shot skill extraction — no taxonomy, open-domain</li>
+        <li>Course generation — fire & forget on new uncovered tags</li>
+        <li>CVR analysis — market-enriched structured feedback</li>
+        <li>Chat — career co-pilot with skill + market context</li>
+        <li>Phase 13c: dual key segregation (backend vs chat)</li>
+      </ul>
+    </div>
+
+    <div class="arch-card">
+      <h3 style="color:#fca5a5">🔄 CI/CD & Automation</h3>
+      <ul>
+        <li>GitHub Actions — daily-market-tracker.yml</li>
+        <li>Node 20 runtime (required for Supabase + Hardhat)</li>
+        <li>Default run: no Gemini calls (quota safe)</li>
+        <li>--with-gemini flag: weekly skill sync manually triggered</li>
+        <li>Secrets: GEMINI_API_KEY, SUPABASE_SERVICE_ROLE_KEY, ADZUNA keys</li>
+        <li>feature/phase13-defense-prep — current branch</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <hr class="divider" />
+
+  <div style="margin-top: 8px;">
+    <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #475569; margin-bottom: 14px;">Key Architectural Decisions</div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="background: #141824; border: 1px solid #1e2435; border-radius: 10px; padding: 14px 18px; display: flex; gap: 14px; align-items: flex-start;">
+        <span class="pill pill-cyan">Zero-Shot NLP</span>
+        <span style="font-size: 12px; color: #94a3b8; line-height: 1.6;">Gemini extracts skills from any credential type on first mint with no retraining. Handles TESDA vocational certs, DICT government certs, academic degrees equally. Solves concept drift by design — new domains work immediately.</span>
+      </div>
+      <div style="background: #141824; border: 1px solid #1e2435; border-radius: 10px; padding: 14px 18px; display: flex; gap: 14px; align-items: flex-start;">
+        <span class="pill pill-blue">No ARIMA</span>
+        <span style="font-size: 12px; color: #94a3b8; line-height: 1.6;">ARIMA requires 30+ time series data points for statistical validity. Current data density insufficient. Recency-weighted velocity scoring (slope 40% + volume 30% + recency 30%) is statistically appropriate now. ARIMA documented as upgrade path after 6-12 months.</span>
+      </div>
+      <div style="background: #141824; border: 1px solid #1e2435; border-radius: 10px; padding: 14px 18px; display: flex; gap: 14px; align-items: flex-start;">
+        <span class="pill pill-purple">No Cross-Package Imports</span>
+        <span style="font-size: 12px; color: #94a3b8; line-height: 1.6;">Turbopack cannot resolve relative paths across packages. All ai-engine logic used in web portal is inlined (generateCoursesForTag). Each package has its own Gemini client instance.</span>
+      </div>
+      <div style="background: #141824; border: 1px solid #1e2435; border-radius: 10px; padding: 14px 18px; display: flex; gap: 14px; align-items: flex-start;">
+        <span class="pill pill-green">Service Role for Notifications</span>
+        <span style="font-size: 12px; color: #94a3b8; line-height: 1.6;">Supabase anon key respects RLS — registrar cannot write to student's notifications row. supabaseAdmin (service role) bypasses RLS for the notification insert only. Realtime subscription on student side delivers instantly via websocket.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 4 — AI PIPELINE
+══════════════════════════════════════════════ -->
+<div class="content" id="tab-aiflow">
+
+  <div class="flow-section">
+    <div class="flow-section-title">Credential Mint → AI Pipeline (triggered per mint)</div>
+    <div class="flow-row">
+      <div class="node node-page">Registrar enters skill_tags</div>
+      <div class="arrow">→</div>
+      <div class="node node-api">POST /api/registrar/credentials</div>
+      <div class="arrow">→</div>
+      <div class="node node-db">verified_credentials (skill_tags[])</div>
+    </div>
+    <div class="connector">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-db">monitored_keywords UPSERT</div>
+          <div class="arrow">→</div>
+          <div class="arrow-label">eligible for next cron</div>
+          <div class="node node-cron">daily-update.ts</div>
+        </div>
+      </div>
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-ai">Check courses coverage</div>
+          <div class="arrow">→</div>
+          <div class="arrow-label">uncovered tags only</div>
+          <div class="node node-ai">Gemini generateCoursesForTag()</div>
+          <div class="arrow">→</div>
+          <div class="node node-db">courses INSERT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <div class="flow-section">
+    <div class="flow-section-title">Daily Cron → Skill Health Pipeline</div>
+    <div class="flow-row">
+      <div class="node node-cron">GitHub Actions (00:00 UTC daily)</div>
+      <div class="arrow">→</div>
+      <div class="node node-db">monitored_keywords (active)</div>
+      <div class="arrow">→</div>
+      <div class="node node-ext">Adzuna API (per keyword)</div>
+    </div>
+    <div class="connector">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-db">market_snapshots INSERT</div>
+          <div class="arrow">→</div>
+          <div class="arrow-label">last 30 days fetched</div>
+          <div class="node node-ai">decay-forecaster.ts</div>
+        </div>
+      </div>
+    </div>
+    <div class="connector" style="margin-left: 44px">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-ai">slopeSignal (40%)</div>
+          <div class="arrow">+</div>
+          <div class="node node-ai">volumeSignal (30%)</div>
+          <div class="arrow">+</div>
+          <div class="node node-ai">recencySignal (30%)</div>
+          <div class="arrow">→</div>
+          <div class="node node-ai">velocityScore 0–100</div>
+        </div>
+      </div>
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-ai">velocityScore → trend_label (growing/stable/declining)</div>
+          <div class="arrow">→</div>
+          <div class="node node-db">skill_health_cache UPSERT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <div class="flow-section">
+    <div class="flow-section-title">Student Career Analysis Pipeline (on-demand)</div>
+    <div class="flow-row">
+      <div class="node node-page">/student/coach loads</div>
+      <div class="arrow">→</div>
+      <div class="node node-chain">wallet balanceOf() scan</div>
+      <div class="arrow">+</div>
+      <div class="node node-db">verified_credentials (DB)</div>
+      <div class="arrow">→</div>
+      <div class="node node-api">POST /api/analyze</div>
+    </div>
+    <div class="connector">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-db">skill_health_cache (per skill)</div>
+          <div class="arrow">→</div>
+          <div class="node node-ai">course-recommender.ts</div>
+          <div class="arrow">→</div>
+          <div class="arrow-label">Tier 1: domain match · Tier 2: explore</div>
+          <div class="node node-db">courses table</div>
+        </div>
+      </div>
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-db">market_snapshots (30-day history)</div>
+          <div class="arrow">→</div>
+          <div class="node node-page">Trend graph (per-skill normalized)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <div class="flow-section">
+    <div class="flow-section-title">F1 Evaluation Pipeline (manual / defense)</div>
+    <div class="flow-row">
+      <div class="node node-cron">npx ts-node evaluate-extractor.ts</div>
+      <div class="arrow">→</div>
+      <div class="node node-db">golden-dataset.json (20 cases)</div>
+      <div class="arrow">→</div>
+      <div class="node node-ai">Gemini extractSkillsFromResume()</div>
+    </div>
+    <div class="connector">
+      <div class="connector-item">
+        <div class="flow-row">
+          <div class="node node-ai">SOFT match (bidirectional substring)</div>
+          <div class="arrow">→</div>
+          <div class="node node-ai">TP / FP / FN per case</div>
+          <div class="arrow">→</div>
+          <div class="node node-ai">Micro-averaged F1: 0.61 · P: 0.62 · R: 0.60</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchTab(id) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -43,7 +43,20 @@ function parseSkillTags(raw: string): string[] {
 export default function RegistrarDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'issue' | 'build'>('issue');
+  const [activeTab, setActiveTab] = useState<'issue' | 'build' | 'batch'>('issue');
+
+  // CSV Batch Upload state
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvResult, setCsvResult] = useState<{
+    success?: boolean;
+    rows?: any[];
+    warnings?: string[];
+    error?: string;
+    rowErrors?: { row: number; issues: string[] }[];
+  } | null>(null);
+  const [csvDragOver, setCsvDragOver] = useState(false);
+  const [batchSchemaId, setBatchSchemaId] = useState<string>('');
 
   const [schemas, setSchemas] = useState<CredentialSchema[]>([]);
   const [students, setStudents] = useState<StudentRecord[]>([]);
@@ -187,6 +200,9 @@ export default function RegistrarDashboard() {
             <button onClick={() => setActiveTab('issue')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'issue' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-500 hover:text-gray-700'}`}>
               Issue Record
             </button>
+            <button onClick={() => setActiveTab('batch')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'batch' ? 'bg-white shadow-sm text-green-600' : 'text-gray-500 hover:text-gray-700'}`}>
+              Batch Upload
+            </button>
             <button onClick={() => setActiveTab('build')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'build' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
               Template Builder
             </button>
@@ -195,6 +211,186 @@ export default function RegistrarDashboard() {
 
         {activeTab === 'build' ? (
           <SchemaBuilder />
+        ) : activeTab === 'batch' ? (
+          /* ── Batch CSV Upload Tab ─────────────────────────────────── */
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Batch CSV Upload</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              Upload a CSV file with student credential data. Select a template first — the required CSV columns will adjust to match the template's fields.
+            </p>
+
+            {/* Schema selector for batch upload */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Credential Template</label>
+              <select
+                value={batchSchemaId}
+                onChange={(e) => { setBatchSchemaId(e.target.value); setCsvResult(null); }}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white"
+              >
+                <option value="">— Select a template —</option>
+                {schemas.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+              </select>
+              {batchSchemaId && (() => {
+                const s = schemas.find(x => x.id === batchSchemaId);
+                const schemaFields = s ? Object.keys(s.json_schema.properties) : [];
+                return (
+                  <div className="mt-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                    <p className="text-xs font-semibold text-green-800 mb-1">Expected CSV Headers:</p>
+                    <code className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded block">
+                      student_id,wallet_address,{schemaFields.join(',')}
+                    </code>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Drop zone */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setCsvDragOver(true); }}
+              onDragLeave={() => setCsvDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setCsvDragOver(false);
+                const file = e.dataTransfer.files[0];
+                if (file) { setCsvFile(file); setCsvResult(null); }
+              }}
+              className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${csvDragOver ? 'border-green-400 bg-green-50' : csvFile ? 'border-green-300 bg-green-50/50' : 'border-gray-300 hover:border-purple-400 hover:bg-purple-50/30'
+                }`}
+              onClick={() => document.getElementById('csv-file-input')?.click()}
+            >
+              <input
+                id="csv-file-input"
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={(e) => { if (e.target.files?.[0]) { setCsvFile(e.target.files[0]); setCsvResult(null); } }}
+              />
+              {csvFile ? (
+                <>
+                  <div className="text-3xl mb-2">📄</div>
+                  <p className="font-semibold text-green-700">{csvFile.name}</p>
+                  <p className="text-xs text-gray-500 mt-1">{(csvFile.size / 1024).toFixed(1)} KB • Click or drag to replace</p>
+                </>
+              ) : (
+                <>
+                  <div className="text-3xl mb-2">📤</div>
+                  <p className="font-semibold text-gray-700">Drop CSV file here or click to browse</p>
+                  <p className="text-xs text-gray-400 mt-1">Required headers: student_id, skill_name, wallet_address</p>
+                </>
+              )}
+            </div>
+
+            {/* Upload button */}
+            <button
+              disabled={!csvFile || csvUploading || !batchSchemaId}
+              onClick={async () => {
+                if (!csvFile) return;
+                setCsvUploading(true);
+                setCsvResult(null);
+                try {
+                  const form = new FormData();
+                  form.append('file', csvFile);
+                  if (batchSchemaId) form.append('schema_id', batchSchemaId);
+                  const res = await fetch('/api/registrar/csv-upload', { method: 'POST', body: form });
+                  const data = await res.json();
+                  if (res.ok) {
+                    setCsvResult({ success: true, rows: data.rows, warnings: data.warnings });
+                  } else {
+                    setCsvResult({ success: false, error: data.error, rowErrors: data.rowErrors });
+                  }
+                } catch (err: any) {
+                  setCsvResult({ success: false, error: err.message });
+                } finally {
+                  setCsvUploading(false);
+                }
+              }}
+              className={`mt-4 w-full py-3 font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${!csvFile || csvUploading
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700 shadow-lg'
+                }`}
+            >
+              {csvUploading ? '⏳ Validating & Uploading...' : !batchSchemaId ? '⬆️ Select a template first' : '🛡️ Validate & Upload CSV'}
+            </button>
+
+            {/* Results */}
+            {csvResult && (
+              <div className={`mt-6 rounded-xl border p-6 ${csvResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <h3 className={`font-bold text-lg mb-3 ${csvResult.success ? 'text-green-800' : 'text-red-800'}`}>
+                  {csvResult.success ? `✅ ${csvResult.rows?.length} Row(s) Validated Successfully` : '❌ Validation Failed'}
+                </h3>
+
+                {/* Error message */}
+                {csvResult.error && (
+                  <div className="bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm mb-3">
+                    <strong>Error:</strong> {csvResult.error}
+                  </div>
+                )}
+
+                {/* Row errors */}
+                {csvResult.rowErrors && csvResult.rowErrors.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    {csvResult.rowErrors.map((re, i) => (
+                      <div key={i} className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm">
+                        <strong>Row {re.row}:</strong> {re.issues.join(', ')}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Warnings (e.g. sanitized cells) */}
+                {csvResult.warnings && csvResult.warnings.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                    <p className="font-semibold text-yellow-800 text-sm mb-1">⚠️ Sanitization Warnings:</p>
+                    {csvResult.warnings.map((w, i) => (
+                      <p key={i} className="text-xs text-yellow-700">• {w}</p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Dynamic success table — shows all columns from the CSV */}
+                {csvResult.success && csvResult.rows && csvResult.rows.length > 0 && (() => {
+                  const allKeys = Object.keys(csvResult.rows[0]);
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-green-200">
+                            <th className="text-left py-2 px-3 text-green-800">#</th>
+                            {allKeys.map(k => (
+                              <th key={k} className="text-left py-2 px-3 text-green-800 capitalize">{k.replace(/_/g, ' ')}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {csvResult.rows.map((row, i) => (
+                            <tr key={i} className="border-b border-green-100">
+                              <td className="py-2 px-3 text-green-700">{i + 1}</td>
+                              {allKeys.map(k => (
+                                <td key={k} className="py-2 px-3 text-xs">
+                                  {k === 'wallet_address' ? `${(row[k] || '').slice(0, 10)}...` : row[k]}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Format help */}
+            <div className="mt-6 bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <h4 className="text-sm font-bold text-gray-700 mb-2">📋 CSV Format Guide</h4>
+              <p className="text-xs text-gray-500 mb-2">Select a template above to see the exact headers required. Base headers are always: <strong>student_id</strong>, <strong>wallet_address</strong></p>
+              <div className="mt-3 space-y-1">
+                <p className="text-xs text-gray-500">🛡️ <strong>Security:</strong> Formula injection characters (=, +, -, @) are automatically neutralized</p>
+                <p className="text-xs text-gray-500">📏 <strong>Limits:</strong> Max 1 MB file size, max 500 rows per upload</p>
+                <p className="text-xs text-gray-500">✅ <strong>Validation:</strong> Student IDs must be valid UUIDs, wallet addresses must be valid Ethereum addresses</p>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Issue Verifiable Credential</h2>

@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { genAI, GEMINI_MODEL } from '@/lib/gemini'; // 🛡️ Centralized Gemini (Checkpoint #2)
 import { z } from 'zod';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 const chatRequestSchema = z.object({
   message: z.string().min(1, "Message cannot be empty").max(1000, "Message too long"),
@@ -134,7 +133,7 @@ export async function POST(req: Request) {
       If a skill has high demand in specific cities, mention those cities.
     `;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
     const chat = model.startChat({
       history: [
         { role: 'user', parts: [{ text: systemContext }] },

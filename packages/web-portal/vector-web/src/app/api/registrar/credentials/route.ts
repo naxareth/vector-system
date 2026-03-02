@@ -1,17 +1,16 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { decryptData, encryptData } from '@/lib/encryption'; 
-import { prisma } from '@/lib/db'; 
+import { decryptData, encryptData } from '@/lib/encryption';
+import { prisma } from '@/lib/db';
 import { z } from 'zod';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { genAI, GEMINI_MODEL } from '@/lib/gemini'; // 🛡️ Centralized Gemini (Checkpoint #2)
 
 // ---------------------------------------------------------------------------
-// Inline course generator — uses the web portal's own Gemini instance so
-// we avoid cross-package imports that Turbopack can't resolve.
+// Inline course generator — uses the centralized Gemini client from
+// @/lib/gemini. All API key management is handled by env-guard.ts.
 // Mirrors generateCoursesForTag from ai-engine/src/nlp/gemini-client.ts.
 // ---------------------------------------------------------------------------
-const _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 interface GeneratedCourse {
   title: string;
@@ -56,7 +55,7 @@ Input tag: "${tag}"
 `.trim();
 
   try {
-    const model = _genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const cleaned = text.replace(/\`\`\`json/gi, '').replace(/\`\`\`/g, '').trim();
@@ -77,7 +76,7 @@ Input tag: "${tag}"
   }
 }
 
-export const dynamic = 'force-dynamic'; 
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const cookieStore = await cookies();
@@ -85,7 +84,7 @@ export async function GET(req: Request) {
   // 1. Initialize Supabase with the MASTER KEY (Service Role)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!, 
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: {
         get(name: string) { return cookieStore.get(name)?.value },
@@ -96,7 +95,7 @@ export async function GET(req: Request) {
   try {
     // 2. 🛡️ VERIFY AUTHENTICATION
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       console.error("API Auth Error:", authError);
       return NextResponse.json({ error: 'Unauthorized: Session invalid' }, { status: 401 });
@@ -114,8 +113,8 @@ export async function GET(req: Request) {
     }
 
     if (userRecord.role !== 'registrar' && userRecord.role !== 'super_admin') {
-      return NextResponse.json({ 
-        error: `Forbidden: Access restricted for role ${userRecord.role}` 
+      return NextResponse.json({
+        error: `Forbidden: Access restricted for role ${userRecord.role}`
       }, { status: 403 });
     }
 
@@ -154,7 +153,7 @@ export async function GET(req: Request) {
 
       return {
         ...cred,
-        private_notes: decryptedNote 
+        private_notes: decryptedNote
       };
     });
 
@@ -190,7 +189,7 @@ export async function POST(req: Request) {
       cookies: {
         getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet) {
-          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } catch {}
+          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } catch { }
         },
       },
     }
@@ -249,9 +248,9 @@ export async function POST(req: Request) {
     );
 
     if (missingFields.length > 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Credential data does not match W3C schema requirements',
-        missing_fields: missingFields 
+        missing_fields: missingFields
       }, { status: 400 });
     }
 
@@ -276,8 +275,8 @@ export async function POST(req: Request) {
     };
 
     // 6. Encrypt private notes if present
-    const encryptedNotes = validatedData.private_notes 
-      ? encryptData(validatedData.private_notes) 
+    const encryptedNotes = validatedData.private_notes
+      ? encryptData(validatedData.private_notes)
       : null;
 
     // 7. Save credential to database
@@ -407,10 +406,10 @@ export async function POST(req: Request) {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: newCredential,
-      w3c_document: w3cPayload 
+      w3c_document: w3cPayload
     }, { status: 201 });
 
   } catch (error: any) {

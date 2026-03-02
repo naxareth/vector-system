@@ -271,7 +271,7 @@ export default function CoachPage() {
         )}
 
         {/* Chart */}
-        <div className="relative w-full" style={{ height: '180px' }}>
+        <div className="relative w-full" style={{ height: '240px' }}>
           <svg
             viewBox={`0 0 ${VW} ${VH}`}
             preserveAspectRatio="xMidYMid meet"

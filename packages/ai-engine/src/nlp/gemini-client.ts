@@ -4,7 +4,15 @@ import dotenv from "dotenv";
 // Load environment variables from .env file
 dotenv.config();
 
-export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// 🛡️ SECURITY (Checkpoint #2): Runtime guard — fail fast if key is missing
+if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim().length === 0) {
+  throw new Error(
+    '🛡️ SECURITY: GEMINI_API_KEY is not set in ai-engine .env. ' +
+    'The AI engine cannot start without it.'
+  );
+}
+
+export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
  * Open-domain skill extraction prompt.

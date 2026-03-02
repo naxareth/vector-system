@@ -24,6 +24,7 @@
 configs
 docs
   seed-monitored-keywords.sql
+  SECURITY_MITIGATIONS.md                            ← NEW Checkpoint #2 (threat models, code changes, test results for all 4 mitigations)
   seed-courses.sql
 packages
 │
@@ -34,7 +35,7 @@ packages
 │       │   ├── market-provider.ts                     ← MODIFIED (fetchRichMarketData wired)
 │       │   └── jsearch-client.ts
 │       ├── nlp
-│       │   ├── gemini-client.ts                       ← MODIFIED (open-domain skill extraction prompt, removed hardcoded 5-skill taxonomy, generateCoursesForTag export)
+│       │   ├── gemini-client.ts                       ← MODIFIED (open-domain skill extraction prompt, removed hardcoded 5-skill taxonomy, generateCoursesForTag export) ← Checkpoint #2 (runtime guard for missing GEMINI_API_KEY)
 │       │   └── skill-extractor.ts                     ← MODIFIED (uses GEMINI_MODEL constant)
 │       ├── predictions
 │       │   └── decay-forecaster.ts                    ← MODIFIED Phase 13a (3-signal weighted velocity: slope 40% + volume 30% + recency 30%, velocityScore field added to SkillHealth interface)
@@ -92,13 +93,14 @@ packages
             │   │   │   ├── send-verification/route.ts
             │   │   │   ├── verify-captcha/route.ts
             │   │   │   └── verify-email/route.ts
-            │   │   ├── chat/route.ts                  ← MODIFIED (salary + location Gemini context) ← Phase 13c key segregation pending
+            │   │   ├── chat/route.ts                  ← MODIFIED (salary + location Gemini context) ← Checkpoint #2 (centralized Gemini import from @/lib/gemini)
             │   │   ├── cvr
             │   │   │   ├── export/route.ts            ← NEW Phase 11 (INSERT into cvr_exports, return UUID)
-            │   │   │   └── analyze/route.ts           ← NEW Phase 12 (Gemini CVR analysis, skill_health_cache enrichment)
+            │   │   │   └── analyze/route.ts           ← NEW Phase 12 (Gemini CVR analysis, skill_health_cache enrichment) ← Checkpoint #2 (centralized Gemini import)
             │   │   ├── mint/route.ts
             │   │   ├── registrar
-            │   │   │   ├── credentials/route.ts       ← MODIFIED (step 8b notification insert, supabaseAdmin for RLS bypass, full_name added to dbUser select)
+            │   │   │   ├── credentials/route.ts       ← MODIFIED (step 8b notification insert, supabaseAdmin for RLS bypass, full_name added to dbUser select) ← Checkpoint #2 (centralized Gemini import)
+            │   │   │   ├── csv-upload/route.ts        ← NEW Checkpoint #2 (secure CSV upload endpoint — auth + RBAC + file validation + row sanitization)
             │   │   │   └── log-mint/route.ts          ← legacy route, no longer called by registrar dashboard
             │   │   ├── schemas/route.ts
             │   │   ├── schemas/[id]/route.ts
@@ -107,8 +109,8 @@ packages
             │   │   │   ├── skill-health/route.ts      ← NEW (fast cache-read, no LLM)
             │   │   │   └── market-insights/route.ts
             │   │   ├── verify
-            │   │   │   ├── [id]/route.ts              ← NEW (public single credential verification API)
-            │   │   │   └── cvr/[id]/route.ts          ← NEW Phase 11 (CVR-level verification API)
+            │   │   │   ├── [id]/route.ts              ← NEW (public single credential verification API) ← Checkpoint #2 (rate limiting 10/min per IP, PII redaction: studentId removed, walletAddress truncated)
+            │   │   │   └── cvr/[id]/route.ts          ← NEW Phase 11 (CVR-level verification API) ← Checkpoint #2 (rate limiting, PII redaction: email+studentId removed, walletAddress truncated)
             │   │   └── verify-registrar/route.ts
             │   ├── registrar
             │   │   ├── dashboard/page.tsx             ← MODIFIED (extracts + validates skill_tags before minting)
@@ -121,7 +123,7 @@ packages
             │   │   ├── profile/security/page.tsx
             │   │   └── skills/page.tsx                ← MODIFIED (fan-out by skill_tags, two-phase load, slope velocity UI)
             │   └── verify
-            │       ├── [id]/page.tsx                  ← NEW (public single credential verify portal, no auth)
+            │       ├── [id]/page.tsx                  ← NEW (public single credential verify portal, no auth) ← Checkpoint #2 (studentId field removed from UI)
             │       └── cvr/[id]/page.tsx              ← NEW Phase 11 (full CVR verification portal)
             ├── components
             │   ├── auth
@@ -156,11 +158,21 @@ packages
             │   └── student
             │       ├── MarketInsightsPanel.tsx        ← MODIFIED (rich market data display)
             │       └── RecommendationsPanel.tsx       ← MODIFIED (Tier 1/Tier 2 domain-aware display)
+            ├── __tests__
+            │   └── security
+            │       ├── csv-validation.test.ts         ← NEW Checkpoint #2 (3 test cases, 18 assertions)
+            │       ├── api-key-protection.test.ts     ← NEW Checkpoint #2 (3 test cases, 10 assertions)
+            │       ├── ipfs-privacy.test.ts           ← NEW Checkpoint #2 (3 test cases, 29 assertions)
+            │       └── rate-limiter.test.ts           ← NEW Checkpoint #2 (3 test cases, 11 assertions)
             └── lib
                 ├── blockchain.ts
+                ├── csv-validator.ts                    ← NEW Checkpoint #2 (MIME check, size limit, header validation, formula injection prevention, Zod row schemas)
                 ├── db.ts
                 ├── encryption.ts
-                ├── gemini.ts                          ← NEW (centralized GEMINI_MODEL constant + geminiModel singleton for all web portal routes)
+                ├── env-guard.ts                        ← NEW Checkpoint #2 (validateSecretEnvVars: missing key detection + NEXT_PUBLIC_ leak detection)
+                ├── gemini.ts                          ← NEW (centralized GEMINI_MODEL constant + geminiModel singleton) ← Checkpoint #2 (requireEnv guard, fails fast if key missing)
+                ├── ipfs.ts                            ← MODIFIED Checkpoint #2 (was empty → buildIpfsMetadata, stripSensitiveFields, validateIpfsPayload, SENSITIVE_FIELDS blocklist)
+                ├── rate-limiter.ts                    ← NEW Checkpoint #2 (sliding window rate limiter, 10 req/min per IP, auto-cleanup)
                 └── supabaseClient.ts
 
 # 4. Database Schema (PostgreSQL / Supabase)
@@ -342,6 +354,10 @@ CREATE TABLE public.verified_credentials (
 * **Component Architecture:** Always use functional components with TypeScript interfaces for props.
 * **State Management:** Use React `useState` and `useEffect` for local state; leverage `ThemeContext` for global UI states.
 * **Security First:** Never expose Private Keys in the frontend. All sensitive data (like registrar notes) must be encrypted via `lib/encryption.ts` before storage.
+* **API Key Protection (Checkpoint #2):** All critical secrets (`GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ENCRYPTION_KEY`) must pass `requireEnv()` runtime guards. Never add these to `NEXT_PUBLIC_*` variables — `validateSecretEnvVars()` in `env-guard.ts` detects and blocks client-side leaks. All web portal routes must import `genAI`/`geminiModel` from `@/lib/gemini` — never instantiate standalone `GoogleGenerativeAI` clients.
+* **CSV Upload Security (Checkpoint #2):** CSV uploads go through `csv-validator.ts` which checks MIME type, enforces 1 MB max, validates required headers (`student_id`, `skill_name`, `wallet_address`), and sanitizes cells against formula injection (`=`, `+`, `-`, `@`, `\t`, `\r`). The endpoint at `/api/registrar/csv-upload` requires registrar/super_admin RBAC.
+* **IPFS Privacy (Checkpoint #2):** Never send raw credential data to IPFS. Always use `buildIpfsMetadata()` from `@/lib/ipfs` as the single gateway — it strips 20+ sensitive fields (email, phone, wallet_address, private_notes, student_id, etc.). Call `validateIpfsPayload()` as a final check before pinning.
+* **Rate Limiting (Checkpoint #2):** Public verification endpoints (`/api/verify/[id]`, `/api/verify/cvr/[id]`) are rate-limited to 10 requests/minute per IP using the `verifyRateLimiter` singleton from `@/lib/rate-limiter`. Responses include `Retry-After` and `X-RateLimit-Remaining` headers. PII is redacted: `studentId` removed, `email` removed, `walletAddress` truncated to first 6 + last 4 chars.
 * **Code Integrity:** Do not remove existing comments or TODO markers. Use `async/await` for all database and blockchain calls.
 * **Consistency:** Ensure "De-jargonization" for Registrar UIs (e.g., use "Secure Record" instead of "Mint NFT").
 * **Error Handling:** Use Zod for all form and API request validation.
@@ -376,15 +392,15 @@ CREATE TABLE public.verified_credentials (
   - Phase 12 — AI CVR Analysis (complete, tested end-to-end).
   - Phase 13a — Weighted Velocity Scoring (complete).
   - Phase 13b — F1 Evaluation Script (complete). F1: 0.61, Precision: 0.62, Recall: 0.60, 20/20 cases, 0 errors.
-  - Notification Fix (complete):
-    - Root cause: insert was in log-mint/route.ts which is never called by registrar dashboard. Dashboard calls credentials/route.ts directly.
-    - Fix: notification insert moved to credentials/route.ts step 8b using supabaseAdmin (service role).
-    - TopBar.tsx upgraded with Supabase Realtime subscription + 30s polling fallback + mark-all-read on open + click-to-redirect.
-    - notifications.link_url column confirmed present in DB.
-    - Supabase Replication must be enabled on notifications table for Realtime to fire.
+  - Notification Fix (complete).
+  - **Checkpoint #2 — Security Mitigations (complete):**
+    - CSV Input Validation: `csv-validator.ts` + `/api/registrar/csv-upload` endpoint. Formula injection prevention, Zod row validation.
+    - API Key Protection: `env-guard.ts` runtime guards, all 3 web portal routes refactored to centralized `@/lib/gemini`, ai-engine `gemini-client.ts` guarded.
+    - IPFS Metadata Privacy: `ipfs.ts` built with `buildIpfsMetadata()`, `stripSensitiveFields()`, `validateIpfsPayload()`. 20+ sensitive fields blocklisted.
+    - Verification Rate Limiting: `rate-limiter.ts` sliding window (10/min per IP), PII redacted from verify routes (studentId removed, email removed, walletAddress truncated).
+    - 12 test cases (3 per mitigation), 68 assertions, 0 failures. See `docs/SECURITY_MITIGATIONS.md`.
 
 * **Known Pending Issues:**
-  - Existing web portal routes (chat/route.ts, analyze/route.ts) still instantiate their own GoogleGenerativeAI — not yet migrated to import geminiModel from @/lib/gemini. Low priority.
   - Generated course URLs are unverified Gemini slugs — future link-validation pass.
   - allowedDevOrigins warning for ngrok — add to next.config.ts.
 

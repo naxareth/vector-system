@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/db';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { genAI, GEMINI_MODEL } from '@/lib/gemini'; // 🛡️ Centralized Gemini (Checkpoint #2)
 import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
@@ -17,10 +17,8 @@ import { z } from 'zod';
 //   - recommendations (3 actionable next steps)
 //
 // Consumes 1 Gemini RPD per call. No caching — always fresh analysis.
-// Phase 13 key segregation: move to GEMINI_API_KEY_CHAT when implemented.
+// 🛡️ SECURITY (Checkpoint #2): Uses centralized Gemini client from @/lib/gemini
 // ---------------------------------------------------------------------------
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 const analyzeRequestSchema = z.object({
   snapshot: z.record(z.string(), z.any()),
@@ -37,7 +35,7 @@ export async function POST(req: NextRequest) {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: () => {},
+        setAll: () => { },
       },
     }
   );
@@ -137,32 +135,32 @@ export async function POST(req: NextRequest) {
   const experienceCtx =
     Array.isArray(snapshot.experience) && snapshot.experience.length > 0
       ? `Work Experience: ${snapshot.experience
-          .map((e: any) =>
-            [e.title, e.company].filter(Boolean).join(' at ')
-          )
-          .filter(Boolean)
-          .join('; ')}`
+        .map((e: any) =>
+          [e.title, e.company].filter(Boolean).join(' at ')
+        )
+        .filter(Boolean)
+        .join('; ')}`
       : '';
   const projectsCtx =
     Array.isArray(snapshot.projects) && snapshot.projects.length > 0
       ? `Projects: ${snapshot.projects
-          .map((p: any) => p.title)
-          .filter(Boolean)
-          .join('; ')}`
+        .map((p: any) => p.title)
+        .filter(Boolean)
+        .join('; ')}`
       : '';
   const certsCtx =
     Array.isArray(snapshot.certifications) && snapshot.certifications.length > 0
       ? `Other Certifications: ${snapshot.certifications
-          .map((c: any) => c.name)
-          .filter(Boolean)
-          .join('; ')}`
+        .map((c: any) => c.name)
+        .filter(Boolean)
+        .join('; ')}`
       : '';
   const educationCtx =
     Array.isArray(snapshot.education) && snapshot.education.length > 0
       ? `Education: ${snapshot.education
-          .map((e: any) => [e.degree, e.school].filter(Boolean).join(' — '))
-          .filter(Boolean)
-          .join('; ')}`
+        .map((e: any) => [e.degree, e.school].filter(Boolean).join(' — '))
+        .filter(Boolean)
+        .join('; ')}`
       : '';
 
   const profileLines = [titleCtx, summaryCtx, educationCtx, experienceCtx, projectsCtx, certsCtx]
