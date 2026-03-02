@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
+import { verifyRateLimiter } from '@/lib/rate-limiter'; // 🛡️ Checkpoint #2
 
 // ---------------------------------------------------------------------------
 // GET /api/verify/[id]
@@ -9,6 +10,10 @@ import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
 // Public endpoint — no auth required. Resolves a credential UUID to:
 //   1. DB record (skill, student identity, issuer, dates)
 //   2. On-chain verification against Polygon Amoy (token balance check)
+//
+// 🛡️ SECURITY (Checkpoint #2):
+//   - Rate limited: 10 requests/minute per IP
+//   - PII redacted: studentId removed, walletAddress truncated
 //
 // Why UUID as the identifier:
 //   - Not enumerable (v4 random 128-bit) unlike sequential token_id
@@ -18,10 +23,37 @@ import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
 
 const POLYGON_AMOY_RPC = 'https://rpc-amoy.polygon.technology/';
 
+/** Truncate a string for public display (e.g. wallet address) */
+function truncateAddress(addr: string): string {
+  if (!addr || addr.length <= 13) return addr;
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // -------------------------------------------------------------------------
+  // 🛡️ Rate Limiting (Checkpoint #2)
+  // -------------------------------------------------------------------------
+  const ip = _req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || _req.headers.get('x-real-ip')
+    || 'unknown';
+
+  const rateCheck = verifyRateLimiter.checkLimit(ip);
+  if (!rateCheck.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil(rateCheck.retryAfterMs / 1000)),
+          'X-RateLimit-Remaining': '0',
+        },
+      }
+    );
+  }
+
   const { id } = await params;
 
   // Basic UUID format guard
@@ -50,8 +82,8 @@ export async function GET(
         student: {
           select: {
             full_name: true,
-            student_id: true,
             wallet_address: true,
+            // 🛡️ student_id intentionally NOT selected (PII redaction)
           },
         },
         // Join batch / registrar info
@@ -118,28 +150,37 @@ export async function GET(
   }
 
   // -------------------------------------------------------------------------
-  // 3. Build response — only expose safe public fields
+  // 3. Build response — 🛡️ only expose safe public fields (Checkpoint #2)
+  //    - studentId: REMOVED (PII)
+  //    - walletAddress: TRUNCATED (only first 6 + last 4 chars)
   // -------------------------------------------------------------------------
-  return NextResponse.json({
-    credential: {
-      id: credential.id,
-      skillName: credential.skill_name,
-      issuedAt: credential.issued_at,
-      certificateNumber: credential.certificate_number ?? null,
-      issuerDid: credential.issuer_did ?? null,
-      schemaUrl: credential.schema_url ?? null,
-      transactionHash: credential.transaction_hash ?? null,
+  return NextResponse.json(
+    {
+      credential: {
+        id: credential.id,
+        skillName: credential.skill_name,
+        issuedAt: credential.issued_at,
+        certificateNumber: credential.certificate_number ?? null,
+        issuerDid: credential.issuer_did ?? null,
+        schemaUrl: credential.schema_url ?? null,
+        transactionHash: credential.transaction_hash ?? null,
+      },
+      student: {
+        fullName: credential.student.full_name ?? 'Unknown',
+        // 🛡️ studentId removed — not included in response
+        // 🛡️ walletAddress truncated for privacy
+        walletAddress: wallet_address ? truncateAddress(wallet_address) : null,
+      },
+      issuedBy: {
+        batchName: credential.batch?.batch_name ?? null,
+        registrarName: credential.batch?.registrar?.full_name ?? null,
+      },
+      onChain,
     },
-    student: {
-      fullName: credential.student.full_name ?? 'Unknown',
-      studentId: credential.student.student_id ?? null,
-      // wallet exposed so verifiers can cross-check on Polygonscan
-      walletAddress: wallet_address ?? null,
-    },
-    issuedBy: {
-      batchName: credential.batch?.batch_name ?? null,
-      registrarName: credential.batch?.registrar?.full_name ?? null,
-    },
-    onChain,
-  });
+    {
+      headers: {
+        'X-RateLimit-Remaining': String(rateCheck.remaining),
+      },
+    }
+  );
 }

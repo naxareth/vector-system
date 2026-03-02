@@ -1,17 +1,17 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { decryptData, encryptData } from '@/lib/encryption'; 
-import { prisma } from '@/lib/db'; 
+import { decryptData, encryptData } from '@/lib/encryption';
+import { prisma } from '@/lib/db';
 import { z } from 'zod';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { genAI, GEMINI_MODEL } from '@/lib/gemini'; // 🛡️ Centralized Gemini (Checkpoint #2)
+import { buildIpfsMetadata, validateIpfsPayload } from '@/lib/ipfs'; // 🛡️ IPFS Privacy (Checkpoint #2)
 
 // ---------------------------------------------------------------------------
-// Inline course generator — uses the web portal's own Gemini instance so
-// we avoid cross-package imports that Turbopack can't resolve.
+// Inline course generator — uses the centralized Gemini client from
+// @/lib/gemini. All API key management is handled by env-guard.ts.
 // Mirrors generateCoursesForTag from ai-engine/src/nlp/gemini-client.ts.
 // ---------------------------------------------------------------------------
-const _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 interface GeneratedCourse {
   title: string;
@@ -56,7 +56,7 @@ Input tag: "${tag}"
 `.trim();
 
   try {
-    const model = _genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const cleaned = text.replace(/\`\`\`json/gi, '').replace(/\`\`\`/g, '').trim();
@@ -77,7 +77,7 @@ Input tag: "${tag}"
   }
 }
 
-export const dynamic = 'force-dynamic'; 
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const cookieStore = await cookies();
@@ -85,7 +85,7 @@ export async function GET(req: Request) {
   // 1. Initialize Supabase with the MASTER KEY (Service Role)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!, 
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: {
         get(name: string) { return cookieStore.get(name)?.value },
@@ -96,7 +96,7 @@ export async function GET(req: Request) {
   try {
     // 2. 🛡️ VERIFY AUTHENTICATION
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       console.error("API Auth Error:", authError);
       return NextResponse.json({ error: 'Unauthorized: Session invalid' }, { status: 401 });
@@ -114,8 +114,8 @@ export async function GET(req: Request) {
     }
 
     if (userRecord.role !== 'registrar' && userRecord.role !== 'super_admin') {
-      return NextResponse.json({ 
-        error: `Forbidden: Access restricted for role ${userRecord.role}` 
+      return NextResponse.json({
+        error: `Forbidden: Access restricted for role ${userRecord.role}`
       }, { status: 403 });
     }
 
@@ -154,7 +154,7 @@ export async function GET(req: Request) {
 
       return {
         ...cred,
-        private_notes: decryptedNote 
+        private_notes: decryptedNote
       };
     });
 
@@ -181,6 +181,8 @@ const MintCredentialValidator = z.object({
 
 export async function POST(req: Request) {
   const cookieStore = await cookies();
+
+  // POST uses ANON key for auth session reading
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -188,8 +190,21 @@ export async function POST(req: Request) {
       cookies: {
         getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet) {
-          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } catch {}
+          try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } catch { }
         },
+      },
+    }
+  );
+
+  // Service role client — used only for the notification insert so it can
+  // bypass RLS and write to any user's notifications row without needing
+  // the student to be the authenticated actor.
+  const supabaseAdmin = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value },
       },
     }
   );
@@ -199,7 +214,10 @@ export async function POST(req: Request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const dbUser = await prisma.users.findUnique({ where: { id: user.id }, select: { role: true, wallet_address: true } });
+    const dbUser = await prisma.users.findUnique({
+      where: { id: user.id },
+      select: { role: true, wallet_address: true, full_name: true },
+    });
     if (dbUser?.role !== 'registrar') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     // 2. Parse and validate base request
@@ -217,7 +235,6 @@ export async function POST(req: Request) {
 
     // 4. Validate incoming student data against the specific schema fields
     const schemaObj = schemaTemplate.json_schema as any;
-    // We want to validate against the 'properties' defined in the schema, not the schema metadata itself
     const definedProperties = schemaObj.properties || {};
     const requiredKeys = schemaObj.required || [];
 
@@ -232,15 +249,17 @@ export async function POST(req: Request) {
     );
 
     if (missingFields.length > 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Credential data does not match W3C schema requirements',
-        missing_fields: missingFields 
+        missing_fields: missingFields
       }, { status: 400 });
     }
 
     // 5. Generate standard W3C JSON-LD payload
-    const issuerDid = dbUser.wallet_address ? `did:polygon:amoy:${dbUser.wallet_address}` : `did:web:yourdomain.com:registrar:${user.id}`;
-    const schemaUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/schemas/${schemaTemplate.id}`;
+    const issuerDid = dbUser.wallet_address
+      ? `did:polygon:amoy:${dbUser.wallet_address}`
+      : `did:web:yourdomain.com:registrar:${user.id}`;
+    const schemaUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/schemas/${schemaTemplate.id}`;
 
     const w3cPayload = {
       "@context": [
@@ -257,11 +276,11 @@ export async function POST(req: Request) {
     };
 
     // 6. Encrypt private notes if present
-    const encryptedNotes = validatedData.private_notes 
-      ? encryptData(validatedData.private_notes) 
+    const encryptedNotes = validatedData.private_notes
+      ? encryptData(validatedData.private_notes)
       : null;
 
-    // 7. Save to database
+    // 7. Save credential to database
     const newCredential = await prisma.verified_credentials.create({
       data: {
         user_id: validatedData.user_id,
@@ -287,25 +306,51 @@ export async function POST(req: Request) {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // 8b. 🔔 MINT NOTIFICATION
+    //
+    // Insert a notification for the student so their bell updates immediately
+    // via the Realtime subscription in TopBar.tsx.
+    //
+    // Uses supabaseAdmin (service role) so it can bypass RLS and write to the
+    // student's notifications row without the student being the auth actor.
+    //
+    // Non-fatal — credential is already saved, notification failure never
+    // blocks the 201 response back to the registrar.
+    // ─────────────────────────────────────────────────────────────────────────
+    if (newCredential?.id) {
+      const issuerName = dbUser.full_name || 'Your institution';
+      const { error: notifError } = await supabaseAdmin
+        .from('notifications')
+        .insert({
+          user_id: validatedData.user_id,
+          title: `New Credential Issued: ${validatedData.skill_name}`,
+          message: `${issuerName} has issued you a verified credential for "${validatedData.skill_name}". Tap to view your verified record.`,
+          type: 'success',
+          is_read: false,
+          link_url: `/verify/${newCredential.id}`,
+        });
+
+      if (notifError) {
+        // Non-fatal — log but do not surface to registrar
+        console.error('[credentials] Notification insert failed:', notifError.message);
+      } else {
+        console.log(`[credentials] Notification sent to student ${validatedData.user_id} for credential ${newCredential.id}`);
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ─────────────────────────────────────────────────────────────────────────
     // 9. 🎓 DYNAMIC COURSE GENERATION (Phase 9)
     //
     // For each incoming skill_tag, check if the courses table already has
     // coverage. If a tag has zero matching courses, call Gemini to generate
     // 2-3 relevant courses and insert them.
     //
-    // This runs fire-and-forget — no await on the outer block — so it never
-    // delays the 201 response back to the registrar.
-    //
-    // This ensures the recommendation engine always has domain-relevant
-    // courses available after a credential is minted, regardless of what
-    // field the credential is in.
+    // Fire-and-forget — never delays the 201 response back to the registrar.
     // ─────────────────────────────────────────────────────────────────────────
     if (validatedData.skill_tags.length > 0) {
       (async () => {
         try {
-          // Step 9a: Find which tags have zero course coverage in one query.
-          // We fetch all courses whose skill_tags overlap with the incoming tags,
-          // then determine which incoming tags are still uncovered.
           const coveredCourses = await prisma.courses.findMany({
             where: {
               skill_tags: {
@@ -315,7 +360,6 @@ export async function POST(req: Request) {
             select: { skill_tags: true },
           });
 
-          // Flatten all tags that already have at least one course covering them
           const coveredTags = new Set(
             coveredCourses.flatMap((c) => c.skill_tags ?? [])
           );
@@ -331,7 +375,6 @@ export async function POST(req: Request) {
 
           console.log(`[course-gen] Uncovered tags detected: ${uncoveredTags.join(', ')} — generating courses`);
 
-          // Step 9b: Generate courses for each uncovered tag in parallel
           const generatedBatches = await Promise.all(
             uncoveredTags.map((tag) => generateCoursesForTag(tag))
           );
@@ -343,10 +386,6 @@ export async function POST(req: Request) {
             return;
           }
 
-          // Step 9c: Bulk insert generated courses
-          // createMany is used for efficiency; skipDuplicates guards against
-          // any race condition where two mints fire simultaneously for the
-          // same uncovered tag.
           await prisma.courses.createMany({
             data: allGenerated.map((c) => ({
               title: c.title,
@@ -356,23 +395,65 @@ export async function POST(req: Request) {
               // Add a link-validation pass in a future phase.
               skill_tags: c.skill_tags,
             })),
-            skipDuplicates: false, // titles are not unique-constrained, so allow
+            skipDuplicates: false,
           });
 
           console.log(`[course-gen] Inserted ${allGenerated.length} course(s) for tags: ${uncoveredTags.join(', ')}`);
 
         } catch (courseGenErr) {
-          // Non-fatal: log but never surface to the registrar
           console.error('[course-gen] Dynamic course generation failed:', courseGenErr);
         }
       })();
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    return NextResponse.json({ 
-      success: true, 
+    // ─────────────────────────────────────────────────────────────────────────
+    // 10. 🛡️ IPFS METADATA PRIVACY (Checkpoint #2)
+    //
+    // Build a privacy-safe metadata payload using buildIpfsMetadata().
+    // This strips all PII (email, student_id, wallet_address, private_notes,
+    // etc.) and keeps only publicly verifiable credential data.
+    //
+    // validateIpfsPayload() runs a final safety scan for any leaked fields.
+    // In production, this payload would be pinned to IPFS via Pinata/nft.storage.
+    // ─────────────────────────────────────────────────────────────────────────
+    const ipfsMetadata = buildIpfsMetadata({
+      id: newCredential.id,
+      skill_name: newCredential.skill_name,
+      issued_at: newCredential.issued_at ?? undefined,
+      issuer_did: newCredential.issuer_did ?? undefined,
+      certificate_number: newCredential.certificate_number ?? undefined,
+      schema_url: newCredential.schema_url ?? undefined,
+      transaction_hash: newCredential.transaction_hash ?? undefined,
+      token_id: newCredential.token_id ?? undefined,
+      credential_data: w3cPayload.credentialSubject,
+      // These sensitive fields exist in DB but must NOT appear in IPFS payload:
+      private_notes: validatedData.private_notes,
+      user_id: validatedData.user_id,
+      wallet_address: body.wallet_address,
+      email: body.email,
+      student_id: body.student_id,
+    });
+
+    const ipfsViolations = validateIpfsPayload(ipfsMetadata as any);
+    if (ipfsViolations.length > 0) {
+      console.error('[ipfs-privacy] BLOCKED — sensitive fields leaked:', ipfsViolations);
+    } else {
+      console.log('[ipfs-privacy] Payload is clean — 0 sensitive fields detected');
+    }
+    console.log('[ipfs-privacy] IPFS-safe metadata:', JSON.stringify(ipfsMetadata, null, 2));
+    // ─────────────────────────────────────────────────────────────────────────
+
+    return NextResponse.json({
+      success: true,
       data: newCredential,
-      w3c_document: w3cPayload 
+      w3c_document: w3cPayload,
+      ipfs_metadata: ipfsMetadata,
+      ipfs_privacy_check: {
+        sensitive_fields_found: ipfsViolations.length,
+        violations: ipfsViolations,
+        status: ipfsViolations.length === 0 ? 'CLEAN — safe to pin to IPFS' : 'BLOCKED — sensitive data detected',
+      },
     }, { status: 201 });
 
   } catch (error: any) {

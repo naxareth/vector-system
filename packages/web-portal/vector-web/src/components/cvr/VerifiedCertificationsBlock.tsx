@@ -31,7 +31,7 @@ export default function VerifiedCertificationsBlock({
       <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
         Available Verified Certifications
         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-          Blockchain Synced
+          Verified
         </span>
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -45,7 +45,7 @@ export default function VerifiedCertificationsBlock({
               className={`p-4 rounded-lg border flex justify-between items-center ${
                 isAdded
                   ? 'bg-green-50 border-green-200 opacity-70'
-                  : 'bg-white border-purple-200 shadow-sm'
+                  : 'bg-white border-[#06B4C9]/20 shadow-sm'
               }`}
             >
               <div>
@@ -61,7 +61,7 @@ export default function VerifiedCertificationsBlock({
                 className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${
                   isAdded
                     ? 'text-green-700 bg-green-100 cursor-default'
-                    : 'text-white bg-purple-600 hover:bg-purple-700'
+                    : 'text-white bg-[#06B4C9] hover:bg-[#06B4C9]/80'
                 }`}
               >
                 {isAdded ? 'Added ✓' : '+ Add to CVR'}

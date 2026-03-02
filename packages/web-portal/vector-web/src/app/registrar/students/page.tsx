@@ -74,7 +74,7 @@ export default function ManageCredentials() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 bg-white"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06B4C9] text-gray-900 bg-white"
               placeholder="Search by Student, Wallet, Skill, or Cert ID..."
             />
           </div>
@@ -103,7 +103,7 @@ export default function ManageCredentials() {
                     <tr key={cred.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mr-3 ${cred.user ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-500'}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mr-3 ${cred.user ? 'bg-[#06B4C9]/10 text-[#06B4C9]' : 'bg-gray-200 text-gray-500'}`}>
                             {cred.user?.full_name?.[0] || '?'}
                           </div>
                           <div>
@@ -126,7 +126,7 @@ export default function ManageCredentials() {
                       <td className="px-6 py-4">
                         {cred.private_notes ? (
                           <div className="group relative w-max">
-                            <span className="cursor-help text-purple-600 text-xs font-medium border-b border-dotted border-purple-600">
+                            <span className="cursor-help text-[#06B4C9] text-xs font-medium border-b border-dotted border-[#06B4C9]">
                               View Secure Note
                             </span>
                             {/* The Tooltip */}
@@ -148,7 +148,7 @@ export default function ManageCredentials() {
                             href={`https://amoy.polygonscan.com/tx/${cred.transaction_hash}`} 
                             target="_blank" 
                             rel="noreferrer"
-                            className="text-purple-600 hover:text-purple-800 text-xs font-medium flex items-center gap-1"
+                            className="text-[#06B4C9] hover:text-[#157942] text-xs font-medium flex items-center gap-1"
                           >
                             View TX
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>

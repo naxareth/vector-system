@@ -4,10 +4,15 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useState, useEffect } from 'react';
 
-export default function Sidebar() {
+interface SidebarProps {
+  isCollapsed?: boolean;
+}
+
+export default function Sidebar({ isCollapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   
   let theme: 'light' | 'dark' = 'light';
   let toggleTheme = () => {};
@@ -25,6 +30,9 @@ export default function Sidebar() {
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
+
+  // Determine if sidebar should be expanded (not collapsed OR hovered)
+  const isExpanded = !isCollapsed || isHovered;
 
   const navigation = [
     {
@@ -70,7 +78,7 @@ export default function Sidebar() {
       {/* Mobile Hamburger Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md border border-gray-200"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-[#131825] rounded-lg shadow-md border border-gray-200 dark:border-[#1E2536]"
         aria-label="Toggle menu"
       >
         {isMobileMenuOpen ? (
@@ -95,17 +103,25 @@ export default function Sidebar() {
       {/* Sidebar with Tour ID */}
       <div 
         id="tour-sidebar" 
-        className={`fixed left-0 top-0 h-screen w-64 bg-purple-900 border-r border-purple-800 flex flex-col z-40 transition-transform duration-300 lg:translate-x-0 ${
+        onMouseEnter={() => isCollapsed && setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`fixed left-0 top-0 h-screen bg-[#FFFFFF] dark:bg-[#0E1220] border-r border-gray-200 dark:border-[#1E2536] flex flex-col z-40 transition-all duration-300 lg:translate-x-0 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${
+          isExpanded ? 'w-64' : 'w-20'
         }`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-purple-800">
+        <div className="p-6 border-b border-gray-200 dark:border-[#1E2536]">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-purple-900 font-bold text-sm">V</span>
+            <div className="w-8 h-8 bg-gray-900 dark:bg-[#06B4C9]/15 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-[#06B4C9] font-bold text-sm">V</span>
             </div>
-            <span className="text-xl font-bold text-white">VECTOR</span>
+            {isExpanded && (
+              <span className="text-xl font-bold text-[#011018] dark:text-white whitespace-nowrap overflow-hidden transition-opacity duration-200">
+                VECTOR
+              </span>
+            )}
           </div>
         </div>
 
@@ -120,16 +136,22 @@ export default function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                className={`flex items-center gap-3 px-4 py-3 transition-all relative rounded-lg ${
                   isActive
-                    ? 'bg-purple-50 !text-purple-900 shadow-sm'
-                    : '!text-purple-200 hover:bg-purple-800/50 !hover:text-white'
+                    ? 'text-[#06B4C9] dark:bg-[#06B4C9]/10'
+                    : 'text-gray-900 dark:text-[#94A3B8] hover:bg-gray-100/60 dark:hover:bg-white/5'
                 }`}
+                title={!isExpanded ? item.name : undefined}
               >
-                <span className={isActive ? '!text-purple-900' : '!text-purple-300'}>
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-6 bg-[#011018] dark:bg-[#06B4C9] rounded-r-full" />
+                )}
+                <span className="flex-shrink-0">
                   {item.icon}
                 </span>
-                <span className="font-medium">{item.name}</span>
+                {isExpanded && (
+                  <span className="font-medium whitespace-nowrap overflow-hidden">{item.name}</span>
+                )}
               </Link>
             );
           })}

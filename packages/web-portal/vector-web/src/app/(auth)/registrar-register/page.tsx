@@ -1,44 +1,58 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import RegistrarRegisterForm from '@/components/auth/RegistrarRegisterForm';
+import mockupImg from '../login/mockup.png';
 
 export default function RegistrarRegisterPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex flex-col items-center justify-center px-6 py-12">
-      <div className="max-w-md w-full flex-grow flex flex-col justify-center">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-gray-800 to-black rounded-lg flex items-center justify-center">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
+        {/* ── Left column: form ── */}
+        <div className="px-10 py-12 md:px-14 lg:px-16 flex flex-col justify-center">
+          {/* Logo + branding */}
+          <Link href="/" className="inline-flex items-center gap-3 mb-10">
+            <div className="w-10 h-10 bg-[#011018] rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">V</span>
             </div>
-            <span className="text-2xl font-bold text-gray-900">VECTOR</span>
+            <span className="text-xl font-bold text-gray-900">Vector</span>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Institution Access</h1>
-          <p className="text-gray-600">Secure registration for credential issuers</p>
-        </div>
 
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-          {/* Main Registrar Form */}
+          <div className="mb-10">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Registrar Account</h1>
+            <p className="text-sm text-gray-500">Register your institution to issue and manage verified credentials</p>
+          </div>
+
+          {/* Registration form */}
           <RegistrarRegisterForm />
-          
-          <p className="text-[10px] text-gray-400 text-center mt-6">
-            Secure end-to-end verification protected by VECTOR Protocol.
-          </p>
-        </div>
-        
-        <div className="text-center mt-6 space-y-2">
-          <p className="text-gray-600 text-sm">
-            Already have an account? <Link href="/login" className="text-purple-600 hover:text-purple-700 font-bold">Sign in</Link>
-          </p>
-        </div>
-      </div>
 
-      {/* Subtle Student Link at the bottom */}
-      <div className="mt-8 text-center pb-8">
-        <p className="text-xs text-gray-500">
-          Are you a student? <Link href="/register" className="text-purple-600 hover:underline font-medium">Register here</Link>
-        </p>
+          {/* Footer links */}
+          <p className="text-sm text-gray-600 text-center mt-10">
+            Already have an account?{' '}
+            <Link href="/login?role=registrar" className="font-semibold text-gray-900 hover:underline">
+              Sign In
+            </Link>
+          </p>
+
+          <p className="text-xs text-gray-400 text-center mt-4">
+            Are you a student?{' '}
+            <Link href="/register" className="font-semibold text-gray-600 hover:underline">
+              Create Student Account
+            </Link>
+          </p>
+        </div>
+
+        {/* ── Right column: accent image panel ── */}
+        <div className="hidden md:flex rounded-2xl m-3 items-center justify-center overflow-hidden relative" style={{ background: 'radial-gradient(circle at 50% 100%, #06B4C9 0%, #033a44 35%, #011018 70%)' }}>
+          <Image
+            src={mockupImg}
+            alt="Vector platform preview"
+            fill
+            className="object-contain p-2 drop-shadow-2xl"
+            priority
+          />
+        </div>
       </div>
     </div>
   );

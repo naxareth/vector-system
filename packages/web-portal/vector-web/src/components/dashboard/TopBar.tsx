@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -22,7 +22,11 @@ interface NotificationItem {
   link_url: string | null;
 }
 
-export default function TopBar() {
+interface TopBarProps {
+  onToggleSidebar?: () => void;
+}
+
+export default function TopBar({ onToggleSidebar }: TopBarProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
@@ -38,6 +42,10 @@ export default function TopBar() {
   const pathname = usePathname();
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+
+  // Keep userId in a ref so Realtime callback can always access the latest value
+  // without needing to be re-registered every time user state changes.
+  const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setCurrentDate(
@@ -69,33 +77,12 @@ export default function TopBar() {
     toggleTheme = themeContext.toggleTheme;
   } catch {}
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('full_name, role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        const userData = {
-          id: session.user.id,
-          full_name: profile?.full_name
-            ? capitalizeWords(profile.full_name)
-            : (session.user.email?.split('@')[0] || 'User'),
-          role: profile?.role || 'student',
-          email: session.user.email,
-        };
-
-        setUser(userData);
-        fetchNotifications(userData.id);
-      }
-    };
-    getUser();
-  }, []);
-
-  const fetchNotifications = async (userId: string) => {
+  // ---------------------------------------------------------------------------
+  // fetchNotifications — wrapped in useCallback so it can be safely used
+  // inside both the initial useEffect and the polling interval without
+  // causing stale closure issues.
+  // ---------------------------------------------------------------------------
+  const fetchNotifications = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from('notifications')
       .select('*')
@@ -104,14 +91,88 @@ export default function TopBar() {
       .limit(10);
 
     if (data) setNotifications(data);
-  };
+  }, []);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('full_name, role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      const userData: UserProfile = {
+        id: session.user.id,
+        full_name: profile?.full_name
+          ? capitalizeWords(profile.full_name)
+          : (session.user.email?.split('@')[0] || 'User'),
+        role: profile?.role || 'student',
+        email: session.user.email,
+      };
+
+      setUser(userData);
+      userIdRef.current = session.user.id;
+
+      // Initial fetch on mount
+      fetchNotifications(session.user.id);
+
+      // -----------------------------------------------------------------
+      // Supabase Realtime subscription
+      // Listens for INSERT events on the notifications table filtered to
+      // this user's rows. New notifications appear instantly the moment
+      // the registrar mints — no page refresh needed.
+      // -----------------------------------------------------------------
+      const channel = supabase
+        .channel(`notifications:${session.user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${session.user.id}`,
+          },
+          (payload) => {
+            // Prepend the new notification to the top of the list
+            setNotifications(prev => {
+              const newNotif = payload.new as NotificationItem;
+              // Guard against duplicates (realtime can occasionally fire twice)
+              if (prev.some(n => n.id === newNotif.id)) return prev;
+              return [newNotif, ...prev].slice(0, 10);
+            });
+          }
+        )
+        .subscribe();
+
+      // -----------------------------------------------------------------
+      // Polling fallback — every 30 seconds
+      // Realtime covers the fast path. Polling is a safety net for cases
+      // where the websocket connection drops (mobile sleep, network switch).
+      // -----------------------------------------------------------------
+      const pollInterval = setInterval(() => {
+        if (userIdRef.current) {
+          fetchNotifications(userIdRef.current);
+        }
+      }, 30_000);
+
+      // Cleanup: unsubscribe from realtime + clear polling on unmount
+      return () => {
+        supabase.removeChannel(channel);
+        clearInterval(pollInterval);
+      };
+    };
+
+    getUser();
+  }, [fetchNotifications]);
 
   // ---------------------------------------------------------------------------
   // handleNotificationClick
   //
-  // Previously: opening the dropdown marked ALL notifications as read at once.
-  // Now: each notification is marked read individually on click, then the
-  // user is redirected to link_url if one exists (e.g. /verify/[credential-id]).
+  // Marks the individual notification as read then redirects to link_url
+  // if one exists (e.g. /verify/[credential-id]).
   // ---------------------------------------------------------------------------
   const handleNotificationClick = async (notification: NotificationItem) => {
     // Mark as read locally immediately for snappy UI
@@ -131,6 +192,36 @@ export default function TopBar() {
     if (notification.link_url) {
       setIsNotificationsOpen(false);
       router.push(notification.link_url);
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // handleOpenNotifications
+  //
+  // When the bell is opened, mark ALL unread notifications as read in the DB
+  // and update local state so the badge clears immediately.
+  // ---------------------------------------------------------------------------
+  const handleOpenNotifications = async () => {
+    const opening = !isNotificationsOpen;
+    setIsNotificationsOpen(opening);
+
+    if (opening && userIdRef.current) {
+      const unreadIds = notifications
+        .filter(n => !n.is_read)
+        .map(n => n.id);
+
+      if (unreadIds.length === 0) return;
+
+      // Optimistic local update — badge disappears instantly
+      setNotifications(prev =>
+        prev.map(n => unreadIds.includes(n.id) ? { ...n, is_read: true } : n)
+      );
+
+      // Persist all as read in one DB call
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .in('id', unreadIds);
     }
   };
 
@@ -178,45 +269,77 @@ export default function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-white dark:bg-[#0E1220] border-b border-gray-200 dark:border-[#1E2536] px-4 sm:px-6 lg:px-8 py-3">
+        <div className="flex items-center justify-between gap-4">
 
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">{getPageTitle(pathname)}</h1>
-            {/* ✅ Fix: only render date client-side after mount — null on server
-                so SSR and client initial HTML match perfectly               */}
-            {currentDate && (
-              <p className="text-sm text-gray-500 hidden sm:block">{currentDate}</p>
-            )}
+          {/* Left Section: Hamburger Menu + Search */}
+          <div className="flex items-center gap-3 flex-1 max-w-2xl">
+            {/* Hamburger Menu Icon */}
+            <button
+              onClick={onToggleSidebar}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
+              aria-label="Menu"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search here..."
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:!bg-[#151C2A] border border-gray-200 dark:!border-[#283042] rounded-lg text-sm text-gray-900 dark:!text-[#E2E8F0] placeholder-gray-400 focus:outline-none focus:border-gray-300 focus:bg-white dark:focus:!bg-[#192030] transition-colors"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Right Section: Icons */}
+          <div className="flex items-center gap-2">
+
+            {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
+              >
+                {theme === 'dark' ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
 
             {/* Notification Bell */}
             <div id="tour-notifications" className="relative" ref={notificationsRef}>
-              <Tooltip content="Notifications">
                 <button
                   onClick={() => setIsNotificationsOpen(prev => !prev)}
-                  className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-purple-600"
+                  className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white">
+                    <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </button>
-              </Tooltip>
 
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50 animate-fade-in-up">
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#131825] rounded-xl shadow-lg border border-gray-200 dark:border-[#1E2536] overflow-hidden z-50 animate-fade-in-up">
                   {/* Header */}
-                  <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-[#1E2536] flex justify-between items-center bg-gray-50 dark:bg-[#0E1220]">
                     <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
                     {unreadCount > 0 && (
-                      <span className="text-xs bg-purple-100 text-purple-700 font-semibold px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-[#06B4C9]/10 text-[#06B4C9] font-semibold px-2 py-0.5 rounded-full">
                         {unreadCount} New
                       </span>
                     )}
@@ -230,14 +353,14 @@ export default function TopBar() {
                           key={notification.id}
                           onClick={() => handleNotificationClick(notification)}
                           className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-start gap-3 ${
-                            !notification.is_read ? 'bg-purple-50/60' : ''
+                            !notification.is_read ? 'bg-[#06B4C9]/5' : ''
                           } ${notification.link_url ? 'cursor-pointer' : 'cursor-default'}`}
                         >
                           {/* Type dot + unread indicator */}
                           <div className="flex-shrink-0 mt-1.5 relative">
                             <div className={`w-2 h-2 rounded-full ${typeDot[notification.type] ?? 'bg-gray-400'}`} />
                             {!notification.is_read && (
-                              <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-purple-600 rounded-full" />
+                              <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-[#06B4C9] rounded-full" />
                             )}
                           </div>
 
@@ -249,7 +372,7 @@ export default function TopBar() {
                             <div className="flex items-center gap-1.5 mt-1">
                               <p className="text-xs text-gray-400">{timeAgo(notification.created_at)}</p>
                               {notification.link_url && (
-                                <span className="text-xs text-purple-500 font-medium">· View →</span>
+                                <span className="text-xs text-[#06B4C9] font-medium">· View →</span>
                               )}
                             </div>
                           </div>
@@ -258,7 +381,7 @@ export default function TopBar() {
                     ) : (
                       <div className="px-4 py-8 text-center">
                         <svg className="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
                         <p className="text-sm text-gray-400">No notifications yet.</p>
                       </div>
@@ -268,17 +391,15 @@ export default function TopBar() {
               )}
             </div>
 
-            <div className="h-8 w-px bg-gray-200 hidden sm:block" />
-
             {/* Profile Menu */}
             <div className="relative" ref={profileMenuRef}>
-              <Tooltip content="Manage Profile" position="bottom">
+              <Tooltip content="Profile">
                 <button
                   onClick={() => setIsProfileMenuOpen(prev => !prev)}
-                  className="flex items-center gap-3 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                 >
-                  <div className="w-9 h-9 bg-purple-100 rounded-full flex items-center justify-center border border-purple-200">
-                    <span className="text-purple-700 font-bold text-sm">
+                  <div className="w-8 h-8 bg-gray-200 dark:bg-[#1E2536] rounded-full flex items-center justify-center">
+                    <span className="text-gray-700 dark:text-[#94A3B8] font-semibold text-sm">
                       {user ? getInitials(user.full_name) : '...'}
                     </span>
                   </div>
@@ -286,8 +407,8 @@ export default function TopBar() {
               </Tooltip>
 
               {isProfileMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-fade-in-up">
-                  <div className="px-4 py-3 border-b border-gray-100">
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#131825] rounded-lg shadow-lg border border-gray-200 dark:border-[#1E2536] py-2 z-50 animate-fade-in-up">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-[#1E2536]">
                     <p className="text-sm font-semibold text-gray-900">{user?.full_name || 'Loading...'}</p>
                     <p className="text-xs text-gray-500 capitalize">{user?.role || 'student'}</p>
                   </div>
@@ -309,7 +430,7 @@ export default function TopBar() {
       {/* Logout Dialog */}
       {isLogoutDialogOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl animate-fade-in-up">
+          <div className="bg-white dark:bg-[#131825] rounded-xl max-w-md w-full p-6 shadow-xl animate-fade-in-up">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
             <p className="text-sm text-gray-600 mb-4">Are you sure you want to log out?</p>
             <div className="flex gap-3">

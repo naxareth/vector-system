@@ -8,6 +8,8 @@ import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain'
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import CVRSuccessModal from '@/components/dashboard/CVRSuccessModal';
+import CVRAnalysisPanel from '@/components/cvr/CVRAnalysisPanel'; // Phase 12
+import CVRPreviewModal from '@/components/cvr/CVRPreviewModal';
 import {
   PersonalDetailsSection,
   EducationSection,
@@ -107,7 +109,7 @@ export default function CVRPage() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
-  const [selectedColor, setSelectedColor] = useState('#6d28d9');
+  const [selectedColor, setSelectedColor] = useState('#06B4C9');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -125,6 +127,11 @@ export default function CVRPage() {
   // Generated state
   const [isGenerated, setIsGenerated] = useState(false);
   const [generatedData, setGeneratedData] = useState<any>(null);
+
+  // Preview state
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -311,26 +318,10 @@ export default function CVRPage() {
   };
 
   // ---------------------------------------------------------------------------
-  // Generate CVR
+  // Build snapshot (shared between preview & generate)
   // ---------------------------------------------------------------------------
-  const handleGenerateCVR = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-
-    const validation = resumeSchema.safeParse(formData);
-    if (!validation.success) {
-      const newErrors: Record<string, string> = {};
-      validation.error.issues.forEach((issue) => {
-        if (issue.path[0]) newErrors[issue.path[0].toString()] = issue.message;
-      });
-      setErrors(newErrors);
-      alert('Please fix the errors in the form before generating.');
-      return;
-    }
-
+  const buildSnapshot = () => {
     const finalSkills = availableSkills.filter((s) => selectedSkillIds.includes(s.id));
-
-    // Only include credentials the student actually added to the CVR
     const credentialIds = availableCertifications
       .filter((c) =>
         formData.certifications.some(
@@ -360,46 +351,85 @@ export default function CVRPage() {
     if (cleaned(formData.certifications).length) snapshot.certifications = cleaned(formData.certifications);
     if (cleaned(formData.awards).length) snapshot.awards = cleaned(formData.awards);
 
-    // Save CVR export to DB — get a stable UUID for QR code
-    let cvrId: string | null = null;
-    try {
-      const res = await fetch('/api/cvr/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          template: selectedTemplate,
-          credential_ids: credentialIds,
-          snapshot,
-        }),
+    return { snapshot, credentialIds };
+  };
+
+  // ---------------------------------------------------------------------------
+  // Preview CVR (validates → opens preview modal)
+  // ---------------------------------------------------------------------------
+  const handlePreviewCVR = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    const validation = resumeSchema.safeParse(formData);
+    if (!validation.success) {
+      const newErrors: Record<string, string> = {};
+      validation.error.issues.forEach((issue) => {
+        if (issue.path[0]) newErrors[issue.path[0].toString()] = issue.message;
       });
-      if (res.ok) {
-        const data = await res.json();
-        cvrId = data.id;
-      } else {
-        console.warn('[CVR] Export save failed — falling back to local UUID');
-      }
-    } catch (err) {
-      console.warn('[CVR] Export API unreachable — falling back to local UUID', err);
+      setErrors(newErrors);
+      alert('Please fix the errors in the form before generating.');
+      return;
     }
 
-    const credentialId = cvrId || credentialIds[0] || crypto.randomUUID();
+    const { snapshot } = buildSnapshot();
+    setPreviewData(snapshot);
+    setIsPreviewOpen(true);
+  };
 
-    const cvrData = {
-      ...snapshot,
-      credentialId,
-      isCvrExport: !!cvrId,
-    };
+  // ---------------------------------------------------------------------------
+  // Confirm & Generate CVR (called from preview modal)
+  // ---------------------------------------------------------------------------
+  const handleConfirmGenerate = async () => {
+    setIsConfirming(true);
+    try {
+      const { snapshot, credentialIds } = buildSnapshot();
 
-    localStorage.setItem('sampleCVRData', JSON.stringify(cvrData));
-    localStorage.setItem('pendingCVR', 'true');
+      // Save CVR export to DB — get a stable UUID for QR code
+      let cvrId: string | null = null;
+      try {
+        const res = await fetch('/api/cvr/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            template: selectedTemplate,
+            credential_ids: credentialIds,
+            snapshot,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          cvrId = data.id;
+        } else {
+          console.warn('[CVR] Export save failed — falling back to local UUID');
+        }
+      } catch (err) {
+        console.warn('[CVR] Export API unreachable — falling back to local UUID', err);
+      }
 
-    setGeneratedData(cvrData);
-    setIsGenerated(true);
-    setIsSuccessModalOpen(true);
+      const credentialId = cvrId || credentialIds[0] || crypto.randomUUID();
 
-    // Refresh history so new export appears immediately
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) await fetchCVRHistory(session.user.id);
+      const cvrData = {
+        ...snapshot,
+        credentialId,
+        isCvrExport: !!cvrId,
+      };
+
+      localStorage.setItem('sampleCVRData', JSON.stringify(cvrData));
+      localStorage.setItem('pendingCVR', 'true');
+
+      setGeneratedData(cvrData);
+      setIsGenerated(true);
+      setIsPreviewOpen(false);
+      setPreviewData(null);
+      setIsSuccessModalOpen(true);
+
+      // Refresh history so new export appears immediately
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) await fetchCVRHistory(session.user.id);
+    } finally {
+      setIsConfirming(false);
+    }
   };
 
   const handleCreateNew = () => {
@@ -409,11 +439,22 @@ export default function CVRPage() {
   };
 
   // ---------------------------------------------------------------------------
+  // Phase 12: Derive latest snapshot for AI analysis panel
+  // Parsed defensively here (outside JSX) to keep the render clean.
+  // ---------------------------------------------------------------------------
+  const latestSnapshot =
+    cvrHistory.length > 0
+      ? typeof cvrHistory[0].snapshot === 'string'
+        ? JSON.parse(cvrHistory[0].snapshot)
+        : cvrHistory[0].snapshot
+      : null;
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
   return (
     <DashboardLayout>
-      <div className="mb-4 -mt-10">
+      <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
           {isGenerated ? 'Credential Verified Resume (CVR)' : 'Credential Verified Resume'}
         </h1>
@@ -440,7 +481,7 @@ export default function CVRPage() {
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div>
                   <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Your CVR History
@@ -449,7 +490,7 @@ export default function CVRPage() {
                     Each export is permanent and immutable. Share the latest link with employers.
                   </p>
                 </div>
-                <span className="text-xs font-medium text-purple-600 bg-purple-50 border border-purple-100 px-3 py-1 rounded-full">
+                <span className="text-xs font-medium text-[#06B4C9] bg-[#06B4C9]/10 border border-[#06B4C9]/20 px-3 py-1 rounded-full">
                   {cvrHistory.length} export{cvrHistory.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -466,7 +507,7 @@ export default function CVRPage() {
                   return (
                     <div
                       key={cvr.id}
-                      className={`px-6 py-4 flex items-center justify-between gap-4 ${isLatest ? 'bg-purple-50/40' : ''}`}
+                      className={`px-6 py-4 flex items-center justify-between gap-4 ${isLatest ? 'bg-[#06B4C9]/10' : ''}`}
                     >
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className={`mt-1.5 flex-shrink-0 w-2 h-2 rounded-full ${isLatest ? 'bg-emerald-500' : 'bg-gray-300'}`} />
@@ -500,7 +541,7 @@ export default function CVRPage() {
                           href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify/cvr/${cvr.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
+                          className="text-xs text-[#06B4C9] hover:text-[#06B4C9] hover:underline flex items-center gap-1"
                         >
                           View
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -513,7 +554,7 @@ export default function CVRPage() {
                             copied === cvr.id
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                               : isLatest
-                              ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+                              ? 'bg-[#06B4C9] text-white border-[#06B4C9] hover:bg-[#06B4C9]/80'
                               : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                           }`}
                         >
@@ -527,7 +568,7 @@ export default function CVRPage() {
             </div>
           )}
 
-          <form onSubmit={handleGenerateCVR} className="w-full">
+          <form onSubmit={handlePreviewCVR} className="w-full">
             <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 space-y-6">
               <PersonalDetailsSection
                 formData={formData}
@@ -540,8 +581,8 @@ export default function CVRPage() {
                 onRemove={(i) => removeItem('education', i)}
                 onUpdate={(i, f, v) => updateItem('education', i, f, v)}
               />
-              <ExperienceSection
-                items={formData.experience}
+              <EducationSection
+                items={formData.experience as any}
                 onAdd={() => addItem('experience', { title: '', company: '', dates: '', description: '' })}
                 onRemove={(i) => removeItem('experience', i)}
                 onUpdate={(i, f, v) => updateItem('experience', i, f, v)}
@@ -580,20 +621,33 @@ export default function CVRPage() {
                 onColorChange={setSelectedColor}
               />
 
-              {/* Submit */}
+              {/* Preview & Generate */}
               <div>
                 <button
                   type="submit"
-                  className="w-full md:w-auto px-8 py-3 bg-purple-600 hover:bg-purple-700 !text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all"
+                  className="w-full md:w-auto px-8 py-3 bg-[#06B4C9] hover:bg-[#06B4C9]/80 !text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-                  Generate CVR
+                  Preview CVR
                 </button>
               </div>
             </div>
           </form>
+
+          {/* ----------------------------------------------------------------
+            Phase 12 — AI CVR Analysis Panel
+            Renders below the form once the student has at least one export.
+            Analyzes the latest saved CVR snapshot via Gemini.
+            latestSnapshot is derived above the return statement.
+            ---------------------------------------------------------------- */}
+          {latestSnapshot && (
+            <div className="mt-4">
+              <CVRAnalysisPanel snapshot={latestSnapshot} />
+            </div>
+          )}
         </>
       ) : (
         /* Generated CVR display */
@@ -603,7 +657,7 @@ export default function CVRPage() {
             <div className="flex flex-wrap justify-center gap-4">
               <button
                 onClick={() => setIsExportModalOpen(true)}
-                className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold shadow-lg shadow-purple-200 transition-all flex items-center gap-2"
+                className="px-8 py-3 bg-[#06B4C9] hover:bg-[#06B4C9]/80 text-white rounded-lg font-bold shadow-lg shadow-[#06B4C9]/20 transition-all flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -612,7 +666,7 @@ export default function CVRPage() {
               </button>
               <button
                 onClick={handleCreateNew}
-                className="px-8 py-3 bg-white border-2 border-gray-200 hover:border-purple-200 hover:bg-purple-50 text-gray-700 hover:text-purple-700 rounded-lg font-bold transition-all flex items-center gap-2"
+                className="px-8 py-3 bg-white border-2 border-gray-200 hover:border-[#06B4C9] hover:bg-[#06B4C9]/10 text-gray-700 hover:text-[#06B4C9] rounded-lg font-bold transition-all flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -624,6 +678,13 @@ export default function CVRPage() {
         </div>
       )}
 
+      <CVRPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => { setIsPreviewOpen(false); setPreviewData(null); }}
+        onConfirm={handleConfirmGenerate}
+        isGenerating={isConfirming}
+        data={previewData}
+      />
       <CVRSuccessModal
         isOpen={isSuccessModalOpen}
         onClose={() => setIsSuccessModalOpen(false)}

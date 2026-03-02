@@ -87,7 +87,7 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-4 border-[#06B4C9] border-t-transparent rounded-full animate-spin"></div>
           <p className="text-gray-500 text-sm font-medium">Loading Registrar Portal...</p>
         </div>
       </div>
@@ -116,8 +116,8 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
             {/* Logo */}
             <div className="p-6 border-b border-gray-200">
               <Link href="/registrar/dashboard" className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">V</span>
+                <div className="w-10 h-10 bg-[#06B4C9]/10 rounded-lg flex items-center justify-center">
+                  <span className="text-[#06B4C9] font-bold text-lg">V</span>
                 </div>
                 <div>
                   <span className="text-xl font-bold text-gray-900">VECTOR</span>
@@ -133,7 +133,7 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${
                   pathname === '/registrar/dashboard'
-                    ? 'text-purple-700 bg-purple-50'
+                    ? 'text-[#06B4C9] bg-[#06B4C9]/10'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -146,7 +146,7 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${
                   pathname === '/registrar/students'
-                    ? 'text-purple-700 bg-purple-50'
+                    ? 'text-[#06B4C9] bg-[#06B4C9]/10'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -159,7 +159,7 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
             <div className="p-4 border-t border-gray-200">
               <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg justify-between group">
                 <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="w-9 h-9 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold text-xs">
+                  <div className="w-9 h-9 bg-[#06B4C9] rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold text-xs">
                     {getInitials(user?.full_name || '')}
                   </div>
                   <div className="min-w-0">

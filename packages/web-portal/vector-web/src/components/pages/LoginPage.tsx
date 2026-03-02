@@ -13,7 +13,7 @@ export default function LoginPage() {
             Welcome to VECTOR
           </h1>
           <p className="text-lg text-gray-600 max-w-xl mx-auto font-medium">
-            The secure blockchain-based micro-credential platform for verified
+            The secure skills verification platform for verified
             academic achievements.
           </p>
         </div>
@@ -34,15 +34,15 @@ export default function LoginPage() {
               Student Access
             </h2>
             <p className="text-gray-600 mb-8 flex-grow">
-              Connect your digital wallet to view, manage, and share your
-              verified credentials securely on the blockchain.
+              Log in to view, manage, and share your
+              verified credentials securely.
             </p>
 
             <button
               className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg hover:translate-y-[-2px] active:translate-y-[0px] transition-all duration-200 flex items-center justify-center gap-2 group-hover:gap-3"
               aria-label="Connect Wallet for Student Access"
             >
-              Connect Wallet
+              Sign In
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
@@ -63,8 +63,8 @@ export default function LoginPage() {
               Registrar Access
             </h2>
             <p className="text-gray-600 mb-8 flex-grow">
-              Login with your institutional credentials to issue, revoke, and
-              manage student micro-credentials.
+              Login with your institutional credentials to issue and
+              manage verified student skills.
             </p>
 
             <button
@@ -79,7 +79,7 @@ export default function LoginPage() {
         {/* Footer / Trust Indicators */}
         <div className="mt-12 text-center">
           <p className="text-sm text-gray-400 font-medium">
-            Secured by Blockchain Technology • 256-bit Encryption
+            Secured with Latest Encryption Technology
           </p>
         </div>
       </div>

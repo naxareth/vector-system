@@ -4,26 +4,61 @@ import dotenv from "dotenv";
 // Load environment variables from .env file
 dotenv.config();
 
-export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// 🛡️ SECURITY (Checkpoint #2): Runtime guard — fail fast if key is missing
+if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim().length === 0) {
+  throw new Error(
+    '🛡️ SECURITY: GEMINI_API_KEY is not set in ai-engine .env. ' +
+    'The AI engine cannot start without it.'
+  );
+}
 
+export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+/**
+ * Open-domain skill extraction prompt.
+ *
+ * Phase 13b fix: removed hardcoded 5-skill taxonomy that was silently returning
+ * empty results for any non-IT credential (accounting, TESDA, nursing, etc.).
+ *
+ * The extractor now uses zero-shot extraction across all domains — this is the
+ * core architectural decision documented in the defense: no retraining needed
+ * when new credential types arrive (e.g. TESDA NC II in Bread and Pastry Production
+ * correctly extracts ["Food Production", "Baking", "Food Safety"] on first mint).
+ *
+ * Normalization rules are kept so tag consistency is maintained across similar
+ * credentials (React.js → React, NodeJS → Node.js, etc).
+ */
 export const skillExtractionPrompt = `
-You are a skill extraction expert. Extract and normalize technical skills from resume text.
-Input: Raw resume text
-Output: JSON array of normalized skill names
+You are a skill extraction expert for a decentralized micro-credentialing platform.
+You extract and normalize professional and technical skills from credential titles,
+degree names, bootcamp certificates, government certifications, and event badges.
+
+Input: A credential title, degree name, or certification label
+Output: A JSON object with a "skills" array of normalized skill tag strings
+
 Rules:
-1. Map variations to standard names:
+1. Extract ALL skills implied by the credential — technical, professional, vocational,
+   and academic. Do not limit to any fixed taxonomy.
+2. Normalize variations to standard names:
    - "React.js", "ReactJS" → "React"
    - "Python 3", "Python3" → "Python"
    - "Node", "NodeJS" → "Node.js"
-   - "Solidity" → "Solidity"
-   - "AI/ML", "Machine Learning" → "AI/ML"
-2. Only include technical skills from our taxonomy
-3. Return JSON format: { "skills": ["React", "Python"] }
-Taxonomy: React, Python, Solidity, Node.js, AI/ML
+   - "Machine Learning", "ML" → "Machine Learning"
+   - "UI/UX", "UX Design" → "UI/UX Design"
+   - "k8s" → "Kubernetes"
+3. For degree names (e.g. "Bachelor of Science in Accountancy"), extract the core
+   skills that discipline teaches — not the degree title itself.
+4. For government certifications (e.g. TESDA NC II, DICT certificates), extract the
+   vocational or professional skills the certification represents.
+5. For event badges (e.g. hackathons, competitions), extract the skills demonstrated
+   or the domain of the event.
+6. Return 2-6 skills per credential. Do not over-extract.
+7. Return ONLY valid JSON — no markdown fences, no explanation, no preamble.
+
+Return format: { "skills": ["Skill1", "Skill2", "Skill3"] }
 `;
 
 // --- Types ---
-
 export interface GeneratedCourse {
   title: string;
   provider: string;
@@ -32,7 +67,6 @@ export interface GeneratedCourse {
 }
 
 // --- Course Generation ---
-
 /**
  * Calls Gemini to generate 2-3 realistic courses for a given skill tag.
  *
@@ -49,9 +83,7 @@ export interface GeneratedCourse {
 export async function generateCoursesForTag(tag: string): Promise<GeneratedCourse[]> {
   const prompt = `
 You are a course catalog generator for an academic micro-credentialing platform.
-
 Given a skill tag, return 2-3 realistic online courses that teach this skill.
-
 RULES:
 1. Return ONLY valid JSON — no markdown fences, no explanation, no preamble.
 2. Use only these providers: Coursera, edX, Udemy, LinkedIn Learning, Google, Microsoft.
@@ -68,7 +100,6 @@ RULES:
 5. If the tag is too niche for a standalone course, bundle it with its parent domain
    (e.g. "Anatomy" → pair with "Patient Care" or "Clinical Assessment").
 6. Course titles must sound like real courses — not generic.
-
 OUTPUT FORMAT (strict JSON array, nothing else):
 [
   {
@@ -78,12 +109,11 @@ OUTPUT FORMAT (strict JSON array, nothing else):
     "skill_tags": ["${tag}", "RelatedTag1"]
   }
 ]
-
 Input tag: "${tag}"
 `.trim();
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 
@@ -107,7 +137,6 @@ Input tag: "${tag}"
 
     console.log(`[gemini-client] Generated ${valid.length} course(s) for tag: "${tag}"`);
     return valid;
-
   } catch (err) {
     // Non-fatal: log and return empty so the caller can continue
     console.error(`[gemini-client] generateCoursesForTag failed for "${tag}":`, err);

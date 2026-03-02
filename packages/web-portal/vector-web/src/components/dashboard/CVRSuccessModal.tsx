@@ -30,7 +30,7 @@ export default function CVRSuccessModal({ isOpen, onClose, onDownload }: CVRSucc
           <div className="flex gap-2">
             <button
               onClick={onDownload}
-              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm font-medium"
+              className="px-3 py-1.5 bg-[#06B4C9] hover:bg-[#06B4C9]/80 text-white rounded text-sm font-medium"
             >
               Download
             </button>

@@ -43,7 +43,20 @@ function parseSkillTags(raw: string): string[] {
 export default function RegistrarDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'issue' | 'build'>('issue');
+  const [activeTab, setActiveTab] = useState<'issue' | 'build' | 'batch'>('issue');
+
+  // CSV Batch Upload state
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvResult, setCsvResult] = useState<{
+    success?: boolean;
+    rows?: any[];
+    warnings?: string[];
+    error?: string;
+    rowErrors?: { row: number; issues: string[] }[];
+  } | null>(null);
+  const [csvDragOver, setCsvDragOver] = useState(false);
+  const [batchSchemaId, setBatchSchemaId] = useState<string>('');
 
   const [schemas, setSchemas] = useState<CredentialSchema[]>([]);
   const [students, setStudents] = useState<StudentRecord[]>([]);
@@ -174,7 +187,7 @@ export default function RegistrarDashboard() {
 
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#06B4C9]"></div>
     </div>
   );
 
@@ -184,8 +197,11 @@ export default function RegistrarDashboard() {
         <div className="flex justify-between items-center mb-8 border-b pb-4">
           <h1 className="text-3xl font-bold text-gray-900">Credential Management</h1>
           <div className="flex bg-gray-100 p-1 rounded-lg">
-            <button onClick={() => setActiveTab('issue')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'issue' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-500 hover:text-gray-700'}`}>
+            <button onClick={() => setActiveTab('issue')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'issue' ? 'bg-white shadow-sm text-[#06B4C9]' : 'text-gray-500 hover:text-gray-700'}`}>
               Issue Record
+            </button>
+            <button onClick={() => setActiveTab('batch')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'batch' ? 'bg-white shadow-sm text-green-600' : 'text-gray-500 hover:text-gray-700'}`}>
+              Batch Upload
             </button>
             <button onClick={() => setActiveTab('build')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'build' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
               Template Builder
@@ -195,6 +211,265 @@ export default function RegistrarDashboard() {
 
         {activeTab === 'build' ? (
           <SchemaBuilder />
+        ) : activeTab === 'batch' ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Batch Upload</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              Upload a CSV file to issue credentials in bulk. Select a template first — the required columns will match the template.
+            </p>
+
+            {/* Step 1: Template selector */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1">1. Choose Template</label>
+              <select
+                value={batchSchemaId}
+                onChange={(e) => { setBatchSchemaId(e.target.value); setCsvResult(null); }}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none bg-white"
+              >
+                <option value="">— Select a credential template —</option>
+                {schemas.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+              </select>
+              {batchSchemaId && (() => {
+                const s = schemas.find(x => x.id === batchSchemaId);
+                const schemaFields = s ? Object.keys(s.json_schema.properties) : [];
+                return (
+                  <div className="mt-2 bg-[#06B4C9]/10 border border-purple-200 rounded-lg px-3 py-2">
+                    <p className="text-xs text-purple-700">
+                      <span className="font-semibold">Required columns:</span>{' '}
+                      <code className="bg-purple-100 px-1 rounded">student_id, wallet_address, {schemaFields.join(', ')}</code>
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Step 2: File upload */}
+            <label className="block text-sm font-medium text-gray-700 mb-1">2. Upload CSV File</label>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setCsvDragOver(true); }}
+              onDragLeave={() => setCsvDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setCsvDragOver(false);
+                const file = e.dataTransfer.files[0];
+                if (file) { setCsvFile(file); setCsvResult(null); }
+              }}
+              className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${csvDragOver ? 'border-purple-400 bg-purple-50' : csvFile ? 'border-green-300 bg-green-50/50' : 'border-gray-300 hover:border-purple-300'
+                }`}
+              onClick={() => document.getElementById('csv-file-input')?.click()}
+            >
+              <input
+                id="csv-file-input"
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={(e) => { if (e.target.files?.[0]) { setCsvFile(e.target.files[0]); setCsvResult(null); } }}
+              />
+              {csvFile ? (
+                <div>
+                  <p className="font-semibold text-green-700">{csvFile.name}</p>
+                  <p className="text-xs text-gray-500 mt-1">{(csvFile.size / 1024).toFixed(1)} KB — click or drag to replace</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="font-medium text-gray-600">Drop CSV file here or click to browse</p>
+                  <p className="text-xs text-gray-400 mt-1">Max 1 MB, up to 500 rows</p>
+                </div>
+              )}
+            </div>
+
+            {/* Validate button */}
+            <button
+              disabled={!csvFile || csvUploading || !batchSchemaId}
+              onClick={async () => {
+                if (!csvFile) return;
+                setCsvUploading(true);
+                setCsvResult(null);
+                try {
+                  const form = new FormData();
+                  form.append('file', csvFile);
+                  if (batchSchemaId) form.append('schema_id', batchSchemaId);
+                  const res = await fetch('/api/registrar/csv-upload', { method: 'POST', body: form });
+                  const data = await res.json();
+                  if (res.ok) {
+                    setCsvResult({ success: true, rows: data.rows, warnings: data.warnings });
+                  } else {
+                    setCsvResult({ success: false, error: data.error, rowErrors: data.rowErrors });
+                  }
+                } catch (err: any) {
+                  setCsvResult({ success: false, error: err.message });
+                } finally {
+                  setCsvUploading(false);
+                }
+              }}
+              className={`mt-4 w-full py-3 font-bold rounded-xl transition-all ${!csvFile || csvUploading || !batchSchemaId
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-900 text-white hover:bg-black shadow-lg'
+                }`}
+            >
+              {csvUploading ? 'Validating...' : !batchSchemaId ? 'Select a template first' : 'Validate CSV'}
+            </button>
+
+            {/* Validation Results */}
+            {csvResult && (
+              <div className={`mt-6 rounded-xl border p-5 ${csvResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <h3 className={`font-bold mb-3 ${csvResult.success ? 'text-green-800' : 'text-red-800'}`}>
+                  {csvResult.success ? `${csvResult.rows?.length} record(s) ready` : 'Validation failed'}
+                </h3>
+
+                {csvResult.error && (
+                  <p className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm mb-3">{csvResult.error}</p>
+                )}
+
+                {csvResult.rowErrors && csvResult.rowErrors.length > 0 && (
+                  <div className="space-y-1.5 mb-3">
+                    {csvResult.rowErrors.map((re, i) => (
+                      <p key={i} className="bg-red-100 text-red-700 px-3 py-1.5 rounded text-sm">
+                        Row {re.row}: {re.issues.join(', ')}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {csvResult.warnings && csvResult.warnings.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                    <p className="font-semibold text-yellow-800 text-sm mb-1">Sanitization applied:</p>
+                    {csvResult.warnings.map((w, i) => (
+                      <p key={i} className="text-xs text-yellow-700">• {w}</p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Validated rows table */}
+                {csvResult.success && csvResult.rows && csvResult.rows.length > 0 && (() => {
+                  const allKeys = Object.keys(csvResult.rows[0]);
+                  return (
+                    <>
+                      <div className="overflow-x-auto rounded-lg border border-green-200">
+                        <table className="w-full text-sm">
+                          <thead className="bg-green-100/50">
+                            <tr>
+                              <th className="text-left py-2 px-3 text-green-800 font-medium">#</th>
+                              {allKeys.map(k => (
+                                <th key={k} className="text-left py-2 px-3 text-green-800 font-medium capitalize">{k.replace(/_/g, ' ')}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {csvResult.rows.map((row, i) => (
+                              <tr key={i} className="border-t border-green-100">
+                                <td className="py-2 px-3 text-green-700">{i + 1}</td>
+                                {allKeys.map(k => (
+                                  <td key={k} className="py-2 px-3 text-xs">
+                                    {k === 'wallet_address' ? `${(row[k] || '').slice(0, 10)}...` : row[k]}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Step 3: Mint All */}
+                      <button
+                        onClick={async () => {
+                          const rows = csvResult.rows!;
+                          const batchSchema = schemas.find(s => s.id === batchSchemaId);
+                          if (!batchSchema) return alert('Template not found.');
+
+                          try {
+                            setMintingProgress({ isOpen: true, progress: 5, status: 'minting', message: 'Connecting wallet...' });
+
+                            const { ethereum } = window as any;
+                            if (!ethereum) throw new Error('MetaMask not found. Please install it.');
+                            const provider = new ethers.BrowserProvider(ethereum, 'any');
+                            const signer = await provider.getSigner();
+                            const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
+
+                            let completed = 0;
+                            const total = rows.length;
+
+                            for (let idx = 0; idx < rows.length; idx++) {
+                              const row = rows[idx];
+
+                              // Phase 1: Request signature
+                              setMintingProgress(prev => ({
+                                ...prev,
+                                progress: Math.round(((idx) / total) * 85) + 10,
+                                message: `Record ${idx + 1} of ${total} — sign in MetaMask...`,
+                              }));
+
+                              const numericTokenId = Math.floor(Math.random() * 1000000);
+                              const tx = await contract.mintSkill(row.wallet_address, numericTokenId, 1);
+
+                              // Phase 2: Wait for chain confirmation
+                              setMintingProgress(prev => ({
+                                ...prev,
+                                message: `Record ${idx + 1} of ${total} — confirming on chain...`,
+                              }));
+                              await tx.wait();
+
+                              // Phase 3: Save to database
+                              setMintingProgress(prev => ({
+                                ...prev,
+                                message: `Record ${idx + 1} of ${total} — saving to database...`,
+                              }));
+
+                              const { student_id, wallet_address, skill_tags: rawTags, ...credentialData } = row;
+                              const skillTags = rawTags ? String(rawTags).split(',').map((t: string) => t.trim()).filter(Boolean) : [];
+
+                              const saveRes = await fetch('/api/registrar/credentials', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  user_id: student_id,
+                                  schema_id: batchSchemaId,
+                                  skill_name: batchSchema.title,
+                                  skill_tags: skillTags,
+                                  credential_data: credentialData,
+                                  private_notes: '',
+                                  certificate_number: `BATCH-${Date.now()}-${idx + 1}`,
+                                  token_id: numericTokenId.toString(),
+                                  transaction_hash: tx.hash,
+                                }),
+                              });
+
+                              if (!saveRes.ok) {
+                                const errText = await saveRes.text().catch(() => 'Unknown error');
+                                throw new Error(`Minted on-chain but failed to save record ${idx + 1}: ${errText}`);
+                              }
+
+                              completed++;
+                            }
+
+                            setMintingProgress({
+                              isOpen: true, progress: 100, status: 'complete',
+                              message: `Successfully issued ${completed} credential${completed > 1 ? 's' : ''}.`,
+                            });
+                          } catch (error: any) {
+                            setMintingProgress({ isOpen: true, progress: 0, status: 'error', message: error.message || 'Batch minting failed' });
+                          }
+                        }}
+                        className="mt-4 w-full py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-[#06B4C9] transition-all shadow-lg"
+                      >
+                        Mint {csvResult.rows.length} Credential{csvResult.rows.length > 1 ? 's' : ''} on Blockchain
+                      </button>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Help text */}
+            <div className="mt-5 bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <p className="text-sm font-medium text-gray-700 mb-2">CSV Format</p>
+              <p className="text-xs text-gray-500">Select a template above to see the exact columns needed. <strong>student_id</strong> and <strong>wallet_address</strong> are always required.</p>
+              <div className="mt-2 space-y-0.5">
+                <p className="text-xs text-gray-400">• Dangerous characters (=, +, -, @) in cells are automatically neutralized</p>
+                <p className="text-xs text-gray-400">• Max file size: 1 MB — Max rows: 500</p>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Issue Verifiable Credential</h2>
@@ -208,7 +483,7 @@ export default function RegistrarDashboard() {
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); setSelectedStudent(null); }}
                   onFocus={() => setShowDropdown(true)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none"
                   placeholder="Search by name or student ID..."
                 />
                 {showDropdown && searchQuery && (
@@ -235,7 +510,7 @@ export default function RegistrarDashboard() {
                 <select
                   value={selectedSchema?.id || ''}
                   onChange={(e) => handleSchemaChange(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none bg-white"
                 >
                   {schemas.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                 </select>
@@ -243,8 +518,8 @@ export default function RegistrarDashboard() {
 
               {/* Dynamic Fields Renderer */}
               {selectedSchema && (
-                <div className="md:col-span-2 bg-purple-50/50 p-6 rounded-xl border border-purple-100 space-y-4">
-                  <h3 className="text-sm font-bold text-purple-800 border-b border-purple-200 pb-2 mb-4">Dynamic Schema Fields</h3>
+                <div className="md:col-span-2 bg-[#06B4C9]/5 p-6 rounded-xl border border-[#06B4C9]/20 space-y-4">
+                  <h3 className="text-sm font-bold text-[#157942] border-b border-[#06B4C9]/20 pb-2 mb-4">Dynamic Schema Fields</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {Object.entries(selectedSchema.json_schema.properties).map(([key, fieldDetails]) => {
                       const isSkillTags = key === 'skill_tags';
@@ -254,7 +529,7 @@ export default function RegistrarDashboard() {
                             {fieldDetails.title}
                             {selectedSchema.json_schema.required?.includes(key) && <span className="text-red-500 ml-1">*</span>}
                             {isSkillTags && (
-                              <span className="ml-2 text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded font-semibold">
+                              <span className="ml-2 text-xs text-[#06B4C9] bg-[#06B4C9]/10 px-2 py-0.5 rounded font-semibold">
                                 Market Intelligence
                               </span>
                             )}
@@ -264,10 +539,10 @@ export default function RegistrarDashboard() {
                               <input
                                 type="text"
                                 onChange={(e) => handleDynamicInputChange(key, e.target.value)}
-                                className="w-full px-3 py-2 border border-purple-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                                className="w-full px-3 py-2 border border-[#06B4C9]/30 rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white"
                                 placeholder="e.g. React, Node.js, PostgreSQL, Express"
                               />
-                              <p className="text-xs text-purple-600 mt-1">
+                              <p className="text-xs text-[#06B4C9] mt-1">
                                 These become the student's individual skill cards with live market health scores.
                               </p>
                             </>
@@ -284,7 +559,7 @@ export default function RegistrarDashboard() {
                             <input
                               type={fieldDetails.type === 'number' ? 'number' : fieldDetails.type === 'date' ? 'date' : 'text'}
                               onChange={(e) => handleDynamicInputChange(key, fieldDetails.type === 'number' ? Number(e.target.value) : e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9]"
                               placeholder={`Enter ${fieldDetails.title.toLowerCase()}...`}
                             />
                           )}
@@ -301,19 +576,15 @@ export default function RegistrarDashboard() {
                 <input
                   type="text"
                   onChange={(e) => setStaticData({ ...staticData, certificateNumber: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9]"
                   placeholder="e.g. W3C-2027-001"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex justify-between">
-                  <span>Confidential Remarks</span>
-                  <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100 font-bold">🔒 Encrypted Storage</span>
-                </label>
                 <textarea
                   onChange={(e) => setStaticData({ ...staticData, privateNotes: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9]"
                   rows={3}
                   placeholder="Internal registrar notes..."
                 />
@@ -339,7 +610,7 @@ export default function RegistrarDashboard() {
               <p className="mb-4 text-gray-600">{mintingProgress.message}</p>
               <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden mb-6">
                 <div
-                  className={`h-full transition-all duration-500 ${mintingProgress.status === 'error' ? 'bg-red-500' : 'bg-purple-600'}`}
+                  className={`h-full transition-all duration-500 ${mintingProgress.status === 'error' ? 'bg-red-500' : 'bg-[#06B4C9]'}`}
                   style={{ width: `${mintingProgress.progress}%` }}
                 />
               </div>

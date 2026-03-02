@@ -40,7 +40,7 @@ export default function SkillsSection({
         <p className="text-sm text-gray-600 mb-3 flex items-center gap-2">
           Your Verified Skills
           <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-            Blockchain Synced
+            Verified
           </span>
         </p>
         {verifiedSkills.length > 0 ? (
@@ -71,7 +71,7 @@ export default function SkillsSection({
           </div>
         ) : (
           <div className="text-sm text-gray-500 italic p-3 border border-dashed border-gray-200 rounded-lg">
-            No verified skills found in wallet. Mint some tokens to see them here!
+            No verified skills yet. Complete your first skill verification to see them here!
           </div>
         )}
       </div>
@@ -85,7 +85,7 @@ export default function SkillsSection({
             value={customSkill}
             onChange={(e) => setCustomSkill(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAdd())}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06B4C9] text-gray-900"
             placeholder="Enter skill name"
           />
           <button
@@ -103,7 +103,7 @@ export default function SkillsSection({
                 key={skill.id}
                 className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm border transition-all ${
                   selectedSkillIds.includes(skill.id)
-                    ? 'bg-purple-50 border-purple-200 text-purple-700'
+                    ? 'bg-[#06B4C9]/10 border-[#06B4C9]/20 text-[#06B4C9]'
                     : 'bg-gray-50 border-gray-200 text-gray-500'
                 }`}
               >
@@ -111,7 +111,7 @@ export default function SkillsSection({
                   type="checkbox"
                   checked={selectedSkillIds.includes(skill.id)}
                   onChange={() => onToggle(skill.id)}
-                  className="mr-1 w-3 h-3 text-purple-600 rounded-sm cursor-pointer"
+                  className="mr-1 w-3 h-3 text-[#06B4C9] rounded-sm cursor-pointer"
                 />
                 {skill.name}
               </span>

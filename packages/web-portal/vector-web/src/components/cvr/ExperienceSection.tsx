@@ -28,7 +28,7 @@ export default function EducationSection({
         <button
           type="button"
           onClick={onAdd}
-          className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+          className="text-sm text-[#06B4C9] hover:text-[#06B4C9]/80 font-medium"
         >
           + Add Education
         </button>

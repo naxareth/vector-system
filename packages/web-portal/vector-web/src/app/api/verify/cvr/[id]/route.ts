@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
+import { verifyRateLimiter } from '@/lib/rate-limiter'; // 🛡️ Checkpoint #2
 
 // ---------------------------------------------------------------------------
 // GET /api/verify/cvr/[id]
@@ -9,15 +10,46 @@ import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
 // Public — no auth required.
 // Returns CVR snapshot, student identity, per-credential on-chain status,
 // and isLatest flag so employers know if a newer version exists.
+//
+// 🛡️ SECURITY (Checkpoint #2):
+//   - Rate limited: 10 requests/minute per IP
+//   - PII redacted: email removed, studentId removed, walletAddress truncated
 // ---------------------------------------------------------------------------
 
 const POLYGON_AMOY_RPC = 'https://rpc-amoy.polygon.technology/';
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+/** Truncate a string for public display (e.g. wallet address) */
+function truncateAddress(addr: string): string {
+  if (!addr || addr.length <= 13) return addr;
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // -------------------------------------------------------------------------
+  // 🛡️ Rate Limiting (Checkpoint #2)
+  // -------------------------------------------------------------------------
+  const ip = _req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || _req.headers.get('x-real-ip')
+    || 'unknown';
+
+  const rateCheck = verifyRateLimiter.checkLimit(ip);
+  if (!rateCheck.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil(rateCheck.retryAfterMs / 1000)),
+          'X-RateLimit-Remaining': '0',
+        },
+      }
+    );
+  }
+
   const { id } = await params;
 
   if (!uuidRegex.test(id)) {
@@ -35,9 +67,8 @@ export async function GET(
         users: {
           select: {
             full_name: true,
-            student_id: true,
             wallet_address: true,
-            email: true,
+            // 🛡️ student_id and email intentionally NOT selected (PII redaction)
           },
         },
       },
@@ -145,20 +176,28 @@ export async function GET(
   // -------------------------------------------------------------------------
   // 5. Response
   // -------------------------------------------------------------------------
-  return NextResponse.json({
-    cvrExport: {
-      id: cvrExport.id,
-      generatedAt: cvrExport.generated_at,
-      template: cvrExport.template,
+  return NextResponse.json(
+    {
+      cvrExport: {
+        id: cvrExport.id,
+        generatedAt: cvrExport.generated_at,
+        template: cvrExport.template,
+      },
+      student: {
+        fullName: cvrExport.users.full_name ?? 'Unknown',
+        // 🛡️ studentId removed — not included in response (PII redaction)
+        // 🛡️ walletAddress truncated for privacy
+        walletAddress: walletAddress ? truncateAddress(walletAddress) : null,
+      },
+      credentials: verifiedCredentials,
+      snapshot: cvrExport.snapshot,
+      isLatest,
+      newerExportDate,
     },
-    student: {
-      fullName: cvrExport.users.full_name ?? 'Unknown',
-      studentId: cvrExport.users.student_id ?? null,
-      walletAddress: walletAddress ?? null,
-    },
-    credentials: verifiedCredentials,
-    snapshot: cvrExport.snapshot,
-    isLatest,
-    newerExportDate,
-  });
+    {
+      headers: {
+        'X-RateLimit-Remaining': String(rateCheck.remaining),
+      },
+    }
+  );
 }

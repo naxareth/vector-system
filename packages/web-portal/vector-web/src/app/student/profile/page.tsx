@@ -47,6 +47,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const [userId, setUserId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security'>('profile');
   
   // 3. Add Error State
   const [errors, setErrors] = useState<Record<string, string>>({}); 
@@ -93,12 +94,13 @@ export default function ProfilePage() {
         }
 
         if (userRecord) {
+          const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
           const nameParts = (userRecord.full_name || '').split(' ');
           const profile = Array.isArray(userRecord.profiles) ? userRecord.profiles[0] : userRecord.profiles;
 
           setFormData({
-            firstName: nameParts[0] || '',
-            lastName: nameParts.slice(1).join(' ') || '',
+            firstName: capitalize(nameParts[0] || ''),
+            lastName: nameParts.slice(1).map(capitalize).join(' ') || '',
             email: userEmail,
             walletAddress: userRecord.wallet_address || '',
             location: userRecord.location || '',
@@ -223,7 +225,7 @@ export default function ProfilePage() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#06B4C9]"></div>
         </div>
       </DashboardLayout>
     );
@@ -231,189 +233,314 @@ export default function ProfilePage() {
 
   return (
     <DashboardLayout>
-      <div className="w-full px-4">
+      <div className="w-full px-4 pt-6">
         {/* Header */}
-        <div className="mb-4 -mt-10">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Profile Settings</h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your account information and preferences</p>
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Profile</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage your account information and preferences</p>
+        </div>
+
+        {/* Profile Card */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#06B4C9] to-[#011018] rounded-full flex items-center justify-center text-white font-bold text-xl sm:text-2xl flex-shrink-0">
+              {formData.firstName?.[0]}{formData.lastName?.[0]}
             </div>
-            {!isEditing && (
-              <button onClick={() => setIsEditing(true)} className="w-full sm:w-auto px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                <span className="sm:inline">Edit Profile</span>
-              </button>
-            )}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-gray-900">{formData.firstName} {formData.lastName}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{formData.email}</p>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4">
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="flex gap-6 -mb-px overflow-x-auto">
+            {([
+              { key: 'profile', label: 'Edit Profile' },
+              { key: 'preferences', label: 'Preferences' },
+              { key: 'security', label: 'Security' },
+            ] as const).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`whitespace-nowrap pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab.key
+                    ? 'border-[#06B4C9] text-[#06B4C9]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1">
 
-            {/* Profile Photo Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
-              <div className="flex items-center gap-4 sm:gap-6">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-2xl sm:text-3xl flex-shrink-0">
-                  {formData.firstName?.[0]}{formData.lastName?.[0]}
+            {/* ═══ EDIT PROFILE TAB ═══ */}
+            {activeTab === 'profile' && (
+              <form onSubmit={handleSubmit}>
+                {/* Personal Information */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-semibold text-gray-900">Personal Information</h2>
+                    {!isEditing && (
+                      <button type="button" onClick={() => setIsEditing(true)} className="text-sm text-[#06B4C9] hover:text-[#06B4C9]/80 font-medium">Edit</button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">First Name</label>
+                      <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} disabled={!isEditing} 
+                        className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
+                      {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Last Name</label>
+                      <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} disabled={!isEditing} 
+                        className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
+                      {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                      <input type="email" name="email" value={formData.email} disabled={true} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
+                      <input type="tel" name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing} 
+                        className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
+                      {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Location</label>
+                      <input type="text" name="location" value={formData.location} onChange={handleChange} disabled={!isEditing} placeholder="e.g., Manila, Philippines" 
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Bio</label>
+                      <textarea name="bio" value={formData.bio} onChange={handleChange} rows={3} disabled={!isEditing} 
+                        className={`w-full px-4 py-2 border rounded-lg outline-none resize-none disabled:bg-gray-50 ${errors.bio ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
+                      {errors.bio && <p className="text-red-500 text-xs mt-1">{errors.bio}</p>}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">{formData.firstName} {formData.lastName}</h3>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 font-mono truncate">{formData.walletAddress}</p>
+
+                {/* Education */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+                  <h2 className="text-base font-semibold text-gray-900 mb-4">Education</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">University</label>
+                      <input type="text" name="university" value={formData.university} onChange={handleChange} disabled={!isEditing} 
+                        className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.university ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
+                      {errors.university && <p className="text-red-500 text-xs mt-1">{errors.university}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Major</label>
+                      <input type="text" name="major" value={formData.major} onChange={handleChange} disabled={!isEditing} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Expected Graduation Year</label>
+                      <input type="text" name="graduationYear" value={formData.graduationYear} onChange={handleChange} disabled={!isEditing} 
+                        className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.graduationYear ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
+                      {errors.graduationYear && <p className="text-red-500 text-xs mt-1">{errors.graduationYear}</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Wallet */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+                  <h2 className="text-base font-semibold text-gray-900 mb-4">Blockchain Wallet</h2>
+                  {formData.walletAddress ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Wallet Address</label>
+                      <div className="flex items-center gap-3">
+                        <input type="text" value={formData.walletAddress} disabled={true} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 font-mono text-sm cursor-not-allowed" />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!userId) return;
+                            if (!confirm('Are you sure you want to disconnect your wallet? Your on-chain credentials will no longer be visible.')) return;
+                            try {
+                              await supabase.from('users').update({ wallet_address: null }).eq('id', userId);
+                              setFormData(prev => ({ ...prev, walletAddress: '' }));
+                            } catch (err: any) {
+                              alert('Failed to disconnect: ' + (err.message || 'Unknown error'));
+                            }
+                          }}
+                          className="px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors font-medium whitespace-nowrap"
+                        >
+                          Disconnect
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1.5">Connected via MetaMask.</p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12V7H5a2 2 0 010-4h14v4" /><path strokeLinecap="round" strokeLinejoin="round" d="M3 5v14a2 2 0 002 2h16v-5" /><path strokeLinecap="round" strokeLinejoin="round" d="M18 12a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" /></svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">No wallet connected</p>
+                        <p className="text-xs text-gray-400">Connect your MetaMask wallet from the dashboard to link on-chain credentials.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {isEditing && (
+                  <div className="flex flex-col sm:flex-row justify-end gap-3 mb-4">
+                    <button type="button" onClick={handleCancel} className="w-full sm:w-auto px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Cancel</button>
+                    <button type="submit" disabled={saving} className="w-full sm:w-auto px-6 py-2 bg-[#06B4C9] text-white rounded-lg hover:bg-[#06B4C9]/80 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                )}
+              </form>
+            )}
+
+            {/* ═══ PREFERENCES TAB ═══ */}
+            {activeTab === 'preferences' && (
+              <>
+                {/* Appearance */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+                  <h2 className="text-base font-semibold text-gray-900 mb-4">Appearance</h2>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Theme Preference</label>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={toggleTheme} className={`flex-1 sm:flex-none px-6 py-3 rounded-lg border-2 transition-all ${theme === 'light' ? 'border-[#06B4C9] bg-[#06B4C9]/10 text-[#06B4C9]' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'}`}>
+                      <span className="font-medium text-sm">Light Mode</span>
+                    </button>
+                    <button type="button" onClick={toggleTheme} className={`flex-1 sm:flex-none px-6 py-3 rounded-lg border-2 transition-all ${theme === 'dark' ? 'border-[#06B4C9] bg-[#06B4C9]/10 text-[#06B4C9]' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'}`}>
+                      <span className="font-medium text-sm">Dark Mode</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Notifications */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+                  <h2 className="text-base font-semibold text-gray-900 mb-4">Notifications</h2>
+                  <div className="space-y-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Email Notifications</p>
+                        <p className="text-xs text-gray-500">Receive updates about credentials and activity</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" defaultChecked className="sr-only peer" />
+                        <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#06B4C9]"></div>
+                      </label>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Skill Expiry Alerts</p>
+                        <p className="text-xs text-gray-500">Get notified when credentials are about to expire</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" defaultChecked className="sr-only peer" />
+                        <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#06B4C9]"></div>
+                      </label>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Market Updates</p>
+                        <p className="text-xs text-gray-500">Weekly summary of skill market trends</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" />
+                        <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#06B4C9]"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ═══ SECURITY TAB ═══ */}
+            {activeTab === 'security' && (
+              <>
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+                  <h2 className="text-base font-semibold text-gray-900 mb-1">Password</h2>
+                  <p className="text-xs text-gray-500 mb-4">Update your password to keep your account secure</p>
+                  <button type="button" className="px-5 py-2 bg-[#06B4C9] text-white text-sm rounded-lg hover:bg-[#06B4C9]/80 transition-colors font-medium">Change Password</button>
+                </div>
+
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+                  <h2 className="text-base font-semibold text-gray-900 mb-1">Two-Factor Authentication</h2>
+                  <p className="text-xs text-gray-500 mb-4">Add an extra layer of security using TOTP authenticator</p>
+                  <button type="button" onClick={() => router.push('/student/profile/security')} className="px-5 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors font-medium">Enable 2FA</button>
+                </div>
+
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+                  <h2 className="text-base font-semibold text-gray-900 mb-1">Active Sessions</h2>
+                  <p className="text-xs text-gray-500 mb-4">Manage devices where you're currently logged in</p>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-700">Current session</p>
+                      <p className="text-xs text-gray-400">This device &middot; Active now</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl border border-red-200 p-5 mb-4">
+                  <h2 className="text-base font-semibold text-red-600 mb-1">Delete Account</h2>
+                  <p className="text-xs text-gray-500 mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
+                  <button type="button" className="px-5 py-2 border border-red-300 text-red-600 text-sm rounded-lg hover:bg-red-50 transition-colors font-medium">Delete Account</button>
+                </div>
+              </>
+            )}
+
+          </div>
+
+          {/* Right sidebar — only show on Edit Profile tab */}
+          {activeTab === 'profile' && (
+            <div className="w-full lg:w-80 flex-shrink-0">
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <h2 className="text-base font-semibold text-gray-900 mb-4">Complete your profile</h2>
+                <div className="flex flex-col items-center mb-6">
+                  <div className="relative w-28 h-28">
+                    <svg className="w-28 h-28 transform -rotate-90">
+                      <circle cx="56" cy="56" r="48" stroke="#e5e7eb" strokeWidth="10" fill="none" />
+                      <circle cx="56" cy="56" r="48" stroke="#22c55e" strokeWidth="10" fill="none" strokeDasharray={`${2 * Math.PI * 48}`} strokeDashoffset={`${2 * Math.PI * 48 * (1 - profileCompletion / 100)}`} strokeLinecap="round" className="transition-all duration-500" />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-2xl font-bold text-gray-900">{profileCompletion}%</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="mb-3">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Personal</h3>
+                    {progressItems.slice(0, 7).map((item, index) => (
+                      <div key={index} className="flex items-center justify-between py-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-3.5 h-3.5 rounded-full border ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}></span>
+                          <span className={`text-xs ${item.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{item.label}</span>
+                        </div>
+                        {!item.completed && <span className="text-xs font-medium text-[#06B4C9]">+{item.weight}%</span>}
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Education</h3>
+                    {progressItems.slice(7, 10).map((item, index) => (
+                      <div key={index} className="flex items-center justify-between py-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-3.5 h-3.5 rounded-full border ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}></span>
+                          <span className={`text-xs ${item.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{item.label}</span>
+                        </div>
+                        {!item.completed && <span className="text-xs font-medium text-[#06B4C9]">+{item.weight}%</span>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Personal Information */}
-            <form onSubmit={handleSubmit}>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                    <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} disabled={!isEditing} 
-                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
-                    {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                    <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} disabled={!isEditing} 
-                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
-                     {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" name="email" value={formData.email} onChange={handleChange} disabled={true} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing} 
-                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
-                      {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                    <input type="text" name="location" value={formData.location} onChange={handleChange} disabled={!isEditing} placeholder="e.g., Manila, Philippines" 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none disabled:bg-gray-50" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
-                    <textarea name="bio" value={formData.bio} onChange={handleChange} rows={4} disabled={!isEditing} 
-                      className={`w-full px-4 py-2 border rounded-lg outline-none resize-none disabled:bg-gray-50 ${errors.bio ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
-                    {errors.bio && <p className="text-red-500 text-xs mt-1">{errors.bio}</p>}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Wallet Address</label>
-                    <input type="text" name="walletAddress" value={formData.walletAddress} disabled={true} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 font-mono text-sm cursor-not-allowed" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Education Information */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Education</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">University</label>
-                    <input type="text" name="university" value={formData.university} onChange={handleChange} disabled={!isEditing} 
-                       className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.university ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
-                    {errors.university && <p className="text-red-500 text-xs mt-1">{errors.university}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Major</label>
-                    <input type="text" name="major" value={formData.major} onChange={handleChange} disabled={!isEditing} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none disabled:bg-gray-50" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Expected Graduation Year</label>
-                    <input type="text" name="graduationYear" value={formData.graduationYear} onChange={handleChange} disabled={!isEditing} 
-                      className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.graduationYear ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'}`} />
-                    {errors.graduationYear && <p className="text-red-500 text-xs mt-1">{errors.graduationYear}</p>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Rest of the form remains same (Security, Appearance, Save Button) */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Security</h2>
-                <div className="space-y-4">
-                  <div>
-                    <button type="button" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Change Password</button>
-                  </div>
-                  <div>
-                    <button type="button" onClick={() => router.push('/student/profile/security')} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Enable Two-Factor Authentication</button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Appearance</h2>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Theme Preference</label>
-                  <div className="flex items-center gap-4">
-                    <button type="button" onClick={toggleTheme} className={`flex-1 sm:flex-none px-6 py-3 rounded-lg border-2 transition-all ${theme === 'light' ? 'border-purple-600 bg-purple-50 text-purple-700' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'}`}>
-                      <span className="font-medium">Light Mode</span>
-                    </button>
-                    <button type="button" onClick={toggleTheme} className={`flex-1 sm:flex-none px-6 py-3 rounded-lg border-2 transition-all ${theme === 'dark' ? 'border-purple-600 bg-purple-50 text-purple-700' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'}`}>
-                      <span className="font-medium">Dark Mode</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {isEditing && (
-                <div className="flex flex-col sm:flex-row justify-end gap-3">
-                  <button type="button" onClick={handleCancel} className="w-full sm:w-auto px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Cancel</button>
-                  <button type="submit" disabled={saving} className="w-full sm:w-auto px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              )}
-            </form>
-          </div>
-
-          <div className="w-full lg:w-80 flex-shrink-0">
-             {/* Progress Bar Component (Unchanged) */}
-             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Complete your profile</h2>
-              <div className="flex flex-col items-center mb-6">
-                <div className="relative w-32 h-32">
-                  <svg className="w-32 h-32 transform -rotate-90">
-                    <circle cx="64" cy="64" r="56" stroke="#e5e7eb" strokeWidth="12" fill="none" />
-                    <circle cx="64" cy="64" r="56" stroke="#22c55e" strokeWidth="12" fill="none" strokeDasharray={`${2 * Math.PI * 56}`} strokeDashoffset={`${2 * Math.PI * 56 * (1 - profileCompletion / 100)}`} strokeLinecap="round" className="transition-all duration-500" />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center"><div className="text-3xl font-bold text-gray-900">{profileCompletion}%</div></div>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="mb-3">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Personal Information</h3>
-                  {progressItems.slice(0, 7).map((item, index) => (
-                    <div key={index} className="flex items-center justify-between py-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-4 h-4 rounded-full border ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}></span>
-                        <span className={`text-xs ${item.completed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>{item.label}</span>
-                      </div>
-                      <span className={`text-xs font-medium ${item.completed ? 'text-green-600' : 'text-purple-600'}`}>{item.completed ? '' : `+${item.weight}%`}</span>
-                    </div>
-                  ))}
-                </div>
-                <div>
-                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Education</h3>
-                   {progressItems.slice(7, 10).map((item, index) => (
-                    <div key={index} className="flex items-center justify-between py-1">
-                      <div className="flex items-center gap-2">
-                         <span className={`w-4 h-4 rounded-full border ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}></span>
-                        <span className={`text-xs ${item.completed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>{item.label}</span>
-                      </div>
-                      <span className={`text-xs font-medium ${item.completed ? 'text-green-600' : 'text-purple-600'}`}>{item.completed ? '' : `+${item.weight}%`}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-             </div>
-          </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

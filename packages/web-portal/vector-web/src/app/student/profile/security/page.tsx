@@ -26,7 +26,7 @@ export default function SecuritySettings() {
             {!showEnroll ? (
               <button 
                 onClick={() => setShowEnroll(true)}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-lg transition-colors"
+                className="bg-[#06B4C9] hover:bg-[#06B4C9]/80 text-white font-medium px-4 py-2 rounded-lg transition-colors"
               >
                 Enable 2FA
               </button>

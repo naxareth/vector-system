@@ -99,8 +99,8 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
     gray: '#4b5563',
     lightGray: '#f9fafb',
     border: '#e5e7eb',
-    purple: '#9333ea',
-    purpleLight: '#f3e8ff',
+    purple: '#06B4C9',
+    purpleLight: '#e0f7fa',
     greenText: '#15803d',
     greenBg: '#dcfce7',
     slate700: '#334155',
@@ -129,7 +129,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
             Scan to Verify
           </p>
           <p style={{ margin: 0 }}>
-            Scan this QR code to verify credentials on the VECTOR blockchain portal.
+            Scan this QR code to verify credentials on the VECTOR platform.
           </p>
         </div>
       </div>
@@ -157,11 +157,10 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setSelectedFormat('pdf')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    selectedFormat === 'pdf'
-                      ? 'border-purple-600 bg-purple-50 text-purple-700'
+                  className={`p-3 rounded-lg border-2 transition-all ${selectedFormat === 'pdf'
+                      ? 'border-[#06B4C9] bg-[#06B4C9]/10 text-[#06B4C9]'
                       : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -170,11 +169,10 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                 </button>
                 <button
                   onClick={() => setSelectedFormat('json')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    selectedFormat === 'json'
+                  className={`p-3 rounded-lg border-2 transition-all ${selectedFormat === 'json'
                       ? 'border-purple-600 bg-purple-50 text-purple-700'
                       : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -191,9 +189,9 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                   type="checkbox"
                   checked={includeVerification}
                   onChange={(e) => setIncludeVerification(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                  className="w-4 h-4 text-[#06B4C9] rounded focus:ring-[#06B4C9]"
                 />
-                <span className="text-sm text-gray-700">Include blockchain verification details</span>
+                <span className="text-sm text-gray-700">Include verification details</span>
               </label>
             </div>
 
@@ -205,7 +203,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                 </svg>
                 <p className="text-xs text-blue-800">
                   {selectedFormat === 'pdf'
-                    ? 'The PDF will include a QR code and cryptographic footer linked to the Polygon blockchain.'
+                    ? 'The PDF will include a QR code and secure verification footer.'
                     : 'The JSON file contains raw data suitable for verifier applications.'}
                 </p>
               </div>
@@ -218,7 +216,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                 <div>
                   <p className="text-xs font-semibold text-gray-700">Verification QR Code</p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Will be embedded in the exported PDF. Employers can scan to verify credentials on-chain.
+                    Will be embedded in the exported PDF. Employers can scan to verify your credentials.
                   </p>
                 </div>
               </div>
@@ -237,7 +235,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
             <button
               onClick={handleExport}
               disabled={isExporting}
-              className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+              className="flex-1 px-4 py-2.5 bg-[#06B4C9] hover:bg-[#06B4C9]/80 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {isExporting ? (
                 <>
@@ -263,50 +261,50 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
       {/* ------------------------------------------------------------
         THE "GHOST" TEMPLATE
         Rendered off-screen for html2canvas to capture.
-        CRITICAL FIX: We use inline STYLES with HEX CODES instead of
-        Tailwind color classes to prevent 'lab()' errors.
-        ------------------------------------------------------------
-      */}
+        Uses inline STYLES with HEX CODES to prevent 'lab()' errors.
+        Font: Inter / system-ui for Professional & Modern,
+              Georgia serif for Simple.
+        ------------------------------------------------------------ */}
       {cvrData && (
         <div style={{ position: 'absolute', top: -9999, left: -9999 }}>
           <div
             ref={printRef}
-            style={{ width: '210mm', minHeight: '297mm', backgroundColor: colors.white, color: colors.gray }}
+            style={{ width: '210mm', minHeight: '297mm', backgroundColor: colors.white, color: colors.gray, fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif" }}
           >
             {isModern ? (
               /* ============================================================
-                 MODERN TEMPLATE - Two Column (Dark Sidebar + White Main)
+                 MODERN TEMPLATE — Two Column (Sidebar + Main)
                  ============================================================ */
-              <div style={{ display: 'flex', minHeight: '297mm' }}>
-                {/* Left Sidebar - Dark */}
-                <div style={{ width: '35%', backgroundColor: cvrData.color || colors.slate700, color: colors.white, padding: '32px 24px' }}>
-                  {/* Profile Initials */}
+              <div style={{ display: 'flex', minHeight: '297mm', fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif" }}>
+                {/* Left Sidebar */}
+                <div style={{ width: '35%', backgroundColor: cvrData.color || colors.slate700, color: colors.white, padding: '32px 22px' }}>
+                  {/* Profile */}
                   <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                    <div style={{ width: '96px', height: '96px', margin: '0 auto 12px', backgroundColor: colors.slate600, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 'bold', color: colors.slate300 }}>
+                    <div style={{ width: '80px', height: '80px', margin: '0 auto 10px', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 700, color: colors.slate200, letterSpacing: '0.02em' }}>
                       {cvrData.fullName?.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                     </div>
-                    <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: colors.white, margin: '0 0 4px 0' }}>{cvrData.fullName}</h1>
+                    <h1 style={{ fontSize: '20px', fontWeight: 700, color: colors.white, margin: '0 0 4px 0', lineHeight: 1.2, letterSpacing: '-0.01em' }}>{cvrData.fullName}</h1>
                     {cvrData.title && (
-                      <p style={{ fontSize: '14px', color: colors.slate300, margin: 0 }}>{cvrData.title}</p>
+                      <p style={{ fontSize: '12px', color: colors.slate300, margin: 0, fontWeight: 400, letterSpacing: '0.01em' }}>{cvrData.title}</p>
                     )}
                   </div>
 
                   {/* Contact */}
                   {(cvrData.email || cvrData.phone || cvrData.portfolio || cvrData.linkedin) && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <h3 style={{ fontSize: '13px', fontWeight: 'bold', color: colors.white, marginBottom: '12px', paddingBottom: '6px', borderBottom: `1px solid ${colors.slate500}`, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                    <div style={{ marginBottom: '22px' }}>
+                      <h3 style={{ fontSize: '10px', fontWeight: 700, color: colors.white, marginBottom: '10px', paddingBottom: '5px', borderBottom: `1px solid rgba(255,255,255,0.2)`, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Contact</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', fontSize: '11px' }}>
                         {cvrData.phone && (
-                          <div><p style={{ fontWeight: '600', color: colors.slate300, margin: '0 0 2px 0' }}>Phone</p><p style={{ color: colors.slate200, margin: 0 }}>{cvrData.phone}</p></div>
+                          <div><p style={{ fontWeight: 700, color: colors.slate200, margin: '0 0 1px 0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Phone</p><p style={{ color: colors.slate300, margin: 0 }}>{cvrData.phone}</p></div>
                         )}
                         {cvrData.email && (
-                          <div><p style={{ fontWeight: '600', color: colors.slate300, margin: '0 0 2px 0' }}>Email</p><p style={{ color: colors.slate200, margin: 0, wordBreak: 'break-all' }}>{cvrData.email}</p></div>
+                          <div><p style={{ fontWeight: 700, color: colors.slate200, margin: '0 0 1px 0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Email</p><p style={{ color: colors.slate300, margin: 0, wordBreak: 'break-all' }}>{cvrData.email}</p></div>
                         )}
                         {cvrData.portfolio && (
-                          <div><p style={{ fontWeight: '600', color: colors.slate300, margin: '0 0 2px 0' }}>Website</p><p style={{ color: colors.slate200, margin: 0, wordBreak: 'break-all' }}>{cvrData.portfolio}</p></div>
+                          <div><p style={{ fontWeight: 700, color: colors.slate200, margin: '0 0 1px 0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Website</p><p style={{ color: colors.slate300, margin: 0, wordBreak: 'break-all' }}>{cvrData.portfolio}</p></div>
                         )}
                         {cvrData.linkedin && (
-                          <div><p style={{ fontWeight: '600', color: colors.slate300, margin: '0 0 2px 0' }}>LinkedIn</p><p style={{ color: colors.slate200, margin: 0, wordBreak: 'break-all' }}>{cvrData.linkedin}</p></div>
+                          <div><p style={{ fontWeight: 700, color: colors.slate200, margin: '0 0 1px 0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>LinkedIn</p><p style={{ color: colors.slate300, margin: 0, wordBreak: 'break-all' }}>{cvrData.linkedin}</p></div>
                         )}
                       </div>
                     </div>
@@ -314,47 +312,49 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                   {/* Education */}
                   {cvrData.education && cvrData.education.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <h3 style={{ fontSize: '13px', fontWeight: 'bold', color: colors.white, marginBottom: '12px', paddingBottom: '6px', borderBottom: `1px solid ${colors.slate500}`, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Education</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '12px' }}>
+                    <div style={{ marginBottom: '22px' }}>
+                      <h3 style={{ fontSize: '10px', fontWeight: 700, color: colors.white, marginBottom: '10px', paddingBottom: '5px', borderBottom: `1px solid rgba(255,255,255,0.2)`, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Education</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '11px' }}>
                         {cvrData.education.map((edu: any, i: number) => (
                           <div key={i}>
-                            <p style={{ fontWeight: '600', color: colors.slate300, margin: '0 0 2px 0' }}>{edu.year}</p>
-                            <p style={{ fontWeight: 'bold', color: colors.white, margin: '0 0 2px 0' }}>{edu.degree}</p>
-                            <p style={{ color: colors.slate200, margin: 0 }}>{edu.school}</p>
-                            {edu.location && <p style={{ color: colors.slate400, fontSize: '11px', margin: '2px 0 0 0' }}>{edu.location}</p>}
-                            {edu.honors && <p style={{ color: colors.slate300, fontSize: '11px', fontStyle: 'italic', margin: '2px 0 0 0' }}>{edu.honors}</p>}
+                            <p style={{ fontWeight: 600, color: colors.slate400, margin: '0 0 1px 0', fontSize: '10px' }}>{edu.year}</p>
+                            <p style={{ fontWeight: 700, color: colors.white, margin: '0 0 1px 0', fontSize: '11px' }}>{edu.degree}</p>
+                            <p style={{ color: colors.slate300, margin: 0, fontSize: '11px' }}>{edu.school}</p>
+                            {edu.location && <p style={{ color: colors.slate400, fontSize: '10px', margin: '1px 0 0 0' }}>{edu.location}</p>}
+                            {edu.honors && <p style={{ color: colors.slate300, fontSize: '10px', fontStyle: 'italic', margin: '1px 0 0 0' }}>{edu.honors}</p>}
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Skills / Expertise */}
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '13px', fontWeight: 'bold', color: colors.white, marginBottom: '12px', paddingBottom: '6px', borderBottom: `1px solid ${colors.slate500}`, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Expertise</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {cvrData.skills && cvrData.skills.map((skill: any, i: number) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '6px', height: '6px', backgroundColor: colors.slate400, borderRadius: '50%', flexShrink: 0 }}></div>
-                          <span style={{ fontSize: '12px', color: colors.slate200 }}>{skill.name}</span>
-                          {skill.verified && <span style={{ fontSize: '9px', color: '#4ade80' }}>✓</span>}
-                        </div>
-                      ))}
+                  {/* Skills */}
+                  {cvrData.skills && cvrData.skills.length > 0 && (
+                    <div style={{ marginBottom: '22px' }}>
+                      <h3 style={{ fontSize: '10px', fontWeight: 700, color: colors.white, marginBottom: '10px', paddingBottom: '5px', borderBottom: `1px solid rgba(255,255,255,0.2)`, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Expertise</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        {cvrData.skills.map((skill: any, i: number) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '50%', flexShrink: 0 }} />
+                            <span style={{ fontSize: '11px', color: colors.slate200, fontWeight: 400 }}>{skill.name}</span>
+                            {skill.verified && <span style={{ fontSize: '8px', color: '#4ade80', fontWeight: 700 }}>✓</span>}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Certifications */}
                   {cvrData.certifications && cvrData.certifications.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <h3 style={{ fontSize: '13px', fontWeight: 'bold', color: colors.white, marginBottom: '12px', paddingBottom: '6px', borderBottom: `1px solid ${colors.slate500}`, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Certifications</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                    <div style={{ marginBottom: '22px' }}>
+                      <h3 style={{ fontSize: '10px', fontWeight: 700, color: colors.white, marginBottom: '10px', paddingBottom: '5px', borderBottom: `1px solid rgba(255,255,255,0.2)`, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Certifications</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px' }}>
                         {cvrData.certifications.map((cert: any, i: number) => (
                           <div key={i}>
-                            <p style={{ fontWeight: 'bold', color: colors.white, margin: '0 0 2px 0' }}>{cert.name}</p>
-                            {cert.issuer && <p style={{ color: colors.slate300, margin: 0 }}>{cert.issuer}</p>}
-                            <p style={{ color: colors.slate400, fontSize: '11px', margin: '2px 0 0 0' }}>{cert.date}</p>
-                            {cert.verified && <span style={{ fontSize: '9px', fontWeight: 'bold', backgroundColor: '#16a34a', color: colors.white, padding: '1px 6px', borderRadius: '4px', marginTop: '4px', display: 'inline-block' }}>✓ Verified</span>}
+                            <p style={{ fontWeight: 700, color: colors.white, margin: '0 0 1px 0', fontSize: '11px' }}>{cert.name}</p>
+                            {cert.issuer && <p style={{ color: colors.slate300, margin: 0, fontSize: '10px' }}>{cert.issuer}</p>}
+                            <p style={{ color: colors.slate400, fontSize: '10px', margin: '1px 0 0 0' }}>{cert.date}</p>
+                            {cert.verified && <span style={{ fontSize: '8px', fontWeight: 700, backgroundColor: '#16a34a', color: colors.white, padding: '1px 5px', borderRadius: '3px', marginTop: '3px', display: 'inline-block' }}>✓ Verified</span>}
                           </div>
                         ))}
                       </div>
@@ -362,33 +362,28 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                   )}
                 </div>
 
-                {/* Right Content Area - White */}
-                <div style={{ width: '65%', padding: '32px', backgroundColor: colors.white }}>
-                  {/* Professional Summary */}
+                {/* Right Content Area */}
+                <div style={{ width: '65%', padding: '32px 28px', backgroundColor: colors.white }}>
+                  {/* Summary */}
                   {cvrData.summary && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <p style={{ color: colors.gray, lineHeight: '1.6', fontSize: '13px', textAlign: 'justify' }}>{cvrData.summary}</p>
+                    <div style={{ marginBottom: '22px' }}>
+                      <p style={{ color: colors.gray, lineHeight: 1.65, fontSize: '11px', textAlign: 'justify', margin: 0, fontWeight: 400 }}>{cvrData.summary}</p>
                     </div>
                   )}
 
                   {/* Experience */}
                   {cvrData.experience && cvrData.experience.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: colors.black, paddingBottom: '6px', marginBottom: '16px', borderBottom: `0.5px solid ${colors.slate300}`, textTransform: 'uppercase' }}>Experience</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ marginBottom: '22px' }}>
+                      <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, paddingBottom: '5px', marginBottom: '12px', borderBottom: `1px solid ${colors.slate200}`, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Experience</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                         {cvrData.experience.map((exp: any, i: number) => (
-                          <div key={i} style={{ display: 'flex', gap: '12px' }}>
-                            <div style={{ width: '32px', height: '32px', backgroundColor: colors.slate200, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
-                              <span style={{ fontSize: '14px' }}>💼</span>
+                          <div key={i}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '3px' }}>
+                              <h4 style={{ fontSize: '13px', fontWeight: 700, color: colors.black, margin: 0, letterSpacing: '-0.01em' }}>{exp.title}</h4>
+                              <span style={{ fontSize: '10px', fontWeight: 600, color: colors.slate600, backgroundColor: colors.slate100, padding: '2px 8px', borderRadius: '10px', flexShrink: 0 }}>{exp.dates}</span>
                             </div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
-                                <h4 style={{ fontSize: '15px', fontWeight: 'bold', color: colors.black, margin: 0 }}>{exp.title}</h4>
-                                <span style={{ fontSize: '11px', fontWeight: '600', color: colors.slate600, backgroundColor: colors.slate100, padding: '2px 8px', borderRadius: '12px' }}>{exp.dates}</span>
-                              </div>
-                              <p style={{ color: colors.gray, fontWeight: '500', fontSize: '13px', margin: '0 0 4px 0' }}>{exp.company}</p>
-                              <p style={{ color: colors.gray, fontSize: '12px', lineHeight: '1.5', whiteSpace: 'pre-line', margin: 0 }}>{exp.description}</p>
-                            </div>
+                            <p style={{ color: colors.gray, fontWeight: 600, fontSize: '11px', margin: '0 0 3px 0' }}>{exp.company}</p>
+                            <p style={{ color: colors.gray, fontSize: '11px', lineHeight: 1.6, whiteSpace: 'pre-line', margin: 0, fontWeight: 400 }}>{exp.description}</p>
                           </div>
                         ))}
                       </div>
@@ -397,17 +392,17 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                   {/* Projects */}
                   {cvrData.projects && cvrData.projects.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: colors.black, paddingBottom: '6px', marginBottom: '16px', borderBottom: `0.5px solid ${colors.slate300}`, textTransform: 'uppercase' }}>Projects</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ marginBottom: '22px' }}>
+                      <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, paddingBottom: '5px', marginBottom: '12px', borderBottom: `1px solid ${colors.slate200}`, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Projects</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {cvrData.projects.map((proj: any, i: number) => (
-                          <div key={i} style={{ borderLeft: `3px solid ${colors.slate300}`, paddingLeft: '16px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
-                              <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.black, margin: 0 }}>{proj.title}</h4>
-                              {proj.role && <span style={{ fontSize: '10px', color: colors.slate600, backgroundColor: colors.slate100, padding: '1px 6px', borderRadius: '4px' }}>{proj.role}</span>}
+                          <div key={i} style={{ borderLeft: `3px solid ${colors.slate300}`, paddingLeft: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '3px' }}>
+                              <h4 style={{ fontSize: '12px', fontWeight: 700, color: colors.black, margin: 0 }}>{proj.title}</h4>
+                              {proj.role && <span style={{ fontSize: '9px', fontWeight: 600, color: colors.slate600, backgroundColor: colors.slate100, padding: '1px 6px', borderRadius: '4px' }}>{proj.role}</span>}
                             </div>
-                            <p style={{ fontSize: '12px', color: colors.gray, margin: '0 0 4px 0' }}>{proj.description}</p>
-                            {proj.technologies && <p style={{ fontSize: '11px', color: colors.slate600, margin: 0 }}><strong>Technologies:</strong> {proj.technologies}</p>}
+                            <p style={{ fontSize: '11px', color: colors.gray, margin: '0 0 3px 0', lineHeight: 1.5, fontWeight: 400 }}>{proj.description}</p>
+                            {proj.technologies && <p style={{ fontSize: '10px', color: colors.slate600, margin: 0, fontWeight: 500 }}><strong style={{ fontWeight: 700 }}>Tech:</strong> {proj.technologies}</p>}
                           </div>
                         ))}
                       </div>
@@ -416,16 +411,13 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                   {/* Awards */}
                   {cvrData.awards && cvrData.awards.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: colors.black, paddingBottom: '6px', marginBottom: '16px', borderBottom: `0.5px solid ${colors.slate300}`, textTransform: 'uppercase' }}>Awards</h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ marginBottom: '22px' }}>
+                      <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, paddingBottom: '5px', marginBottom: '12px', borderBottom: `1px solid ${colors.slate200}`, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Awards</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {cvrData.awards.map((award: any, i: number) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                            <div style={{ width: '6px', height: '6px', backgroundColor: colors.slate400, borderRadius: '50%', flexShrink: 0, marginTop: '6px' }}></div>
-                            <div>
-                              <strong style={{ fontSize: '13px', color: colors.black }}>{award.title}</strong>
-                              <span style={{ fontSize: '12px', color: colors.gray }}> - {award.description}</span>
-                            </div>
+                          <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                            <div style={{ width: '5px', height: '5px', backgroundColor: colors.slate400, borderRadius: '50%', flexShrink: 0, marginTop: '5px' }} />
+                            <div><strong style={{ fontSize: '12px', fontWeight: 700, color: colors.black }}>{award.title}</strong><span style={{ fontSize: '11px', color: colors.gray, fontWeight: 400 }}> — {award.description}</span></div>
                           </div>
                         ))}
                       </div>
@@ -433,25 +425,24 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                   )}
 
                   {/* References */}
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: colors.black, paddingBottom: '6px', marginBottom: '12px', borderBottom: `0.5px solid ${colors.slate300}`, textTransform: 'uppercase' }}>Reference</h3>
-                    <p style={{ fontSize: '13px', color: colors.gray }}>Available upon request.</p>
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, paddingBottom: '5px', marginBottom: '10px', borderBottom: `1px solid ${colors.slate200}`, textTransform: 'uppercase', letterSpacing: '0.08em' }}>References</h3>
+                    <p style={{ fontSize: '11px', color: colors.gray, fontWeight: 400 }}>Available upon request.</p>
                   </div>
 
-                  {/* Blockchain Footer + QR (Modern) */}
+                  {/* Verification Footer + QR (Modern) */}
                   {includeVerification && (
-                    <div style={{ marginTop: '32px', paddingTop: '16px', borderTop: `1px solid ${colors.border}` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: qrDataUrl ? '12px' : '0' }}>
-                        <div style={{ width: '32px', height: '32px', backgroundColor: colors.purpleLight, borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.purple, flexShrink: 0 }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div style={{ marginTop: '28px', paddingTop: '14px', borderTop: `1px solid ${colors.border}` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: qrDataUrl ? '10px' : '0' }}>
+                        <div style={{ width: '28px', height: '28px', backgroundColor: colors.purpleLight, borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.purple, flexShrink: 0 }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                           </svg>
                         </div>
-                        <div style={{ fontSize: '11px', color: colors.gray }}>
-                          <p style={{ fontWeight: 'bold', color: colors.black, margin: 0 }}>Cryptographically Secured Document</p>
-                          <p style={{ margin: 0 }}>Generated by VECTOR Platform • Immutable Record on Polygon Amoy Testnet</p>
-                          {/* ✅ FIXED: Use stable credentialId from cvrData, not Date.now() */}
-                          <p style={{ fontFamily: 'monospace', fontSize: '9px', color: '#9ca3af', margin: '2px 0 0 0' }}>ID: {cvrData.credentialId}</p>
+                        <div style={{ fontSize: '10px', color: colors.gray }}>
+                          <p style={{ fontWeight: 700, color: colors.black, margin: 0 }}>Securely Verified Document</p>
+                          <p style={{ margin: 0, fontWeight: 400 }}>Generated by VECTOR Platform • Permanent Verified Record</p>
+                          <p style={{ fontFamily: 'monospace', fontSize: '8px', color: '#9ca3af', margin: '2px 0 0 0' }}>ID: {cvrData.credentialId}</p>
                         </div>
                       </div>
                       {qrDataUrl && <QRBlock />}
@@ -461,27 +452,30 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
               </div>
             ) : isSimple ? (
               /* ============================================================
-                 SIMPLE TEMPLATE - Traditional ATS-Friendly
+                 SIMPLE TEMPLATE — Traditional ATS-Friendly (Serif)
                  ============================================================ */
-              <div style={{ padding: '36px', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>
+              <div style={{ padding: '36px 40px', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>
                 {/* Name */}
-                <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-                  <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: colors.black, margin: 0, fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>
+                <div style={{ textAlign: 'center', marginBottom: '2px' }}>
+                  <h1 style={{ fontSize: '26px', fontWeight: 700, color: colors.black, margin: 0, fontFamily: 'Georgia, "Times New Roman", Times, serif', letterSpacing: '0.02em' }}>
                     {cvrData.fullName}
                   </h1>
+                  {cvrData.title && (
+                    <p style={{ fontSize: '12px', color: colors.gray, margin: '2px 0 0 0', fontStyle: 'italic', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>{cvrData.title}</p>
+                  )}
                 </div>
 
                 {/* Contact Line */}
-                <div style={{ textAlign: 'center', fontSize: '12px', color: colors.gray, marginBottom: '4px', lineHeight: '1.4' }}>
+                <div style={{ textAlign: 'center', fontSize: '10.5px', color: colors.gray, marginBottom: '4px', lineHeight: 1.4, fontWeight: 400 }}>
                   {[cvrData.phone, cvrData.email, cvrData.portfolio, cvrData.linkedin].filter(Boolean).join('  |  ')}
                 </div>
 
-                <hr style={{ border: 'none', borderTop: '1.5px solid #111827', margin: '8px 0 12px 0' }} />
+                <hr style={{ border: 'none', borderTop: '1.5px solid #111827', margin: '6px 0 14px 0' }} />
 
                 {/* Summary */}
                 {cvrData.summary && (
-                  <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '12px', color: colors.gray, fontStyle: 'italic', lineHeight: '1.6', margin: 0, fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>
+                  <div style={{ marginBottom: '18px', textAlign: 'center' }}>
+                    <p style={{ fontSize: '11px', color: colors.gray, fontStyle: 'italic', lineHeight: 1.65, margin: 0, fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 400 }}>
                       {cvrData.summary}
                     </p>
                   </div>
@@ -489,22 +483,22 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                 {/* PROFESSIONAL EXPERIENCE */}
                 {cvrData.experience && cvrData.experience.length > 0 && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <h2 style={{ fontSize: '13px', fontWeight: 'bold', color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Professional Experience</h2>
-                    <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 12px 0' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ marginBottom: '16px' }}>
+                    <h2 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Professional Experience</h2>
+                    <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {cvrData.experience.map((exp: any, i: number) => (
                         <div key={i}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                            <span style={{ fontWeight: 'bold', fontSize: '13px', color: colors.black, textTransform: 'uppercase' }}>{exp.company}</span>
-                            <span style={{ fontSize: '12px', color: colors.gray, fontStyle: 'italic' }}>{exp.dates}</span>
+                            <span style={{ fontWeight: 700, fontSize: '12px', color: colors.black }}>{exp.company}</span>
+                            <span style={{ fontSize: '10.5px', color: colors.gray, fontStyle: 'italic', fontWeight: 400 }}>{exp.dates}</span>
                           </div>
-                          <p style={{ fontSize: '12px', color: colors.gray, fontStyle: 'italic', margin: '0 0 4px 0' }}>{exp.title}</p>
+                          <p style={{ fontSize: '11px', color: colors.gray, fontStyle: 'italic', margin: '0 0 3px 0', fontWeight: 400 }}>{exp.title}</p>
                           {exp.description && (
-                            <ul style={{ margin: '4px 0 0 0', paddingLeft: '18px' }}>
+                            <ul style={{ margin: '3px 0 0 0', paddingLeft: '16px' }}>
                               {exp.description.split('\n').filter((l: string) => l.trim()).map((line: string, j: number) => (
-                                <li key={j} style={{ fontSize: '12px', color: colors.black, lineHeight: '1.5', marginBottom: '2px', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>
-                                  {line.replace(/^[\-•]\s*/, '')}
+                                <li key={j} style={{ fontSize: '11px', color: colors.black, lineHeight: 1.55, marginBottom: '1px', fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 400 }}>
+                                  {line.replace(/^[-•]\s*/, '')}
                                 </li>
                               ))}
                             </ul>
@@ -517,18 +511,18 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                 {/* PROJECTS */}
                 {cvrData.projects && cvrData.projects.length > 0 && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <h2 style={{ fontSize: '13px', fontWeight: 'bold', color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Projects</h2>
-                    <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 12px 0' }} />
+                  <div style={{ marginBottom: '16px' }}>
+                    <h2 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Projects</h2>
+                    <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {cvrData.projects.map((proj: any, i: number) => (
                         <div key={i}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                            <span style={{ fontWeight: 'bold', fontSize: '13px', color: colors.black, textTransform: 'uppercase' }}>{proj.title}</span>
-                            {proj.role && <span style={{ fontSize: '12px', color: colors.gray, fontStyle: 'italic' }}>{proj.role}</span>}
+                            <span style={{ fontWeight: 700, fontSize: '12px', color: colors.black }}>{proj.title}</span>
+                            {proj.role && <span style={{ fontSize: '10.5px', color: colors.gray, fontStyle: 'italic', fontWeight: 400 }}>{proj.role}</span>}
                           </div>
-                          <p style={{ fontSize: '12px', color: colors.black, lineHeight: '1.5', margin: '2px 0' }}>{proj.description}</p>
-                          {proj.technologies && <p style={{ fontSize: '11px', color: colors.gray, margin: 0 }}>Technologies: {proj.technologies}</p>}
+                          <p style={{ fontSize: '11px', color: colors.black, lineHeight: 1.55, margin: '2px 0', fontWeight: 400 }}>{proj.description}</p>
+                          {proj.technologies && <p style={{ fontSize: '10px', color: colors.gray, margin: 0, fontWeight: 400 }}>Technologies: {proj.technologies}</p>}
                         </div>
                       ))}
                     </div>
@@ -537,21 +531,21 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                 {/* EDUCATION */}
                 {cvrData.education && cvrData.education.length > 0 && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <h2 style={{ fontSize: '13px', fontWeight: 'bold', color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Education</h2>
-                    <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 12px 0' }} />
+                  <div style={{ marginBottom: '16px' }}>
+                    <h2 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Education</h2>
+                    <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {cvrData.education.map((edu: any, i: number) => (
                         <div key={i}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                            <span style={{ fontWeight: 'bold', fontSize: '13px', color: colors.black, textTransform: 'uppercase' }}>{edu.school}</span>
-                            <span style={{ fontSize: '12px', color: colors.gray, fontStyle: 'italic' }}>{edu.location}</span>
+                            <span style={{ fontWeight: 700, fontSize: '12px', color: colors.black }}>{edu.school}</span>
+                            <span style={{ fontSize: '10.5px', color: colors.gray, fontStyle: 'italic', fontWeight: 400 }}>{edu.location}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                            <span style={{ fontSize: '12px', color: colors.black }}>{edu.degree}</span>
-                            <span style={{ fontSize: '12px', color: colors.gray, fontStyle: 'italic' }}>{edu.year}</span>
+                            <span style={{ fontSize: '11px', color: colors.black, fontWeight: 400 }}>{edu.degree}</span>
+                            <span style={{ fontSize: '10.5px', color: colors.gray, fontStyle: 'italic', fontWeight: 400 }}>{edu.year}</span>
                           </div>
-                          {edu.honors && <p style={{ fontSize: '12px', color: colors.gray, margin: '2px 0 0 0' }}>Honors: {edu.honors}</p>}
+                          {edu.honors && <p style={{ fontSize: '10.5px', color: colors.gray, margin: '1px 0 0 0', fontWeight: 400 }}>Honors: {edu.honors}</p>}
                         </div>
                       ))}
                     </div>
@@ -560,13 +554,13 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                 {/* CERTIFICATIONS */}
                 {cvrData.certifications && cvrData.certifications.length > 0 && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <h2 style={{ fontSize: '13px', fontWeight: 'bold', color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Certifications</h2>
-                    <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 12px 0' }} />
-                    <ul style={{ margin: 0, paddingLeft: '18px' }}>
+                  <div style={{ marginBottom: '16px' }}>
+                    <h2 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Certifications</h2>
+                    <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
+                    <ul style={{ margin: 0, paddingLeft: '16px' }}>
                       {cvrData.certifications.map((cert: any, i: number) => (
-                        <li key={i} style={{ fontSize: '12px', color: colors.black, marginBottom: '2px', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>
-                          <strong>{cert.name}</strong>{cert.issuer ? ` — ${cert.issuer}` : ''}{cert.date ? ` (${cert.date})` : ''}{cert.verified ? ' [Verified]' : ''}
+                        <li key={i} style={{ fontSize: '11px', color: colors.black, marginBottom: '2px', fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 400, lineHeight: 1.5 }}>
+                          <strong style={{ fontWeight: 700 }}>{cert.name}</strong>{cert.issuer ? ` — ${cert.issuer}` : ''}{cert.date ? ` (${cert.date})` : ''}{cert.verified ? ' [Verified]' : ''}
                         </li>
                       ))}
                     </ul>
@@ -575,13 +569,13 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                 {/* AWARDS */}
                 {cvrData.awards && cvrData.awards.length > 0 && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <h2 style={{ fontSize: '13px', fontWeight: 'bold', color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Awards</h2>
-                    <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 12px 0' }} />
-                    <ul style={{ margin: 0, paddingLeft: '18px' }}>
+                  <div style={{ marginBottom: '16px' }}>
+                    <h2 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Awards</h2>
+                    <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
+                    <ul style={{ margin: 0, paddingLeft: '16px' }}>
                       {cvrData.awards.map((award: any, i: number) => (
-                        <li key={i} style={{ fontSize: '12px', color: colors.black, marginBottom: '2px', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>
-                          <strong>{award.title}</strong> — {award.description}
+                        <li key={i} style={{ fontSize: '11px', color: colors.black, marginBottom: '2px', fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 400, lineHeight: 1.5 }}>
+                          <strong style={{ fontWeight: 700 }}>{award.title}</strong> — {award.description}
                         </li>
                       ))}
                     </ul>
@@ -589,28 +583,25 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                 )}
 
                 {/* ADDITIONAL SKILLS */}
-                <div style={{ marginBottom: '20px' }}>
-                  <h2 style={{ fontSize: '13px', fontWeight: 'bold', color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Additional Skills</h2>
-                  <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 12px 0' }} />
+                <div style={{ marginBottom: '16px' }}>
+                  <h2 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Additional Skills</h2>
+                  <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
                   {cvrData.skills && cvrData.skills.length > 0 ? (
-                    <ul style={{ margin: 0, paddingLeft: '18px' }}>
-                      <li style={{ fontSize: '12px', color: colors.black, lineHeight: '1.5', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>
-                        {cvrData.skills.map((s: any) => s.name).join(', ')}
-                      </li>
-                    </ul>
+                    <p style={{ fontSize: '11px', color: colors.black, lineHeight: 1.55, margin: 0, fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 400 }}>
+                      {cvrData.skills.map((s: any) => s.name).join(', ')}
+                    </p>
                   ) : (
-                    <p style={{ fontSize: '12px', color: colors.gray, fontStyle: 'italic' }}>No specific skills listed.</p>
+                    <p style={{ fontSize: '11px', color: colors.gray, fontStyle: 'italic', fontWeight: 400 }}>No specific skills listed.</p>
                   )}
                 </div>
 
-                {/* Blockchain Footer + QR (Simple) */}
+                {/* Verification Footer + QR (Simple) */}
                 {includeVerification && (
-                  <div style={{ marginTop: '32px', paddingTop: '12px', borderTop: `0.5px solid ${colors.border}` }}>
-                    <div style={{ fontSize: '10px', color: colors.gray, marginBottom: qrDataUrl ? '12px' : '0' }}>
-                      <p style={{ fontWeight: 'bold', color: colors.black, margin: 0 }}>Blockchain Verified Resume</p>
-                      <p style={{ margin: 0 }}>Generated by VECTOR Platform • Immutable Record on Polygon Amoy Testnet</p>
-                      {/* ✅ FIXED: Use stable credentialId from cvrData, not Date.now() */}
-                      <p style={{ fontFamily: 'monospace', fontSize: '9px', color: '#9ca3af', margin: '2px 0 0 0' }}>ID: {cvrData.credentialId}</p>
+                  <div style={{ marginTop: '28px', paddingTop: '10px', borderTop: `0.5px solid ${colors.border}` }}>
+                    <div style={{ fontSize: '9px', color: colors.gray, marginBottom: qrDataUrl ? '10px' : '0', fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+                      <p style={{ fontWeight: 700, color: colors.black, margin: 0 }}>Verified Resume</p>
+                      <p style={{ margin: 0, fontWeight: 400 }}>Generated by VECTOR Platform • Permanent Verified Record</p>
+                      <p style={{ fontFamily: 'monospace', fontSize: '8px', color: '#9ca3af', margin: '2px 0 0 0' }}>ID: {cvrData.credentialId}</p>
                     </div>
                     {qrDataUrl && <QRBlock />}
                   </div>
@@ -618,60 +609,62 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
               </div>
             ) : (
               /* ============================================================
-                 PROFESSIONAL TEMPLATE - Single Column
+                 PROFESSIONAL TEMPLATE — Single Column (Sans-serif)
                  ============================================================ */
-              <div style={{ padding: '36px' }}>
-                {/* Resume Header */}
-                <div style={{ borderBottom: `0.5px solid ${cvrData.color || colors.purple}`, paddingBottom: '12px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h1 style={{ fontSize: '36px', fontWeight: 'bold', color: colors.black, textTransform: 'uppercase', marginBottom: '8px', lineHeight: '1' }}>
-                      {cvrData.fullName}
-                    </h1>
-                    <p style={{ fontSize: '20px', color: colors.purple, fontWeight: '500' }}>
+              <div style={{ padding: '36px 40px', fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif" }}>
+                {/* Header */}
+                <div style={{ borderBottom: `2px solid ${cvrData.color || colors.purple}`, paddingBottom: '14px', marginBottom: '14px' }}>
+                  <h1 style={{ fontSize: '28px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', lineHeight: 1.1, margin: '0 0 4px 0', letterSpacing: '-0.01em' }}>
+                    {cvrData.fullName}
+                  </h1>
+                  {cvrData.title && (
+                    <p style={{ fontSize: '14px', color: cvrData.color || colors.purple, fontWeight: 500, margin: 0, letterSpacing: '0.01em' }}>
                       {cvrData.title}
                     </p>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-block', padding: '8px', backgroundColor: colors.white, border: `1px solid ${colors.border}`, borderRadius: '8px' }}>
-                      <div style={{ width: '64px', height: '64px', backgroundColor: colors.black, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.white, fontSize: '8px', textAlign: 'center', lineHeight: '1.2' }}>
-                        VECTOR<br />SECURE
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Contact */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px', color: colors.gray, marginBottom: '12px', fontWeight: '500' }}>
-                  <span>📧 {cvrData.email}</span>
-                  {cvrData.phone && <span>📱 {cvrData.phone}</span>}
-                  {cvrData.portfolio && <span>🌐 {cvrData.portfolio}</span>}
+                {/* Contact Row */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '11px', color: colors.gray, marginBottom: '16px' }}>
+                  {cvrData.email && (
+                    <div><span style={{ fontWeight: 700, color: colors.black, marginRight: '4px' }}>Email:</span>{cvrData.email}</div>
+                  )}
+                  {cvrData.phone && (
+                    <div><span style={{ fontWeight: 700, color: colors.black, marginRight: '4px' }}>Phone:</span>{cvrData.phone}</div>
+                  )}
+                  {cvrData.portfolio && (
+                    <div><span style={{ fontWeight: 700, color: colors.black, marginRight: '4px' }}>Website:</span>{cvrData.portfolio}</div>
+                  )}
+                  {cvrData.linkedin && (
+                    <div><span style={{ fontWeight: 700, color: colors.black, marginRight: '4px' }}>LinkedIn:</span>{cvrData.linkedin}</div>
+                  )}
                 </div>
 
                 {/* Summary */}
                 {cvrData.summary && (
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `0.5px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '10px' }}>
                       Professional Summary
                     </h3>
-                    <p style={{ color: colors.black, lineHeight: '1.6', fontSize: '14px' }}>{cvrData.summary}</p>
+                    <p style={{ color: colors.gray, lineHeight: 1.65, fontSize: '11px', fontWeight: 400, margin: 0 }}>{cvrData.summary}</p>
                   </div>
                 )}
 
                 {/* Education */}
                 {cvrData.education && cvrData.education.length > 0 && (
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `0.5px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '10px' }}>
                       Education
                     </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {cvrData.education.map((edu: any, i: number) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                           <div>
-                            <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '15px' }}>{edu.degree}</div>
-                            <div style={{ color: colors.gray, fontSize: '14px' }}>{edu.school}, {edu.location}</div>
-                            {edu.honors && <div style={{ fontStyle: 'italic', fontSize: '13px', color: colors.gray }}>{edu.honors}</div>}
+                            <div style={{ fontWeight: 700, color: colors.black, fontSize: '13px' }}>{edu.degree}</div>
+                            <div style={{ color: colors.gray, fontSize: '11px', fontWeight: 400 }}>{edu.school}{edu.location ? `, ${edu.location}` : ''}</div>
+                            {edu.honors && <div style={{ fontStyle: 'italic', fontSize: '10.5px', color: colors.gray, fontWeight: 400 }}>{edu.honors}</div>}
                           </div>
-                          <div style={{ fontWeight: 'bold', color: colors.purple, fontSize: '14px' }}>{edu.year}</div>
+                          <div style={{ fontWeight: 700, color: cvrData.color || colors.purple, fontSize: '11px', flexShrink: 0 }}>{edu.year}</div>
                         </div>
                       ))}
                     </div>
@@ -680,19 +673,19 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                 {/* Experience */}
                 {cvrData.experience && cvrData.experience.length > 0 && (
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `0.5px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '10px' }}>
                       Experience
                     </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                       {cvrData.experience.map((exp: any, i: number) => (
                         <div key={i}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '15px' }}>{exp.title}</div>
-                            <div style={{ fontWeight: 'bold', color: colors.purple, fontSize: '13px' }}>{exp.dates}</div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                            <div style={{ fontWeight: 700, color: colors.black, fontSize: '13px' }}>{exp.title}</div>
+                            <div style={{ fontWeight: 600, color: cvrData.color || colors.purple, fontSize: '11px', flexShrink: 0 }}>{exp.dates}</div>
                           </div>
-                          <div style={{ fontStyle: 'italic', color: colors.gray, fontSize: '14px', marginBottom: '4px' }}>{exp.company}</div>
-                          <p style={{ color: colors.black, fontSize: '13px', lineHeight: '1.5', whiteSpace: 'pre-line' }}>{exp.description}</p>
+                          <div style={{ fontWeight: 600, color: colors.gray, fontSize: '11px', marginBottom: '3px' }}>{exp.company}</div>
+                          <p style={{ color: colors.gray, fontSize: '11px', lineHeight: 1.6, whiteSpace: 'pre-line', margin: 0, fontWeight: 400 }}>{exp.description}</p>
                         </div>
                       ))}
                     </div>
@@ -701,17 +694,17 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                 {/* Projects */}
                 {cvrData.projects && cvrData.projects.length > 0 && (
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `0.5px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '10px' }}>
                       Projects
                     </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {cvrData.projects.map((proj: any, i: number) => (
-                        <div key={i} style={{ backgroundColor: colors.lightGray, padding: '12px', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
-                          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '6px', background: cvrData.color || colors.purple }} />
-                          <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '14px', marginBottom: '2px' }}>{proj.title}</div>
-                          <div style={{ fontSize: '13px', color: colors.black, marginBottom: '4px' }}>{proj.description}</div>
-                          {proj.technologies && <div style={{ fontSize: '11px', fontFamily: 'monospace', color: cvrData.color || colors.purple }}>Tech: {proj.technologies}</div>}
+                        <div key={i} style={{ backgroundColor: colors.lightGray, padding: '10px 12px', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
+                          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '4px', background: cvrData.color || colors.purple }} />
+                          <div style={{ fontWeight: 700, color: colors.black, fontSize: '12px', marginBottom: '2px' }}>{proj.title}</div>
+                          <div style={{ fontSize: '11px', color: colors.gray, marginBottom: '3px', fontWeight: 400, lineHeight: 1.5 }}>{proj.description}</div>
+                          {proj.technologies && <div style={{ fontSize: '10px', color: colors.slate600, fontWeight: 500 }}><strong style={{ fontWeight: 700 }}>Tech:</strong> {proj.technologies}</div>}
                         </div>
                       ))}
                     </div>
@@ -720,18 +713,21 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                 {/* Certifications */}
                 {cvrData.certifications && cvrData.certifications.length > 0 && (
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '10px' }}>
                       Certifications
                     </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {cvrData.certifications.map((cert: any, i: number) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
-                            <div style={{ fontWeight: 'bold', color: colors.black, fontSize: '14px' }}>{cert.name}</div>
-                            {cert.issuer && <div style={{ fontSize: '13px', color: colors.gray, marginTop: '4px' }}>{cert.issuer}</div>}
+                            <div style={{ fontWeight: 700, color: colors.black, fontSize: '12px' }}>{cert.name}</div>
+                            {cert.issuer && <div style={{ fontSize: '11px', color: colors.gray, marginTop: '1px', fontWeight: 400 }}>{cert.issuer}</div>}
                           </div>
-                          <div style={{ fontSize: '13px', color: colors.gray }}>{cert.date}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                            <span style={{ fontSize: '11px', color: colors.gray, fontWeight: 400 }}>{cert.date}</span>
+                            {cert.verified && <span style={{ fontSize: '8px', fontWeight: 700, backgroundColor: colors.greenBg, color: colors.greenText, padding: '1px 5px', borderRadius: '3px' }}>✓</span>}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -740,14 +736,14 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
 
                 {/* Awards */}
                 {cvrData.awards && cvrData.awards.length > 0 && (
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '10px' }}>
                       Awards
                     </h3>
-                    <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                    <ul style={{ paddingLeft: '18px', margin: 0 }}>
                       {cvrData.awards.map((award: any, i: number) => (
-                        <li key={i} style={{ fontSize: '14px', color: colors.black, marginBottom: '4px' }}>
-                          <strong>{award.title}</strong> - {award.description}
+                        <li key={i} style={{ fontSize: '11px', color: colors.black, marginBottom: '3px', fontWeight: 400, lineHeight: 1.5 }}>
+                          <strong style={{ fontWeight: 700 }}>{award.title}</strong> — {award.description}
                         </li>
                       ))}
                     </ul>
@@ -755,34 +751,33 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                 )}
 
                 {/* Skills */}
-                <div style={{ marginBottom: '32px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: colors.gray, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `2px solid ${colors.purple}`, paddingBottom: '4px', marginBottom: '16px' }}>
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: `1px solid ${cvrData.color || colors.purple}`, paddingBottom: '4px', marginBottom: '12px' }}>
                     Competencies & Skills
                   </h3>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {cvrData.skills && cvrData.skills.map((skill: any, i: number) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: skill.verified ? colors.greenBg : colors.lightGray, borderRadius: '16px', border: `1px solid ${skill.verified ? colors.greenText : colors.border}` }}>
-                        <span style={{ fontWeight: '600', fontSize: '12px', color: skill.verified ? colors.greenText : colors.black }}>{skill.name}</span>
-                        {skill.verified && <span style={{ fontSize: '9px', fontWeight: 'bold' }}>✓</span>}
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', backgroundColor: skill.verified ? colors.greenBg : colors.lightGray, borderRadius: '14px', border: `1px solid ${skill.verified ? colors.greenText : colors.border}` }}>
+                        <span style={{ fontWeight: 600, fontSize: '10px', color: skill.verified ? colors.greenText : colors.black }}>{skill.name}</span>
+                        {skill.verified && <span style={{ fontSize: '8px', fontWeight: 700 }}>✓</span>}
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Blockchain Footer + QR (Professional) */}
+                {/* Verification Footer + QR (Professional) */}
                 {includeVerification && (
-                  <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: `1px solid ${colors.border}` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: qrDataUrl ? '16px' : '0' }}>
-                      <div style={{ width: '40px', height: '40px', backgroundColor: colors.purpleLight, borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.purple, flexShrink: 0 }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <div style={{ marginTop: '32px', paddingTop: '16px', borderTop: `1px solid ${colors.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: qrDataUrl ? '12px' : '0' }}>
+                      <div style={{ width: '32px', height: '32px', backgroundColor: colors.purpleLight, borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.purple, flexShrink: 0 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                         </svg>
                       </div>
-                      <div style={{ fontSize: '12px', color: colors.gray }}>
-                        <p style={{ fontWeight: 'bold', color: colors.black, margin: 0 }}>Cryptographically Secured Document</p>
-                        <p style={{ margin: 0 }}>Generated by VECTOR Platform • Immutable Record on Polygon Amoy Testnet</p>
-                        {/* ✅ FIXED: Use stable credentialId from cvrData, not Date.now() */}
-                        <p style={{ fontFamily: 'monospace', fontSize: '10px', marginTop: '4px', color: '#9ca3af', margin: 0 }}>ID: {cvrData.credentialId}</p>
+                      <div style={{ fontSize: '10px', color: colors.gray }}>
+                        <p style={{ fontWeight: 700, color: colors.black, margin: 0 }}>Securely Verified Document</p>
+                        <p style={{ margin: 0, fontWeight: 400 }}>Generated by VECTOR Platform • Permanent Verified Record</p>
+                        <p style={{ fontFamily: 'monospace', fontSize: '8px', color: '#9ca3af', margin: '2px 0 0 0' }}>ID: {cvrData.credentialId}</p>
                       </div>
                     </div>
                     {qrDataUrl && <QRBlock />}
