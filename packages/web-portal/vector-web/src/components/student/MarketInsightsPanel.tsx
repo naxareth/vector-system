@@ -87,7 +87,7 @@ function SalaryBar({ salary }: { salary: SalaryInsights }) {
       </div>
       <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-purple-400 to-purple-600 rounded-full"
+          className="h-full bg-gradient-to-r from-[#06B4C9]/70 to-[#06B4C9] rounded-full"
           style={{
             marginLeft: `${((salary.min ?? 0) / (salary.max ?? 1)) * 40}%`,
             width: '60%',
@@ -110,11 +110,10 @@ function TrendBadge({ history }: { history: SkillInsight['history'] }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${
-        isUp
+      className={`inline-flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${isUp
           ? 'bg-green-50 text-green-700 border border-green-200'
           : 'bg-red-50 text-red-600 border border-red-200'
-      }`}
+        }`}
     >
       {isUp ? '▲' : '▼'} {Math.abs(delta).toFixed(0)}%
     </span>
@@ -210,7 +209,7 @@ export default function MarketInsightsPanel({ userId }: Props) {
     fetchInsights();
   }, [userId]);
 
-  const colors = ['#9333ea', '#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#06b6d4'];
+  const colors = ['#06B4C9', '#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#06b6d4'];
 
   if (loading) {
     return (

@@ -541,7 +541,7 @@ export default function CVRPage() {
                           href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify/cvr/${cvr.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
+                          className="text-xs text-[#06B4C9] hover:text-[#06B4C9] hover:underline flex items-center gap-1"
                         >
                           View
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -99,8 +99,8 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
     gray: '#4b5563',
     lightGray: '#f9fafb',
     border: '#e5e7eb',
-    purple: '#9333ea',
-    purpleLight: '#f3e8ff',
+    purple: '#06B4C9',
+    purpleLight: '#e0f7fa',
     greenText: '#15803d',
     greenBg: '#dcfce7',
     slate700: '#334155',
@@ -157,11 +157,10 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setSelectedFormat('pdf')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    selectedFormat === 'pdf'
-                      ? 'border-purple-600 bg-purple-50 text-purple-700'
+                  className={`p-3 rounded-lg border-2 transition-all ${selectedFormat === 'pdf'
+                      ? 'border-[#06B4C9] bg-[#06B4C9]/10 text-[#06B4C9]'
                       : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -170,11 +169,10 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                 </button>
                 <button
                   onClick={() => setSelectedFormat('json')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    selectedFormat === 'json'
+                  className={`p-3 rounded-lg border-2 transition-all ${selectedFormat === 'json'
                       ? 'border-purple-600 bg-purple-50 text-purple-700'
                       : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <svg className="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -191,7 +189,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                   type="checkbox"
                   checked={includeVerification}
                   onChange={(e) => setIncludeVerification(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                  className="w-4 h-4 text-[#06B4C9] rounded focus:ring-[#06B4C9]"
                 />
                 <span className="text-sm text-gray-700">Include verification details</span>
               </label>
@@ -237,7 +235,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
             <button
               onClick={handleExport}
               disabled={isExporting}
-              className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+              className="flex-1 px-4 py-2.5 bg-[#06B4C9] hover:bg-[#06B4C9]/80 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {isExporting ? (
                 <>

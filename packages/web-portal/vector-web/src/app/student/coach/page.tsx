@@ -215,11 +215,12 @@ export default function CoachPage() {
   const renderTrendGraph = () => {
     if (realHistory.length === 0) return null;
 
+    // Cap "All Skills" to top 5 by score to avoid spaghetti chart
     const activeSkills = selectedSkillView === 'All'
-      ? skillsList.map(s => s.name)
+      ? [...skillsList].sort((a, b) => b.score - a.score).slice(0, 5).map(s => s.name)
       : [selectedSkillView];
 
-    const colors = ['#9333ea', '#22c55e', '#ef4444', '#3b82f6', '#f59e0b'];
+    const colors = ['#06B4C9', '#22c55e', '#ef4444', '#3b82f6', '#f59e0b'];
 
     // Fixed pixel coordinate space — ~35% wider/taller than original
     const VW = 820;
@@ -472,175 +473,171 @@ export default function CoachPage() {
 
       <div className="space-y-6">
 
-          {/* Market Demand Trends */}
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Market Demand Trends</h2>
-                <p className="text-xs text-gray-500">Real-time job postings</p>
-              </div>
-              <select
-                value={selectedSkillView}
-                onChange={(e) => setSelectedSkillView(e.target.value)}
-                className="text-xs border border-gray-300 rounded-lg px-2 py-1 bg-white outline-none focus:ring-1 focus:ring-[#06B4C9]"
-              >
-                <option value="All">All Skills</option>
-                {skillsList.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-              </select>
+        {/* Market Demand Trends */}
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Market Demand Trends</h2>
+              <p className="text-xs text-gray-500">Real-time job postings</p>
             </div>
+            <select
+              value={selectedSkillView}
+              onChange={(e) => setSelectedSkillView(e.target.value)}
+              className="text-xs border border-gray-300 dark:border-[#283042] rounded-lg px-2 py-1 bg-white dark:bg-[#151C2A] text-gray-900 dark:text-[#E2E8F0] outline-none focus:ring-1 focus:ring-[#06B4C9]"
+            >
+              <option value="All">Top 5 Skills</option>
+              {skillsList.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+            </select>
+          </div>
 
-            <div className="mb-8 px-2">
-              {realHistory.length > 0 ? renderTrendGraph() : (
-                <div className="flex flex-col items-center justify-center h-56 gap-3 rounded-lg">
-                  <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
-                    <svg className="w-7 h-7 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                      <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M7 16l4-5 3 3 4-6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-medium text-gray-700">No trend data available yet</p>
-                  <p className="text-xs text-gray-400">Data populates after the first daily cron run</p>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 border-t border-gray-100 pt-6">
-              {/* Portfolio Score */}
-              <div className="flex flex-col items-center gap-3 py-2">
-                <div className="relative w-16 h-16">
-                  <svg className="w-16 h-16 -rotate-90" viewBox="0 0 56 56">
-                    <circle cx="28" cy="28" r="24" fill="none" stroke="#f3f4f6" strokeWidth="4" />
-                    <circle
-                      cx="28" cy="28" r="24" fill="none"
-                      stroke={metrics.portfolioScore > 75 ? '#22c55e' : metrics.portfolioScore > 50 ? '#06B4C9' : '#f59e0b'}
-                      strokeWidth="4" strokeLinecap="round"
-                      strokeDasharray={`${(metrics.portfolioScore / 100) * 150.8} 150.8`}
-                    />
+          <div className="mb-8 px-2">
+            {realHistory.length > 0 ? renderTrendGraph() : (
+              <div className="flex flex-col items-center justify-center h-56 gap-3 rounded-lg">
+                <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
+                  <svg className="w-7 h-7 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M7 16l4-5 3 3 4-6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <span className="absolute inset-0 flex items-center justify-center text-base font-bold text-gray-900">
-                    {metrics.portfolioScore}
-                  </span>
                 </div>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Score</span>
+                <p className="text-sm font-medium text-gray-700">No trend data available yet</p>
+                <p className="text-xs text-gray-400">Data populates after the first daily cron run</p>
               </div>
+            )}
+          </div>
 
-              {/* Market Alignment */}
-              <div className="flex flex-col items-center gap-3 py-2">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                  metrics.portfolioScore > 75 ? 'bg-green-500/10' : metrics.portfolioScore > 50 ? 'bg-cyan-500/10' : 'bg-amber-500/10'
+          <div className="grid grid-cols-3 gap-4 border-t border-gray-100 pt-6">
+            {/* Portfolio Score */}
+            <div className="flex flex-col items-center gap-3 py-2">
+              <div className="relative w-16 h-16">
+                <svg className="w-16 h-16 -rotate-90" viewBox="0 0 56 56">
+                  <circle cx="28" cy="28" r="24" fill="none" stroke="#f3f4f6" strokeWidth="4" />
+                  <circle
+                    cx="28" cy="28" r="24" fill="none"
+                    stroke={metrics.portfolioScore > 75 ? '#22c55e' : metrics.portfolioScore > 50 ? '#06B4C9' : '#f59e0b'}
+                    strokeWidth="4" strokeLinecap="round"
+                    strokeDasharray={`${(metrics.portfolioScore / 100) * 150.8} 150.8`}
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-base font-bold text-gray-900">
+                  {metrics.portfolioScore}
+                </span>
+              </div>
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Score</span>
+            </div>
+
+            {/* Market Alignment */}
+            <div className="flex flex-col items-center gap-3 py-2">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${metrics.portfolioScore > 75 ? 'bg-green-500/10' : metrics.portfolioScore > 50 ? 'bg-cyan-500/10' : 'bg-amber-500/10'
                 }`}>
-                  <svg className={`w-7 h-7 ${
-                    metrics.portfolioScore > 75 ? 'text-green-500' : metrics.portfolioScore > 50 ? 'text-[#06B4C9]' : 'text-amber-500'
+                <svg className={`w-7 h-7 ${metrics.portfolioScore > 75 ? 'text-green-500' : metrics.portfolioScore > 50 ? 'text-[#06B4C9]' : 'text-amber-500'
                   }`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M2 17l10 5 10-5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M2 12l10 5 10-5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M2 17l10 5 10-5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M2 12l10 5 10-5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <div className={`text-sm font-bold ${metrics.portfolioScore > 75 ? 'text-green-600' : metrics.portfolioScore > 50 ? 'text-[#06B4C9]' : 'text-amber-600'
+                  }`}>{metrics.marketAlignment}</div>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Alignment</span>
+              </div>
+            </div>
+
+            {/* Projected Growth */}
+            <div className="flex flex-col items-center gap-3 py-2">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${metrics.projectedGrowth >= 0 ? 'bg-green-50' : 'bg-red-50'
+                }`}>
+                {metrics.projectedGrowth >= 0 ? (
+                  <svg className="w-7 h-7 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : (
+                  <svg className="w-7 h-7 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
+              <div className="text-center">
+                <div className={`text-sm font-bold ${metrics.projectedGrowth >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  {metrics.projectedGrowth >= 0 ? '+' : ''}{metrics.projectedGrowth}%
+                </div>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Growth</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Rich Market Intelligence */}
+        {userId && <MarketInsightsPanel userId={userId} />}
+
+        {/* Recommended Actions */}
+        <RecommendationsPanel recommendations={recommendations} loading={loading} />
+
+        {/* Rising / Declining Skills */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+              Rising Skills
+            </h3>
+            {skillsList.filter(s => s.trend === 'growing').length > 0 ? (
+              <div className="space-y-4">
+                {skillsList.filter(s => s.trend === 'growing').map((skill, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">{skill.name}</span>
+                      <span className="text-green-600">+{Math.round(skill.growthRate * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 gap-2">
+                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <div className="text-center">
-                  <div className={`text-sm font-bold ${
-                    metrics.portfolioScore > 75 ? 'text-green-600' : metrics.portfolioScore > 50 ? 'text-[#06B4C9]' : 'text-amber-600'
-                  }`}>{metrics.marketAlignment}</div>
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Alignment</span>
-                </div>
+                <p className="text-sm font-medium text-gray-500">No rising skills detected</p>
+                <p className="text-xs text-gray-400">Growth trends appear after analysis</p>
               </div>
-
-              {/* Projected Growth */}
-              <div className="flex flex-col items-center gap-3 py-2">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                  metrics.projectedGrowth >= 0 ? 'bg-green-50' : 'bg-red-50'
-                }`}>
-                  {metrics.projectedGrowth >= 0 ? (
-                    <svg className="w-7 h-7 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                      <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ) : (
-                    <svg className="w-7 h-7 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                      <path d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-                <div className="text-center">
-                  <div className={`text-sm font-bold ${metrics.projectedGrowth >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                    {metrics.projectedGrowth >= 0 ? '+' : ''}{metrics.projectedGrowth}%
+            )}
+          </div>
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
+              Declining Skills
+            </h3>
+            {skillsList.filter(s => s.trend === 'declining').length > 0 ? (
+              <div className="space-y-4">
+                {skillsList.filter(s => s.trend === 'declining').map((skill, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">{skill.name}</span>
+                      <span className="text-red-500">{Math.round(skill.growthRate * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
+                    </div>
                   </div>
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Growth</span>
-                </div>
+                ))}
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 gap-2">
+                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-gray-500">No declining skills</p>
+                <p className="text-xs text-gray-400">All skills are stable or growing</p>
+              </div>
+            )}
           </div>
-
-          {/* Rich Market Intelligence */}
-          {userId && <MarketInsightsPanel userId={userId} />}
-
-          {/* Recommended Actions */}
-          <RecommendationsPanel recommendations={recommendations} loading={loading} />
-
-          {/* Rising / Declining Skills */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                Rising Skills
-              </h3>
-              {skillsList.filter(s => s.trend === 'growing').length > 0 ? (
-                <div className="space-y-4">
-                  {skillsList.filter(s => s.trend === 'growing').map((skill, i) => (
-                    <div key={i}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="font-medium">{skill.name}</span>
-                        <span className="text-green-600">+{Math.round(skill.growthRate * 100)}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5">
-                        <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 gap-2">
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                      <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-medium text-gray-500">No rising skills detected</p>
-                  <p className="text-xs text-gray-400">Growth trends appear after analysis</p>
-                </div>
-              )}
-            </div>
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
-                Declining Skills
-              </h3>
-              {skillsList.filter(s => s.trend === 'declining').length > 0 ? (
-                <div className="space-y-4">
-                  {skillsList.filter(s => s.trend === 'declining').map((skill, i) => (
-                    <div key={i}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="font-medium">{skill.name}</span>
-                        <span className="text-red-500">{Math.round(skill.growthRate * 100)}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5">
-                        <div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 gap-2">
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                      <path d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-medium text-gray-500">No declining skills</p>
-                  <p className="text-xs text-gray-400">All skills are stable or growing</p>
-                </div>
-              )}
-            </div>
-          </div>
+        </div>
       </div>
 
       {/* ---- Chat Overlay ---- */}
@@ -710,12 +707,11 @@ export default function CoachPage() {
                       <Image src={chatbotProfile} alt="AI" fill className="object-cover" />
                     </div>
                   )}
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-                    msg.role === 'user'
-                      ? 'bg-[#06B4C9] text-white rounded-br-none'
-                      : 'bg-white dark:bg-[#1A2030] border border-gray-200 dark:border-[#1E2536] text-gray-800 dark:text-[#E2E8F0] rounded-bl-none'
-                  }`}>
-                   {msg.role === 'user' ? msg.text : (
+                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${msg.role === 'user'
+                    ? 'bg-[#06B4C9] text-white rounded-br-none'
+                    : 'bg-white dark:bg-[#1A2030] border border-gray-200 dark:border-[#1E2536] text-gray-800 dark:text-[#E2E8F0] rounded-bl-none'
+                    }`}>
+                    {msg.role === 'user' ? msg.text : (
                       <div className="prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0">
                         <ReactMarkdown>{msg.text}</ReactMarkdown>
                       </div>

@@ -32,8 +32,8 @@ interface SkillHealth {
 
 function slopeToVelocity(slope: number | null): string {
   if (slope === null) return 'No data';
-  if (slope > 0.5)  return 'Strong Growth';
-  if (slope > 0.1)  return 'Growing';
+  if (slope > 0.5) return 'Strong Growth';
+  if (slope > 0.1) return 'Growing';
   if (slope > -0.1) return 'Stable';
   if (slope > -0.5) return 'Cooling';
   return 'Declining';
@@ -41,11 +41,11 @@ function slopeToVelocity(slope: number | null): string {
 
 function slopeToColors(slope: number | null) {
   if (slope === null) return { badge: 'bg-gray-100 text-gray-500', bar: 'bg-gray-300', value: 'text-gray-400' };
-  if (slope > 0.5)  return { badge: 'bg-emerald-50 text-emerald-700 border border-emerald-200', bar: 'bg-emerald-500', value: 'text-emerald-600' };
-  if (slope > 0.1)  return { badge: 'bg-green-50 text-green-700 border border-green-200',       bar: 'bg-green-500',   value: 'text-green-600' };
-  if (slope > -0.1) return { badge: 'bg-blue-50 text-blue-700 border border-blue-200',           bar: 'bg-blue-400',    value: 'text-blue-500' };
-  if (slope > -0.5) return { badge: 'bg-amber-50 text-amber-700 border border-amber-200',       bar: 'bg-amber-400',   value: 'text-amber-600' };
-  return              { badge: 'bg-red-50 text-red-700 border border-red-200',                   bar: 'bg-red-500',     value: 'text-red-600' };
+  if (slope > 0.5) return { badge: 'bg-emerald-50 text-emerald-700 border border-emerald-200', bar: 'bg-emerald-500', value: 'text-emerald-600' };
+  if (slope > 0.1) return { badge: 'bg-green-50 text-green-700 border border-green-200', bar: 'bg-green-500', value: 'text-green-600' };
+  if (slope > -0.1) return { badge: 'bg-blue-50 text-blue-700 border border-blue-200', bar: 'bg-blue-400', value: 'text-blue-500' };
+  if (slope > -0.5) return { badge: 'bg-amber-50 text-amber-700 border border-amber-200', bar: 'bg-amber-400', value: 'text-amber-600' };
+  return { badge: 'bg-red-50 text-red-700 border border-red-200', bar: 'bg-red-500', value: 'text-red-600' };
 }
 
 function slopeToPercent(slope: number | null): number {
@@ -55,11 +55,11 @@ function slopeToPercent(slope: number | null): number {
 
 function SlopeArrow({ slope }: { slope: number | null }) {
   if (slope === null) return <span className="text-gray-400 text-xs">–</span>;
-  if (slope > 0.5)  return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>;
-  if (slope > 0.1)  return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>;
-  if (slope > -0.1) return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14"/></svg>;
-  if (slope > -0.5) return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>;
-  return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>;
+  if (slope > 0.5) return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>;
+  if (slope > 0.1) return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>;
+  if (slope > -0.1) return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" /></svg>;
+  if (slope > -0.5) return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>;
+  return <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>;
 }
 
 function SkillCardSkeleton() {
@@ -83,14 +83,14 @@ function SkillCardItem({ card, health }: { card: SkillCard; health: SkillHealth 
 
   return (
     <Link href={`/student/skills/${card.parentCredentialId}`} className="block">
-      <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md hover:border-purple-200 transition-all group">
+      <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md hover:border-[#06B4C9]/30 transition-all group">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-gray-900 group-hover:text-purple-700 transition-colors truncate">{card.skillName}</h3>
+            <h3 className="text-sm font-bold text-gray-900 group-hover:text-[#06B4C9] transition-colors truncate">{card.skillName}</h3>
             <p className="text-xs text-gray-400 mt-0.5 truncate">via {card.parentCredentialTitle}</p>
           </div>
           {card.source === 'university' ? (
-            <span className="inline-flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 font-semibold shrink-0">University</span>
+            <span className="inline-flex items-center gap-1 text-[10px] text-[#06B4C9] bg-[#06B4C9]/10 px-2 py-0.5 rounded-full border border-[#06B4C9]/20 font-semibold shrink-0">University</span>
           ) : (
             <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 font-semibold shrink-0">On-Chain</span>
           )}
@@ -278,8 +278,8 @@ export default function SkillsPage() {
             <span className="text-gray-300">·</span>
             <span>from <span className="font-bold text-gray-900">{credentials.length}</span> credential{credentials.length !== 1 ? 's' : ''}</span>
             {healthLoading && (
-              <span className="flex items-center gap-1.5 text-purple-600 text-xs">
-                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+              <span className="flex items-center gap-1.5 text-[#06B4C9] text-xs">
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
                 Loading market data...
               </span>
             )}
@@ -288,8 +288,8 @@ export default function SkillsPage() {
           {universityCards.length > 0 && (
             <section>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 bg-purple-100 rounded-md flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-purple-700" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"/></svg>
+                <div className="w-6 h-6 bg-[#06B4C9]/10 rounded-md flex items-center justify-center">
+                  <svg className="w-3.5 h-3.5 text-[#06B4C9]" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z" /></svg>
                 </div>
                 <h2 className="text-sm font-bold text-gray-900">University</h2>
                 <span className="text-xs text-gray-400">{universityCards.length} skill{universityCards.length !== 1 ? 's' : ''}</span>
@@ -304,7 +304,7 @@ export default function SkillsPage() {
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-6 h-6 bg-indigo-100 rounded-md flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-indigo-700" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd"/></svg>
+                  <svg className="w-3.5 h-3.5 text-indigo-700" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                 </div>
                 <h2 className="text-sm font-bold text-gray-900">On-Chain</h2>
                 <span className="text-xs text-gray-400">{blockchainCards.length} skill{blockchainCards.length !== 1 ? 's' : ''}</span>

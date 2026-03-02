@@ -193,7 +193,7 @@ export default function RecommendationsPanel({ recommendations, loading }: Props
                         href={rec.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-shrink-0 text-xs font-semibold text-purple-600 hover:text-purple-800 transition-colors"
+                        className="flex-shrink-0 text-xs font-semibold text-[#06B4C9] hover:text-[#06B4C9]/70 transition-colors"
                       >
                         View →
                       </a>
