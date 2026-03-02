@@ -1,2 +1,3 @@
-wrong_header,bad_column,missing_stuff
-123,React,not-a-wallet
+name,email,grade
+John Doe,john@example.com,A+
+Jane Doe,jane@example.com,B

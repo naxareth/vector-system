@@ -212,39 +212,39 @@ export default function RegistrarDashboard() {
         {activeTab === 'build' ? (
           <SchemaBuilder />
         ) : activeTab === 'batch' ? (
-          /* ── Batch CSV Upload Tab ─────────────────────────────────── */
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Batch CSV Upload</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Batch Upload</h2>
             <p className="text-sm text-gray-500 mb-6">
-              Upload a CSV file with student credential data. Select a template first — the required CSV columns will adjust to match the template's fields.
+              Upload a CSV file to issue credentials in bulk. Select a template first — the required columns will match the template.
             </p>
 
-            {/* Schema selector for batch upload */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Credential Template</label>
+            {/* Step 1: Template selector */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1">1. Choose Template</label>
               <select
                 value={batchSchemaId}
                 onChange={(e) => { setBatchSchemaId(e.target.value); setCsvResult(null); }}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white"
               >
-                <option value="">— Select a template —</option>
+                <option value="">— Select a credential template —</option>
                 {schemas.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
               </select>
               {batchSchemaId && (() => {
                 const s = schemas.find(x => x.id === batchSchemaId);
                 const schemaFields = s ? Object.keys(s.json_schema.properties) : [];
                 return (
-                  <div className="mt-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                    <p className="text-xs font-semibold text-green-800 mb-1">Expected CSV Headers:</p>
-                    <code className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded block">
-                      student_id,wallet_address,{schemaFields.join(',')}
-                    </code>
+                  <div className="mt-2 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
+                    <p className="text-xs text-purple-700">
+                      <span className="font-semibold">Required columns:</span>{' '}
+                      <code className="bg-purple-100 px-1 rounded">student_id, wallet_address, {schemaFields.join(', ')}</code>
+                    </p>
                   </div>
                 );
               })()}
             </div>
 
-            {/* Drop zone */}
+            {/* Step 2: File upload */}
+            <label className="block text-sm font-medium text-gray-700 mb-1">2. Upload CSV File</label>
             <div
               onDragOver={(e) => { e.preventDefault(); setCsvDragOver(true); }}
               onDragLeave={() => setCsvDragOver(false)}
@@ -254,7 +254,7 @@ export default function RegistrarDashboard() {
                 const file = e.dataTransfer.files[0];
                 if (file) { setCsvFile(file); setCsvResult(null); }
               }}
-              className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${csvDragOver ? 'border-green-400 bg-green-50' : csvFile ? 'border-green-300 bg-green-50/50' : 'border-gray-300 hover:border-purple-400 hover:bg-purple-50/30'
+              className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${csvDragOver ? 'border-purple-400 bg-purple-50' : csvFile ? 'border-green-300 bg-green-50/50' : 'border-gray-300 hover:border-purple-300'
                 }`}
               onClick={() => document.getElementById('csv-file-input')?.click()}
             >
@@ -266,21 +266,19 @@ export default function RegistrarDashboard() {
                 onChange={(e) => { if (e.target.files?.[0]) { setCsvFile(e.target.files[0]); setCsvResult(null); } }}
               />
               {csvFile ? (
-                <>
-                  <div className="text-3xl mb-2">📄</div>
+                <div>
                   <p className="font-semibold text-green-700">{csvFile.name}</p>
-                  <p className="text-xs text-gray-500 mt-1">{(csvFile.size / 1024).toFixed(1)} KB • Click or drag to replace</p>
-                </>
+                  <p className="text-xs text-gray-500 mt-1">{(csvFile.size / 1024).toFixed(1)} KB — click or drag to replace</p>
+                </div>
               ) : (
-                <>
-                  <div className="text-3xl mb-2">📤</div>
-                  <p className="font-semibold text-gray-700">Drop CSV file here or click to browse</p>
-                  <p className="text-xs text-gray-400 mt-1">Required headers: student_id, skill_name, wallet_address</p>
-                </>
+                <div>
+                  <p className="font-medium text-gray-600">Drop CSV file here or click to browse</p>
+                  <p className="text-xs text-gray-400 mt-1">Max 1 MB, up to 500 rows</p>
+                </div>
               )}
             </div>
 
-            {/* Upload button */}
+            {/* Validate button */}
             <button
               disabled={!csvFile || csvUploading || !batchSchemaId}
               onClick={async () => {
@@ -304,90 +302,171 @@ export default function RegistrarDashboard() {
                   setCsvUploading(false);
                 }
               }}
-              className={`mt-4 w-full py-3 font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${!csvFile || csvUploading
+              className={`mt-4 w-full py-3 font-bold rounded-xl transition-all ${!csvFile || csvUploading || !batchSchemaId
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-green-600 text-white hover:bg-green-700 shadow-lg'
+                : 'bg-gray-900 text-white hover:bg-black shadow-lg'
                 }`}
             >
-              {csvUploading ? '⏳ Validating & Uploading...' : !batchSchemaId ? '⬆️ Select a template first' : '🛡️ Validate & Upload CSV'}
+              {csvUploading ? 'Validating...' : !batchSchemaId ? 'Select a template first' : 'Validate CSV'}
             </button>
 
-            {/* Results */}
+            {/* Validation Results */}
             {csvResult && (
-              <div className={`mt-6 rounded-xl border p-6 ${csvResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                <h3 className={`font-bold text-lg mb-3 ${csvResult.success ? 'text-green-800' : 'text-red-800'}`}>
-                  {csvResult.success ? `✅ ${csvResult.rows?.length} Row(s) Validated Successfully` : '❌ Validation Failed'}
+              <div className={`mt-6 rounded-xl border p-5 ${csvResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <h3 className={`font-bold mb-3 ${csvResult.success ? 'text-green-800' : 'text-red-800'}`}>
+                  {csvResult.success ? `${csvResult.rows?.length} record(s) ready` : 'Validation failed'}
                 </h3>
 
-                {/* Error message */}
                 {csvResult.error && (
-                  <div className="bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm mb-3">
-                    <strong>Error:</strong> {csvResult.error}
-                  </div>
+                  <p className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm mb-3">{csvResult.error}</p>
                 )}
 
-                {/* Row errors */}
                 {csvResult.rowErrors && csvResult.rowErrors.length > 0 && (
-                  <div className="space-y-2 mb-3">
+                  <div className="space-y-1.5 mb-3">
                     {csvResult.rowErrors.map((re, i) => (
-                      <div key={i} className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm">
-                        <strong>Row {re.row}:</strong> {re.issues.join(', ')}
-                      </div>
+                      <p key={i} className="bg-red-100 text-red-700 px-3 py-1.5 rounded text-sm">
+                        Row {re.row}: {re.issues.join(', ')}
+                      </p>
                     ))}
                   </div>
                 )}
 
-                {/* Warnings (e.g. sanitized cells) */}
                 {csvResult.warnings && csvResult.warnings.length > 0 && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
-                    <p className="font-semibold text-yellow-800 text-sm mb-1">⚠️ Sanitization Warnings:</p>
+                    <p className="font-semibold text-yellow-800 text-sm mb-1">Sanitization applied:</p>
                     {csvResult.warnings.map((w, i) => (
                       <p key={i} className="text-xs text-yellow-700">• {w}</p>
                     ))}
                   </div>
                 )}
 
-                {/* Dynamic success table — shows all columns from the CSV */}
+                {/* Validated rows table */}
                 {csvResult.success && csvResult.rows && csvResult.rows.length > 0 && (() => {
                   const allKeys = Object.keys(csvResult.rows[0]);
                   return (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-green-200">
-                            <th className="text-left py-2 px-3 text-green-800">#</th>
-                            {allKeys.map(k => (
-                              <th key={k} className="text-left py-2 px-3 text-green-800 capitalize">{k.replace(/_/g, ' ')}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {csvResult.rows.map((row, i) => (
-                            <tr key={i} className="border-b border-green-100">
-                              <td className="py-2 px-3 text-green-700">{i + 1}</td>
+                    <>
+                      <div className="overflow-x-auto rounded-lg border border-green-200">
+                        <table className="w-full text-sm">
+                          <thead className="bg-green-100/50">
+                            <tr>
+                              <th className="text-left py-2 px-3 text-green-800 font-medium">#</th>
                               {allKeys.map(k => (
-                                <td key={k} className="py-2 px-3 text-xs">
-                                  {k === 'wallet_address' ? `${(row[k] || '').slice(0, 10)}...` : row[k]}
-                                </td>
+                                <th key={k} className="text-left py-2 px-3 text-green-800 font-medium capitalize">{k.replace(/_/g, ' ')}</th>
                               ))}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {csvResult.rows.map((row, i) => (
+                              <tr key={i} className="border-t border-green-100">
+                                <td className="py-2 px-3 text-green-700">{i + 1}</td>
+                                {allKeys.map(k => (
+                                  <td key={k} className="py-2 px-3 text-xs">
+                                    {k === 'wallet_address' ? `${(row[k] || '').slice(0, 10)}...` : row[k]}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Step 3: Mint All */}
+                      <button
+                        onClick={async () => {
+                          const rows = csvResult.rows!;
+                          const batchSchema = schemas.find(s => s.id === batchSchemaId);
+                          if (!batchSchema) return alert('Template not found.');
+
+                          try {
+                            setMintingProgress({ isOpen: true, progress: 5, status: 'minting', message: 'Connecting wallet...' });
+
+                            const { ethereum } = window as any;
+                            if (!ethereum) throw new Error('MetaMask not found. Please install it.');
+                            const provider = new ethers.BrowserProvider(ethereum, 'any');
+                            const signer = await provider.getSigner();
+                            const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
+
+                            let completed = 0;
+                            const total = rows.length;
+
+                            for (let idx = 0; idx < rows.length; idx++) {
+                              const row = rows[idx];
+
+                              // Phase 1: Request signature
+                              setMintingProgress(prev => ({
+                                ...prev,
+                                progress: Math.round(((idx) / total) * 85) + 10,
+                                message: `Record ${idx + 1} of ${total} — sign in MetaMask...`,
+                              }));
+
+                              const numericTokenId = Math.floor(Math.random() * 1000000);
+                              const tx = await contract.mintSkill(row.wallet_address, numericTokenId, 1);
+
+                              // Phase 2: Wait for chain confirmation
+                              setMintingProgress(prev => ({
+                                ...prev,
+                                message: `Record ${idx + 1} of ${total} — confirming on chain...`,
+                              }));
+                              await tx.wait();
+
+                              // Phase 3: Save to database
+                              setMintingProgress(prev => ({
+                                ...prev,
+                                message: `Record ${idx + 1} of ${total} — saving to database...`,
+                              }));
+
+                              const { student_id, wallet_address, skill_tags: rawTags, ...credentialData } = row;
+                              const skillTags = rawTags ? String(rawTags).split(',').map((t: string) => t.trim()).filter(Boolean) : [];
+
+                              const saveRes = await fetch('/api/registrar/credentials', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  user_id: student_id,
+                                  schema_id: batchSchemaId,
+                                  skill_name: batchSchema.title,
+                                  skill_tags: skillTags,
+                                  credential_data: credentialData,
+                                  private_notes: '',
+                                  certificate_number: `BATCH-${Date.now()}-${idx + 1}`,
+                                  token_id: numericTokenId.toString(),
+                                  transaction_hash: tx.hash,
+                                }),
+                              });
+
+                              if (!saveRes.ok) {
+                                const errText = await saveRes.text().catch(() => 'Unknown error');
+                                throw new Error(`Minted on-chain but failed to save record ${idx + 1}: ${errText}`);
+                              }
+
+                              completed++;
+                            }
+
+                            setMintingProgress({
+                              isOpen: true, progress: 100, status: 'complete',
+                              message: `Successfully issued ${completed} credential${completed > 1 ? 's' : ''}.`,
+                            });
+                          } catch (error: any) {
+                            setMintingProgress({ isOpen: true, progress: 0, status: 'error', message: error.message || 'Batch minting failed' });
+                          }
+                        }}
+                        className="mt-4 w-full py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-all shadow-lg"
+                      >
+                        Mint {csvResult.rows.length} Credential{csvResult.rows.length > 1 ? 's' : ''} on Blockchain
+                      </button>
+                    </>
                   );
                 })()}
               </div>
             )}
 
-            {/* Format help */}
-            <div className="mt-6 bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <h4 className="text-sm font-bold text-gray-700 mb-2">📋 CSV Format Guide</h4>
-              <p className="text-xs text-gray-500 mb-2">Select a template above to see the exact headers required. Base headers are always: <strong>student_id</strong>, <strong>wallet_address</strong></p>
-              <div className="mt-3 space-y-1">
-                <p className="text-xs text-gray-500">🛡️ <strong>Security:</strong> Formula injection characters (=, +, -, @) are automatically neutralized</p>
-                <p className="text-xs text-gray-500">📏 <strong>Limits:</strong> Max 1 MB file size, max 500 rows per upload</p>
-                <p className="text-xs text-gray-500">✅ <strong>Validation:</strong> Student IDs must be valid UUIDs, wallet addresses must be valid Ethereum addresses</p>
+            {/* Help text */}
+            <div className="mt-5 bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <p className="text-sm font-medium text-gray-700 mb-2">CSV Format</p>
+              <p className="text-xs text-gray-500">Select a template above to see the exact columns needed. <strong>student_id</strong> and <strong>wallet_address</strong> are always required.</p>
+              <div className="mt-2 space-y-0.5">
+                <p className="text-xs text-gray-400">• Dangerous characters (=, +, -, @) in cells are automatically neutralized</p>
+                <p className="text-xs text-gray-400">• Max file size: 1 MB — Max rows: 500</p>
               </div>
             </div>
           </div>

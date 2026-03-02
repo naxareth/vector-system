@@ -44,6 +44,51 @@ export const BASE_HEADERS = ['student_id', 'wallet_address'];
 const FORMULA_INJECTION_CHARS = ['=', '+', '-', '@', '\t', '\r'];
 
 // ---------------------------------------------------------------------------
+// CSV line parser — handles quoted fields (RFC 4180)
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse a single CSV line into an array of field values.
+ * Handles double-quoted fields containing commas and escaped quotes.
+ * e.g. `a,"b,c",d` → ['a', 'b,c', 'd']
+ */
+export function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+
+    if (inQuotes) {
+      if (ch === '"') {
+        // Check for escaped quote ("")
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          current += '"';
+          i++; // skip next quote
+        } else {
+          inQuotes = false; // closing quote
+        }
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        fields.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+  }
+
+  fields.push(current); // last field
+  return fields;
+}
+
+// ---------------------------------------------------------------------------
 // Zod schemas — base fields with strict validation
 // ---------------------------------------------------------------------------
 
@@ -186,7 +231,7 @@ export function parseCsvContent(
 
   // --- Header validation ---
   const headerLine = lines[0];
-  const headers = headerLine.split(',').map((h) => h.trim().toLowerCase());
+  const headers = parseCsvLine(headerLine).map((h) => h.trim().toLowerCase());
 
   const missingHeaders = headers_required.filter((rh) => !headers.includes(rh.toLowerCase()));
   if (missingHeaders.length > 0) {
@@ -220,7 +265,7 @@ export function parseCsvContent(
 
   for (let i = 0; i < dataLines.length; i++) {
     const rowNum = i + 2; // 1-indexed, +1 for header
-    const cells = dataLines[i].split(',');
+    const cells = parseCsvLine(dataLines[i]);
 
     // Build row object from header mapping
     const rowObj: Record<string, string> = {};

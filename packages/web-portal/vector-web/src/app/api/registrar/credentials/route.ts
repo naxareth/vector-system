@@ -5,6 +5,7 @@ import { decryptData, encryptData } from '@/lib/encryption';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { genAI, GEMINI_MODEL } from '@/lib/gemini'; // 🛡️ Centralized Gemini (Checkpoint #2)
+import { buildIpfsMetadata, validateIpfsPayload } from '@/lib/ipfs'; // 🛡️ IPFS Privacy (Checkpoint #2)
 
 // ---------------------------------------------------------------------------
 // Inline course generator — uses the centralized Gemini client from
@@ -406,10 +407,53 @@ export async function POST(req: Request) {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // 10. 🛡️ IPFS METADATA PRIVACY (Checkpoint #2)
+    //
+    // Build a privacy-safe metadata payload using buildIpfsMetadata().
+    // This strips all PII (email, student_id, wallet_address, private_notes,
+    // etc.) and keeps only publicly verifiable credential data.
+    //
+    // validateIpfsPayload() runs a final safety scan for any leaked fields.
+    // In production, this payload would be pinned to IPFS via Pinata/nft.storage.
+    // ─────────────────────────────────────────────────────────────────────────
+    const ipfsMetadata = buildIpfsMetadata({
+      id: newCredential.id,
+      skill_name: newCredential.skill_name,
+      issued_at: newCredential.issued_at ?? undefined,
+      issuer_did: newCredential.issuer_did ?? undefined,
+      certificate_number: newCredential.certificate_number ?? undefined,
+      schema_url: newCredential.schema_url ?? undefined,
+      transaction_hash: newCredential.transaction_hash ?? undefined,
+      token_id: newCredential.token_id ?? undefined,
+      credential_data: w3cPayload.credentialSubject,
+      // These sensitive fields exist in DB but must NOT appear in IPFS payload:
+      private_notes: validatedData.private_notes,
+      user_id: validatedData.user_id,
+      wallet_address: body.wallet_address,
+      email: body.email,
+      student_id: body.student_id,
+    });
+
+    const ipfsViolations = validateIpfsPayload(ipfsMetadata as any);
+    if (ipfsViolations.length > 0) {
+      console.error('[ipfs-privacy] BLOCKED — sensitive fields leaked:', ipfsViolations);
+    } else {
+      console.log('[ipfs-privacy] Payload is clean — 0 sensitive fields detected');
+    }
+    console.log('[ipfs-privacy] IPFS-safe metadata:', JSON.stringify(ipfsMetadata, null, 2));
+    // ─────────────────────────────────────────────────────────────────────────
+
     return NextResponse.json({
       success: true,
       data: newCredential,
-      w3c_document: w3cPayload
+      w3c_document: w3cPayload,
+      ipfs_metadata: ipfsMetadata,
+      ipfs_privacy_check: {
+        sensitive_fields_found: ipfsViolations.length,
+        violations: ipfsViolations,
+        status: ipfsViolations.length === 0 ? 'CLEAN — safe to pin to IPFS' : 'BLOCKED — sensitive data detected',
+      },
     }, { status: 201 });
 
   } catch (error: any) {

