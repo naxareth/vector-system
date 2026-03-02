@@ -1,13 +1,16 @@
 @import "tailwindcss";
 
+/* Use class-based dark mode so ThemeContext .dark toggle works */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #0B0F19;
+  --foreground: #F1F5F9;
 }
 
 @theme inline {
@@ -15,13 +18,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 /* Hide browser default password reveal icon (Edge / Chrome) */
@@ -41,100 +37,215 @@ body {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 🌙 EXISTING DARK MODE UTILITIES                                            */
-/* These handle the general page look (Sidebar, Main Content, etc.)           */
+/* 🌙 DARK MODE THEME                                                         */
+/* Palette: Deep navy backgrounds, cyan accents, slate text                   */
 /* -------------------------------------------------------------------------- */
 .dark body {
-  background-color: #0F0F13; /* Main Deep Dark Background */
+  background-color: #0B0F19;
 }
 
 .dark .bg-white {
-  background-color: #1F1F2B; /* Card Background (Dark Blue-Gray)  */
-  border-color: #2D2D3F;     /* Subtle Card Border */
+  background-color: #131825;
+  border-color: #1E2536;
 }
 
-.dark .bg-gray-50 {
-  background-color: #0F0F13; /* Main Content Background */
+.dark .bg-gray-50,
+.dark .bg-gray-50\/50 {
+  background-color: #0B0F19;
+}
+
+.dark .bg-gray-100 {
+  background-color: #1A2030;
 }
 
 /* Text Colors */
 .dark .text-gray-900 {
-  color: #FFFFFF; /* High Contrast White */
+  color: #F1F5F9;
+}
+
+.dark .text-gray-800 {
+  color: #E2E8F0;
 }
 
 .dark .text-gray-700 {
-  color: #B0B0C4; /* Soft Gray-Blue Text */
+  color: #CBD5E1;
 }
 
 .dark .text-gray-600 {
-  color: #9A9AB0; /* Muted Text */
+  color: #94A3B8;
 }
 
 .dark .text-gray-500 {
-  color: #737385; /* De-emphasized Text */
+  color: #7C8CA3;
 }
 
 .dark .text-gray-400 {
-  color: #636375; /* Hint Text */
+  color: #64748B;
+}
+
+.dark .text-gray-300 {
+  color: #4B5C73;
 }
 
 /* Borders */
 .dark .border-gray-200 {
-  border-color: #2D2D3F; /* Dark Border */
+  border-color: #1E2536;
 }
 
 .dark .border-gray-300 {
-  border-color: #3E3E52; /* Slightly Lighter Border */
+  border-color: #283042;
+}
+
+.dark .border-gray-100 {
+  border-color: #192030;
+}
+
+.dark .border-gray-50 {
+  border-color: #151C2A;
 }
 
 /* Hover States */
 .dark .hover\:bg-gray-50:hover {
-  background-color: #262636;
+  background-color: #192030;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #1A2030;
+}
+
+.dark .hover\:bg-gray-100\/60:hover {
+  background-color: rgba(26, 32, 48, 0.6);
 }
 
 .dark .hover\:text-gray-900:hover {
-  color: #FFFFFF;
+  color: #F1F5F9;
 }
 
-/* Gradients */
-.dark .bg-gradient-to-l.from-purple-400.to-purple-600 {
-  /* Keep the purple gradient or make it slightly darker if needed, 
-     but the screenshot shows vivid accents */
+/* Divide */
+.dark .divide-gray-50 > :not(:last-child) {
+  border-color: #192030;
 }
 
-/* -------------------------------------------------------------------------- */
-/* 🛡️ NUCLEAR READABILITY FIX (FINAL)                                         */
-/* These rules use explicit hex codes to force specific elements to look      */
-/* like "Light Mode" (White BG, Dark Text) even when Dark Mode is active.     */
-/* -------------------------------------------------------------------------- */
-
-/* 1. Force Inputs, Textareas, and Selects to be White with Dark Text */
-input, 
-textarea, 
-select {
-  background-color: #ffffff !important;
-  color: #111827 !important; /* Hardcoded Dark Gray (gray-900) */
-  border: 1px solid #d1d5db !important; /* Force Gray Border */
+/* Background Tints */
+.dark .bg-gray-200 {
+  background-color: #1E2536;
 }
 
-/* 2. Fix Placeholder Text Visibility */
-input::placeholder,
-textarea::placeholder {
-  color: #9ca3af !important; /* Hardcoded Gray-400 */
+/* Status tinted backgrounds */
+.dark .bg-green-50  { background-color: rgba(34, 197, 94, 0.12); }
+.dark .bg-red-50    { background-color: rgba(239, 68, 68, 0.12); }
+.dark .bg-orange-50 { background-color: rgba(249, 115, 22, 0.12); }
+.dark .bg-blue-50   { background-color: rgba(59, 130, 246, 0.1); }
+.dark .bg-purple-50 { background-color: rgba(147, 51, 234, 0.12); }
+
+/* Accent tints */
+.dark .bg-\[\#E7F1EC\] { background-color: rgba(34, 197, 94, 0.15); }
+.dark .bg-\[\#FFEDD4\] { background-color: rgba(249, 115, 22, 0.15); }
+
+/* Status text — keep vibrant on dark */
+.dark .text-green-700 { color: #4ADE80; }
+.dark .text-green-600 { color: #4ADE80; }
+.dark .text-green-500 { color: #4ADE80; }
+.dark .text-red-700   { color: #F87171; }
+.dark .text-red-600   { color: #F87171; }
+.dark .text-orange-700 { color: #FB923C; }
+.dark .text-orange-600 { color: #FB923C; }
+.dark .text-blue-700  { color: #60A5FA; }
+.dark .text-blue-900  { color: #93C5FD; }
+.dark .text-blue-400  { color: #60A5FA; }
+
+/* Blue / Orange / Green border/bg tints */
+.dark .border-blue-200 { border-color: rgba(59, 130, 246, 0.25); }
+.dark .border-blue-100 { border-color: rgba(59, 130, 246, 0.15); }
+.dark .bg-orange-100   { background-color: rgba(249, 115, 22, 0.15); }
+.dark .bg-green-100    { background-color: rgba(34, 197, 94, 0.15); }
+
+/* Hover on red (logout) */
+.dark .hover\:bg-red-50:hover {
+  background-color: rgba(239, 68, 68, 0.12);
+}
+
+/* ── Form Elements (dark only) ────────────────────────────────────────────── */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #151C2A !important;
+  color: #E2E8F0 !important;
+  border-color: #283042 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748B !important;
   opacity: 1 !important;
 }
 
-/* 3. Force Dark Text on Colored Cards (Alerts, Badges) */
-/* This prevents white text from appearing on light colored backgrounds */
-[class*="bg-orange-"], 
-[class*="bg-blue-"], 
-[class*="bg-green-"], 
-[class*="bg-purple-"] {
-  color: #111827 !important; /* Force Dark Text */
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #06B4C9 !important;
+  background-color: #192030 !important;
 }
 
-/* 4. Specific Fix for Badges/Spans inside those cards */
-span[class*="bg-"] {
+/* ── Shadows → deeper for dark ───────────────────────────────────────────── */
+.dark .shadow-lg {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.dark .shadow-xl {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Progress bars ───────────────────────────────────────────────────────── */
+.dark .bg-gray-100.rounded-full {
+  background-color: #1E2536;
+}
+
+/* ── Welcome Banner dark tint ────────────────────────────────────────────── */
+.dark .bg-\[\#011018\]\/90 {
+  background-color: rgba(5, 8, 16, 0.95);
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #0B0F19;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #283042;
+  border-radius: 3px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 🔆 LIGHT MODE — Input & Badge Fixes                                        */
+/* -------------------------------------------------------------------------- */
+
+/* Inputs: white background, dark text, gray border */
+:root input,
+:root textarea,
+:root select {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+:root input::placeholder,
+:root textarea::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+/* Force dark text on colored badge backgrounds in light mode */
+:root:not(.dark) [class*="bg-orange-"],
+:root:not(.dark) [class*="bg-blue-"],
+:root:not(.dark) [class*="bg-green-"],
+:root:not(.dark) [class*="bg-purple-"] {
+  color: #111827 !important;
+}
+
+:root:not(.dark) span[class*="bg-"] {
   color: #111827 !important;
 }
 
@@ -154,4 +265,34 @@ span[class*="bg-"] {
 
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.25s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
 }

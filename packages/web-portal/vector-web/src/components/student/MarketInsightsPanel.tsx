@@ -214,7 +214,7 @@ export default function MarketInsightsPanel({ userId }: Props) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+      <div className="bg-white rounded-xl p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Rich Market Intelligence</h2>
@@ -232,7 +232,7 @@ export default function MarketInsightsPanel({ userId }: Props) {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+      <div className="bg-white rounded-xl p-6 border border-gray-200">
         <p className="text-sm text-gray-400 text-center py-6">Could not load market intelligence.</p>
       </div>
     );
@@ -242,7 +242,7 @@ export default function MarketInsightsPanel({ userId }: Props) {
   const noData = insights.filter(s => s.latest_job_count === 0);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
@@ -257,11 +257,15 @@ export default function MarketInsightsPanel({ userId }: Props) {
       {/* Skill Rows */}
       <div className="divide-y divide-gray-50">
         {withData.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-10 gap-3 text-gray-400">
-            <svg className="w-8 h-8 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            <span className="text-sm font-medium">Market data populates after the first daily run.</span>
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
+              <svg className="w-7 h-7 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v4l3 3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-gray-700">No market intelligence yet</p>
+            <p className="text-xs text-gray-400">Data populates after the first daily market scan</p>
           </div>
         )}
 

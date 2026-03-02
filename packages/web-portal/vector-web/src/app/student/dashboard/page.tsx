@@ -55,7 +55,6 @@ export default function StudentDashboard() {
   const [allCredentials, setAllCredentials] = useState<CredentialItem[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]); 
   const [isWalletConnecting, setIsWalletConnecting] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(true);
 
   const capitalizeWords = (text: string) => {
     return text
@@ -79,7 +78,7 @@ export default function StudentDashboard() {
             type: 'info',
             title: 'Wallet Connected',
             description: `Active: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`,
-            time: 'Just now'
+            time: 'Active'
         });
 
         const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
@@ -150,7 +149,15 @@ export default function StudentDashboard() {
       });
 
       setAllCredentials(mergedCreds);
-      setActivities(prev => [...newActivities, ...prev].slice(0, 10));
+      setActivities(prev => {
+        const merged = [...newActivities, ...prev];
+        const seen = new Set<string>();
+        return merged.filter(a => {
+          if (seen.has(a.id)) return false;
+          seen.add(a.id);
+          return true;
+        }).slice(0, 10);
+      });
 
       if (typeof window !== 'undefined' && localStorage.getItem('pendingCVR')) {
         setHasPendingCVR(true);
@@ -227,21 +234,6 @@ export default function StudentDashboard() {
 
   return (
     <DashboardLayout>
-      {/* Wallet Tutorial */}
-      {!loading && !user?.wallet_address && showTutorial && (
-        <div className="bg-white rounded-xl border border-blue-200 shadow-lg mb-6 overflow-hidden relative">
-          <div className="bg-blue-50 px-6 py-4 border-b border-blue-100 flex justify-between items-center">
-            <h3 className="font-bold text-blue-900 flex items-center gap-2">How to Connect Your Wallet</h3>
-            <button onClick={() => setShowTutorial(false)} className="text-blue-400 hover:text-blue-700">×</button>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div><div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3 text-orange-600">1</div><h4 className="font-bold text-sm">Install MetaMask</h4></div>
-            <div><div className="w-12 h-12 bg-[#06B4C9]/10 rounded-full flex items-center justify-center mx-auto mb-3 text-[#06B4C9]">2</div><h4 className="font-bold text-sm">Create Account</h4></div>
-            <div><div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 text-green-600">3</div><h4 className="font-bold text-sm">Connect</h4></div>
-          </div>
-        </div>
-      )}
-
       {/* ── SINGLE GRID: Left col has ALL main content, Right col has sidebar ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
 
@@ -249,27 +241,27 @@ export default function StudentDashboard() {
         <div className="xl:col-span-2 flex flex-col gap-6">
 
           {/* Welcome Banner */}
-          <div className="bg-[#011018]/90 border border-[#011018] rounded-2xl overflow-hidden relative">
+          <div className="bg-[#06B4C9]/90 rounded-2xl overflow-hidden relative">
             <div className="flex flex-col md:flex-row items-center justify-between p-8 pb-0">
               <div className="flex-1 text-[#06B4C9] z-10 pb-8">
                 <h1 className="text-xl md:text-4xl font-bold mb-2 text-white">
                   Welcome back, {user?.full_name?.split(' ')[0] || 'Student'}!
                 </h1>
                 <p className="text-white text-sm md:text-base mb-3">
-                  You've earned <span className="font-bold text-[#06B4C9]">{allCredentials.length}</span> credential{allCredentials.length !== 1 ? 's' : ''} this month!
+                  You've earned <span className="font-bold text-white">{allCredentials.length}</span> credential{allCredentials.length !== 1 ? 's' : ''} this month!
                 </p>
                 <div className="flex items-center gap-3">
                   {loading ? (
-                    <span className="text-sm text-[#06B4C9] animate-pulse bg-[#06B4C9]/10 px-3 py-1 rounded-full">⚡ Loading...</span>
+                    <span className="text-sm text-[#06B4C9] bg-[#06B4C9]/10 px-3 py-1.5 rounded-full flex items-center gap-2"><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Loading...</span>
                   ) : user?.wallet_address ? (
-                    <span className="flex items-center gap-2 text-sm text-[#06B4C9] bg-[#06B4C9]/10 px-3 py-2 rounded-lg border border-[#06B4C9]">
-                      <span className="w-2 h-2 bg-[#06B4C9] rounded-full animate-pulse"></span>
+                    <span id="tour-wallet" className="flex items-center gap-2 text-sm bg-gray-900/10 px-3 py-2 rounded-lg border border-gray-900">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12V7H5a2 2 0 010-4h14v4" /><path strokeLinecap="round" strokeLinejoin="round" d="M3 5v14a2 2 0 002 2h16v-5" /><path strokeLinecap="round" strokeLinejoin="round" d="M18 12a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" /></svg>
                       <span className="font-medium text-white">Wallet:</span>
                       <span className="font-mono text-white">{`${user.wallet_address.slice(0,6)}...${user.wallet_address.slice(-4)}`}</span>
                       <button
                         type="button"
                         onClick={() => navigator.clipboard.writeText(user.wallet_address || '')}
-                        className="p-1 rounded hover:bg-white/10 text-[#06B4C9]"
+                        className="p-1 rounded hover:bg-white/10 text-white"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2" />
@@ -288,7 +280,7 @@ export default function StudentDashboard() {
                   )}
                 </div>
               </div>
-              <div className="relative w-48 h-48 md:w-72 md:h-60 flex-shrink-0 self-end">
+              <div className="relative w-48 h-48 md:w-72 md:h-60 flex-shrink-0 self-center md:self-end">
                 <Image 
                   src={studentIllustration} //temporary, replace with something more suitable for students
                   alt="Student professional illustration"
@@ -301,24 +293,21 @@ export default function StudentDashboard() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div id="tour-stats" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white rounded-xl border border-gray-200 p-5 relative">
               <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Verified Skills</h3>
-                  <p className="text-3xl font-bold text-gray-900 mb-2">{allCredentials.length}</p>
-                  <div className={`flex items-center gap-1 text-xs font-medium ${allCredentials.length > 2 ? 'text-green-600' : 'text-red-600'}`}>
-                    {allCredentials.length > 2 ? (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8" />
-                      </svg>
-                    ) : (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0v-8m0 8l-8-8" />
-                      </svg>
-                    )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Verified Skills</h3>
+                  <p className="text-3xl font-bold text-gray-900 mb-3">{allCredentials.length}</p>
+                  <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${allCredentials.length > 2 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      {allCredentials.length > 2
+                        ? <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+                        : <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" />
+                      }
+                    </svg>
                     <span>{allCredentials.length > 2 ? '+12%' : '-8%'}</span>
-                    <span className="text-gray-400 ml-1">this month</span>
+                    <span className="text-gray-400 font-normal">this month</span>
                   </div>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-[#E7F1EC] flex items-center justify-center flex-shrink-0">
@@ -330,21 +319,18 @@ export default function StudentDashboard() {
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-5 relative">
               <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Market Score</h3>
-                  <p className="text-3xl font-bold text-gray-900 mb-2">{marketScore}%</p>
-                  <div className={`flex items-center gap-1 text-xs font-medium ${marketScore >= 70 ? 'text-green-600' : 'text-red-600'}`}>
-                    {marketScore >= 70 ? (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                      </svg>
-                    ) : (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                      </svg>
-                    )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Market Score</h3>
+                  <p className="text-3xl font-bold text-gray-900 mb-3">{marketScore}%</p>
+                  <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${marketScore >= 70 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      {marketScore >= 70
+                        ? <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+                        : <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" />
+                      }
+                    </svg>
                     <span>{marketScore >= 70 ? '+5%' : '-12%'}</span>
-                    <span className="text-gray-400 ml-1">from last week</span>
+                    <span className="text-gray-400 font-normal">from last week</span>
                   </div>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-[#FFEDD4] flex items-center justify-center flex-shrink-0">
@@ -361,18 +347,6 @@ export default function StudentDashboard() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Top Skills Performance</h3>
               <div className="flex items-center gap-3 text-xs">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-gray-600">Growing</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="text-gray-600">Stable</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                  <span className="text-gray-600">Declining</span>
-                </div>
               </div>
             </div>
             {aiData?.skillHealth && aiData.skillHealth.length > 0 ? (
@@ -435,7 +409,7 @@ export default function StudentDashboard() {
           )}
 
           {/* Verified Credentials */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div id="tour-credentials" className="bg-white rounded-xl border border-gray-200 p-5">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Verified Credentials</h2>
               <button
@@ -451,7 +425,7 @@ export default function StudentDashboard() {
                   <CredentialCard key={cred.id} {...cred} />
                 ))
               ) : (
-                <div className="col-span-2 p-12 text-center border-2 border-gray-100 rounded-xl bg-gray-50/50">
+                <div className="col-span-2 p-12 text-center">
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-3">
                     <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
@@ -469,7 +443,7 @@ export default function StudentDashboard() {
         <div className="xl:col-span-1 flex flex-col gap-6">
           <RecentActivity activities={activities} />
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div id="tour-setup" className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Setup</h3>
             <div className="relative pt-1 mb-4">
               <div className="flex mb-2 items-center justify-between">

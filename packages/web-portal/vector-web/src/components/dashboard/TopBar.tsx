@@ -182,7 +182,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3">
+      <header className="sticky top-0 z-30 bg-white dark:bg-[#0E1220] border-b border-gray-200 dark:border-[#1E2536] px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex items-center justify-between gap-4">
 
           {/* Left Section: Hamburger Menu + Search */}
@@ -190,7 +190,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
             {/* Hamburger Menu Icon */}
             <button
               onClick={onToggleSidebar}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
               aria-label="Menu"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -206,7 +206,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
               <input
                 type="text"
                 placeholder="Search here..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-300 focus:bg-white transition-colors"
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:!bg-[#151C2A] border border-gray-200 dark:!border-[#283042] rounded-lg text-sm text-gray-900 dark:!text-[#E2E8F0] placeholder-gray-400 focus:outline-none focus:border-gray-300 focus:bg-white dark:focus:!bg-[#192030] transition-colors"
               />
             </div>
           </div>
@@ -215,10 +215,9 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
           <div className="flex items-center gap-2">
 
             {/* Theme Toggle */}
-            <Tooltip content="Toggle Theme">
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
               >
                 {theme === 'dark' ? (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,26 +229,12 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
                   </svg>
                 )}
               </button>
-            </Tooltip>
-
-            {/* Settings Icon */}
-            <Tooltip content="Settings">
-              <button
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
-            </Tooltip>
 
             {/* Notification Bell */}
             <div id="tour-notifications" className="relative" ref={notificationsRef}>
-              <Tooltip content="Notifications">
                 <button
                   onClick={() => setIsNotificationsOpen(prev => !prev)}
-                  className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+                  className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -260,12 +245,11 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
                     </span>
                   )}
                 </button>
-              </Tooltip>
 
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50 animate-fade-in-up">
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#131825] rounded-xl shadow-lg border border-gray-200 dark:border-[#1E2536] overflow-hidden z-50 animate-fade-in-up">
                   {/* Header */}
-                  <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-[#1E2536] flex justify-between items-center bg-gray-50 dark:bg-[#0E1220]">
                     <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
                     {unreadCount > 0 && (
                       <span className="text-xs bg-[#06B4C9]/10 text-[#06B4C9] font-semibold px-2 py-0.5 rounded-full">
@@ -325,10 +309,10 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
               <Tooltip content="Profile">
                 <button
                   onClick={() => setIsProfileMenuOpen(prev => !prev)}
-                  className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-gray-700 font-semibold text-sm">
+                  <div className="w-8 h-8 bg-gray-200 dark:bg-[#1E2536] rounded-full flex items-center justify-center">
+                    <span className="text-gray-700 dark:text-[#94A3B8] font-semibold text-sm">
                       {user ? getInitials(user.full_name) : '...'}
                     </span>
                   </div>
@@ -336,8 +320,8 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
               </Tooltip>
 
               {isProfileMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-fade-in-up">
-                  <div className="px-4 py-3 border-b border-gray-100">
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#131825] rounded-lg shadow-lg border border-gray-200 dark:border-[#1E2536] py-2 z-50 animate-fade-in-up">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-[#1E2536]">
                     <p className="text-sm font-semibold text-gray-900">{user?.full_name || 'Loading...'}</p>
                     <p className="text-xs text-gray-500 capitalize">{user?.role || 'student'}</p>
                   </div>
@@ -359,7 +343,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
       {/* Logout Dialog */}
       {isLogoutDialogOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl animate-fade-in-up">
+          <div className="bg-white dark:bg-[#131825] rounded-xl max-w-md w-full p-6 shadow-xl animate-fade-in-up">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
             <p className="text-sm text-gray-600 mb-4">Are you sure you want to log out?</p>
             <div className="flex gap-3">

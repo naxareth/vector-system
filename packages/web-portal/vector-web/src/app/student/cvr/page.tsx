@@ -9,6 +9,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import CVRSuccessModal from '@/components/dashboard/CVRSuccessModal';
 import CVRAnalysisPanel from '@/components/cvr/CVRAnalysisPanel'; // Phase 12
+import CVRPreviewModal from '@/components/cvr/CVRPreviewModal';
 import {
   PersonalDetailsSection,
   EducationSection,
@@ -126,6 +127,11 @@ export default function CVRPage() {
   // Generated state
   const [isGenerated, setIsGenerated] = useState(false);
   const [generatedData, setGeneratedData] = useState<any>(null);
+
+  // Preview state
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -312,26 +318,10 @@ export default function CVRPage() {
   };
 
   // ---------------------------------------------------------------------------
-  // Generate CVR
+  // Build snapshot (shared between preview & generate)
   // ---------------------------------------------------------------------------
-  const handleGenerateCVR = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-
-    const validation = resumeSchema.safeParse(formData);
-    if (!validation.success) {
-      const newErrors: Record<string, string> = {};
-      validation.error.issues.forEach((issue) => {
-        if (issue.path[0]) newErrors[issue.path[0].toString()] = issue.message;
-      });
-      setErrors(newErrors);
-      alert('Please fix the errors in the form before generating.');
-      return;
-    }
-
+  const buildSnapshot = () => {
     const finalSkills = availableSkills.filter((s) => selectedSkillIds.includes(s.id));
-
-    // Only include credentials the student actually added to the CVR
     const credentialIds = availableCertifications
       .filter((c) =>
         formData.certifications.some(
@@ -361,46 +351,85 @@ export default function CVRPage() {
     if (cleaned(formData.certifications).length) snapshot.certifications = cleaned(formData.certifications);
     if (cleaned(formData.awards).length) snapshot.awards = cleaned(formData.awards);
 
-    // Save CVR export to DB — get a stable UUID for QR code
-    let cvrId: string | null = null;
-    try {
-      const res = await fetch('/api/cvr/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          template: selectedTemplate,
-          credential_ids: credentialIds,
-          snapshot,
-        }),
+    return { snapshot, credentialIds };
+  };
+
+  // ---------------------------------------------------------------------------
+  // Preview CVR (validates → opens preview modal)
+  // ---------------------------------------------------------------------------
+  const handlePreviewCVR = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    const validation = resumeSchema.safeParse(formData);
+    if (!validation.success) {
+      const newErrors: Record<string, string> = {};
+      validation.error.issues.forEach((issue) => {
+        if (issue.path[0]) newErrors[issue.path[0].toString()] = issue.message;
       });
-      if (res.ok) {
-        const data = await res.json();
-        cvrId = data.id;
-      } else {
-        console.warn('[CVR] Export save failed — falling back to local UUID');
-      }
-    } catch (err) {
-      console.warn('[CVR] Export API unreachable — falling back to local UUID', err);
+      setErrors(newErrors);
+      alert('Please fix the errors in the form before generating.');
+      return;
     }
 
-    const credentialId = cvrId || credentialIds[0] || crypto.randomUUID();
+    const { snapshot } = buildSnapshot();
+    setPreviewData(snapshot);
+    setIsPreviewOpen(true);
+  };
 
-    const cvrData = {
-      ...snapshot,
-      credentialId,
-      isCvrExport: !!cvrId,
-    };
+  // ---------------------------------------------------------------------------
+  // Confirm & Generate CVR (called from preview modal)
+  // ---------------------------------------------------------------------------
+  const handleConfirmGenerate = async () => {
+    setIsConfirming(true);
+    try {
+      const { snapshot, credentialIds } = buildSnapshot();
 
-    localStorage.setItem('sampleCVRData', JSON.stringify(cvrData));
-    localStorage.setItem('pendingCVR', 'true');
+      // Save CVR export to DB — get a stable UUID for QR code
+      let cvrId: string | null = null;
+      try {
+        const res = await fetch('/api/cvr/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            template: selectedTemplate,
+            credential_ids: credentialIds,
+            snapshot,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          cvrId = data.id;
+        } else {
+          console.warn('[CVR] Export save failed — falling back to local UUID');
+        }
+      } catch (err) {
+        console.warn('[CVR] Export API unreachable — falling back to local UUID', err);
+      }
 
-    setGeneratedData(cvrData);
-    setIsGenerated(true);
-    setIsSuccessModalOpen(true);
+      const credentialId = cvrId || credentialIds[0] || crypto.randomUUID();
 
-    // Refresh history so new export appears immediately
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) await fetchCVRHistory(session.user.id);
+      const cvrData = {
+        ...snapshot,
+        credentialId,
+        isCvrExport: !!cvrId,
+      };
+
+      localStorage.setItem('sampleCVRData', JSON.stringify(cvrData));
+      localStorage.setItem('pendingCVR', 'true');
+
+      setGeneratedData(cvrData);
+      setIsGenerated(true);
+      setIsPreviewOpen(false);
+      setPreviewData(null);
+      setIsSuccessModalOpen(true);
+
+      // Refresh history so new export appears immediately
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) await fetchCVRHistory(session.user.id);
+    } finally {
+      setIsConfirming(false);
+    }
   };
 
   const handleCreateNew = () => {
@@ -539,7 +568,7 @@ export default function CVRPage() {
             </div>
           )}
 
-          <form onSubmit={handleGenerateCVR} className="w-full">
+          <form onSubmit={handlePreviewCVR} className="w-full">
             <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 space-y-6">
               <PersonalDetailsSection
                 formData={formData}
@@ -552,8 +581,8 @@ export default function CVRPage() {
                 onRemove={(i) => removeItem('education', i)}
                 onUpdate={(i, f, v) => updateItem('education', i, f, v)}
               />
-              <ExperienceSection
-                items={formData.experience}
+              <EducationSection
+                items={formData.experience as any}
                 onAdd={() => addItem('experience', { title: '', company: '', dates: '', description: '' })}
                 onRemove={(i) => removeItem('experience', i)}
                 onUpdate={(i, f, v) => updateItem('experience', i, f, v)}
@@ -592,16 +621,17 @@ export default function CVRPage() {
                 onColorChange={setSelectedColor}
               />
 
-              {/* Submit */}
+              {/* Preview & Generate */}
               <div>
                 <button
                   type="submit"
                   className="w-full md:w-auto px-8 py-3 bg-[#06B4C9] hover:bg-[#06B4C9]/80 !text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-all"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-                  Generate CVR
+                  Preview CVR
                 </button>
               </div>
             </div>
@@ -648,6 +678,13 @@ export default function CVRPage() {
         </div>
       )}
 
+      <CVRPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => { setIsPreviewOpen(false); setPreviewData(null); }}
+        onConfirm={handleConfirmGenerate}
+        isGenerating={isConfirming}
+        data={previewData}
+      />
       <CVRSuccessModal
         isOpen={isSuccessModalOpen}
         onClose={() => setIsSuccessModalOpen(false)}
