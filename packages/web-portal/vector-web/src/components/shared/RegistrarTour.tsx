@@ -20,7 +20,7 @@ export default function RegistrarTour() {
           element: '#reg-tour-welcome', 
           popover: { 
             title: 'Registrar Portal', 
-            description: 'Welcome, Admin. This is your command center for issuing blockchain credentials.', 
+            description: 'Welcome, Admin. This is your command center for issuing verified credentials.', 
             side: 'center', 
             align: 'center'
           } 

@@ -40,7 +40,7 @@ export default function SkillsSection({
         <p className="text-sm text-gray-600 mb-3 flex items-center gap-2">
           Your Verified Skills
           <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-            Blockchain Synced
+            Verified
           </span>
         </p>
         {verifiedSkills.length > 0 ? (
@@ -71,7 +71,7 @@ export default function SkillsSection({
           </div>
         ) : (
           <div className="text-sm text-gray-500 italic p-3 border border-dashed border-gray-200 rounded-lg">
-            No verified skills found in wallet. Mint some tokens to see them here!
+            No verified skills yet. Complete your first skill verification to see them here!
           </div>
         )}
       </div>

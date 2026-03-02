@@ -174,7 +174,7 @@ export default function RegistrarDashboard() {
 
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#06B4C9]"></div>
     </div>
   );
 
@@ -184,7 +184,7 @@ export default function RegistrarDashboard() {
         <div className="flex justify-between items-center mb-8 border-b pb-4">
           <h1 className="text-3xl font-bold text-gray-900">Credential Management</h1>
           <div className="flex bg-gray-100 p-1 rounded-lg">
-            <button onClick={() => setActiveTab('issue')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'issue' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-500 hover:text-gray-700'}`}>
+            <button onClick={() => setActiveTab('issue')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'issue' ? 'bg-white shadow-sm text-[#06B4C9]' : 'text-gray-500 hover:text-gray-700'}`}>
               Issue Record
             </button>
             <button onClick={() => setActiveTab('build')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'build' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
@@ -208,7 +208,7 @@ export default function RegistrarDashboard() {
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); setSelectedStudent(null); }}
                   onFocus={() => setShowDropdown(true)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none"
                   placeholder="Search by name or student ID..."
                 />
                 {showDropdown && searchQuery && (
@@ -235,7 +235,7 @@ export default function RegistrarDashboard() {
                 <select
                   value={selectedSchema?.id || ''}
                   onChange={(e) => handleSchemaChange(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none bg-white"
                 >
                   {schemas.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                 </select>
@@ -243,8 +243,8 @@ export default function RegistrarDashboard() {
 
               {/* Dynamic Fields Renderer */}
               {selectedSchema && (
-                <div className="md:col-span-2 bg-purple-50/50 p-6 rounded-xl border border-purple-100 space-y-4">
-                  <h3 className="text-sm font-bold text-purple-800 border-b border-purple-200 pb-2 mb-4">Dynamic Schema Fields</h3>
+                <div className="md:col-span-2 bg-[#06B4C9]/5 p-6 rounded-xl border border-[#06B4C9]/20 space-y-4">
+                  <h3 className="text-sm font-bold text-[#157942] border-b border-[#06B4C9]/20 pb-2 mb-4">Dynamic Schema Fields</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {Object.entries(selectedSchema.json_schema.properties).map(([key, fieldDetails]) => {
                       const isSkillTags = key === 'skill_tags';
@@ -254,7 +254,7 @@ export default function RegistrarDashboard() {
                             {fieldDetails.title}
                             {selectedSchema.json_schema.required?.includes(key) && <span className="text-red-500 ml-1">*</span>}
                             {isSkillTags && (
-                              <span className="ml-2 text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded font-semibold">
+                              <span className="ml-2 text-xs text-[#06B4C9] bg-[#06B4C9]/10 px-2 py-0.5 rounded font-semibold">
                                 Market Intelligence
                               </span>
                             )}
@@ -264,10 +264,10 @@ export default function RegistrarDashboard() {
                               <input
                                 type="text"
                                 onChange={(e) => handleDynamicInputChange(key, e.target.value)}
-                                className="w-full px-3 py-2 border border-purple-300 rounded-lg outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                                className="w-full px-3 py-2 border border-[#06B4C9]/30 rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white"
                                 placeholder="e.g. React, Node.js, PostgreSQL, Express"
                               />
-                              <p className="text-xs text-purple-600 mt-1">
+                              <p className="text-xs text-[#06B4C9] mt-1">
                                 These become the student's individual skill cards with live market health scores.
                               </p>
                             </>

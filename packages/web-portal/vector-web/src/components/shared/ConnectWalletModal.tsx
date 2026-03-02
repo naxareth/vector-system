@@ -54,7 +54,7 @@ export default function ConnectWalletModal({ isOpen, onClose }: ConnectWalletMod
             Connect Wallet
           </h2>
           <p className="text-gray-600 text-center text-sm">
-            Enter your credentials to access your digital wallet
+            Enter your credentials to access your account
           </p>
         </div>
 

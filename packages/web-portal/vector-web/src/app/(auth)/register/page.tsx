@@ -32,6 +32,13 @@ export default function RegisterPage() {
               Sign In
             </Link>
           </p>
+
+          <p className="text-xs text-gray-400 text-center mt-4">
+            Registering your institution?{' '}
+            <Link href="/registrar-register" className="font-semibold text-[#06B4C9] hover:underline">
+              Register as a Registrar
+            </Link>
+          </p>
         </div>
 
         {/* ── Right column: accent image panel ── */}

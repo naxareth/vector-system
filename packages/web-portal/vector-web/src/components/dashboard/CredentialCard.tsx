@@ -97,7 +97,7 @@ export default function CredentialCard({
         
         {/* Hover Hint */}
         <div className="absolute bottom-4 left-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-[#06B4C9] font-bold flex items-center gap-1 justify-center bg-white/90 backdrop-blur-sm pt-2">
-           CLICK TO VIEW BLOCKCHAIN PROOF 
+           CLICK TO VIEW VERIFICATION DETAILS 
            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
         </div>
       </div>
