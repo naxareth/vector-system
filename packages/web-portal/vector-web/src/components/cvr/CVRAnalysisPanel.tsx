@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import HelpTip from '@/components/shared/HelpTip';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -315,8 +316,9 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
               </div>
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-1">
                 Overall Score
+                <HelpTip text="An AI-generated rating of how strong your resume is based on your verified skills and market fit." size={12} />
               </p>
               <p className="text-sm font-semibold text-gray-800 mt-0.5">
                 {analysis.overallScore >= 70
@@ -333,8 +335,9 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
 
           {/* Market Alignment */}
           <div className="bg-gray-50 rounded-xl border border-gray-100 p-5">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1">
               Market Alignment
+              <HelpTip text="How well your skills match what employers are currently hiring for in the job market." size={12} />
             </p>
             <div className="flex items-end gap-2 mb-2">
               <span className="text-3xl font-bold text-gray-800">
@@ -353,7 +356,7 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
         {allSkills.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-700">Skill Strength</h3>
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1">Skill Strength <HelpTip text="Your skills grouped by how proficient you are — strong, developing, or just getting started." size={13} /></h3>
               <div className="flex items-center gap-3 text-xs text-gray-400">
                 <span className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -395,6 +398,7 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
                 />
               </svg>
               Missing High-Demand Skills
+              <HelpTip text="Important skills that employers frequently look for but aren't on your resume yet. Adding these can improve your chances." size={13} />
             </h3>
             <div className="flex flex-wrap gap-2">
               {analysis.missingKeywords.map((kw) => (
@@ -440,6 +444,7 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
                 />
               </svg>
               Recommendations
+              <HelpTip text="AI-suggested actions to strengthen your resume and improve your market competitiveness." size={13} />
             </h3>
             <ol className="space-y-2.5">
               {analysis.recommendations.map((rec, i) => (

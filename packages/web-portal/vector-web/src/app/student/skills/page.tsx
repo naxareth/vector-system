@@ -5,6 +5,7 @@ import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Pagination from '@/components/shared/Pagination';
+import HelpTip from '@/components/shared/HelpTip';
 import Link from 'next/link';
 
 interface RawCredential {
@@ -93,7 +94,7 @@ function SkillCardItem({ card, health }: { card: SkillCard; health: SkillHealth 
           {card.source === 'university' ? (
             <span className="inline-flex items-center gap-1 text-[10px] text-[#06B4C9] bg-[#06B4C9]/10 px-2 py-0.5 rounded-full border border-[#06B4C9]/20 font-semibold shrink-0">University</span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 font-semibold shrink-0">On-Chain</span>
+            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 font-semibold shrink-0">On-Chain <HelpTip size={10} text="This skill was verified directly on the blockchain, not through a university record." /></span>
           )}
         </div>
 
@@ -245,8 +246,8 @@ export default function SkillsPage() {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Skills</h1>
-        <p className="text-sm text-gray-500">Your verified credentials and market health</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Skills <HelpTip text="All skills extracted from your certificates, with live job-market demand tracking." /></h1>
+        <p className="text-sm text-gray-500">Your verified credentials and how they're trending in the job market</p>
       </div>
 
       {credentialsLoading && (
