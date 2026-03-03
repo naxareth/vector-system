@@ -233,10 +233,10 @@ export default function RegistrarDashboard() {
                 const s = schemas.find(x => x.id === batchSchemaId);
                 const schemaFields = s ? Object.keys(s.json_schema.properties) : [];
                 return (
-                  <div className="mt-2 bg-[#06B4C9]/10 border border-purple-200 rounded-lg px-3 py-2">
-                    <p className="text-xs text-purple-700">
+                  <div className="mt-2 bg-[#06B4C9]/10 border border-[#06B4C9]/20 rounded-lg px-3 py-2">
+                    <p className="text-xs text-[#06B4C9]">
                       <span className="font-semibold">Required columns:</span>{' '}
-                      <code className="bg-purple-100 px-1 rounded">student_id, wallet_address, {schemaFields.join(', ')}</code>
+                      <code className="bg-[#06B4C9]/20 px-1 rounded">student_id, wallet_address, {schemaFields.join(', ')}</code>
                     </p>
                   </div>
                 );
@@ -254,7 +254,7 @@ export default function RegistrarDashboard() {
                 const file = e.dataTransfer.files[0];
                 if (file) { setCsvFile(file); setCsvResult(null); }
               }}
-              className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${csvDragOver ? 'border-purple-400 bg-purple-50' : csvFile ? 'border-green-300 bg-green-50/50' : 'border-gray-300 hover:border-purple-300'
+              className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${csvDragOver ? 'border-[#06B4C9] bg-[#06B4C9]/5' : csvFile ? 'border-green-300 bg-green-50/50' : 'border-gray-300 hover:border-[#06B4C9]/40'
                 }`}
               onClick={() => document.getElementById('csv-file-input')?.click()}
             >
@@ -450,7 +450,7 @@ export default function RegistrarDashboard() {
                             setMintingProgress({ isOpen: true, progress: 0, status: 'error', message: error.message || 'Batch minting failed' });
                           }
                         }}
-                        className="mt-4 w-full py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-[#06B4C9] transition-all shadow-lg"
+                        className="mt-4 w-full py-3 bg-[#06B4C9] text-white font-bold rounded-xl hover:bg-[#06B4C9] transition-all shadow-lg"
                       >
                         Mint {csvResult.rows.length} Credential{csvResult.rows.length > 1 ? 's' : ''} on Blockchain
                       </button>

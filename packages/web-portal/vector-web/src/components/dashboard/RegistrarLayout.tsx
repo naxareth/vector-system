@@ -22,13 +22,13 @@ interface UserProfile {
 export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
-  
+
   // ⚡ LOADING STATE: Default to true to prevent premature redirects
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // ⚡ USER STATE: Default to null
   const [user, setUser] = useState<UserProfile | null>(null);
-  
+
   const pathname = usePathname();
   const router = useRouter();
 
@@ -38,7 +38,7 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
       try {
         // A. Get Session (Contains Email & Auth ID)
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (!session) {
           router.replace('/login');
           return;
@@ -51,11 +51,17 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
           .eq('id', session.user.id)
           .maybeSingle();
 
-        // C. Set User State (Combine Session + DB)
+        // C. 🛡️ RBAC Gate — redirect non-registrar users
+        if (profile?.role !== 'registrar' && profile?.role !== 'super_admin') {
+          router.replace('/student/dashboard');
+          return;
+        }
+
+        // D. Set User State (Combine Session + DB)
         setUser({
           full_name: profile?.full_name || 'Registrar Admin',
           email: session.user.email || 'admin@vector.edu',
-          role: profile?.role || 'registrar'
+          role: profile.role
         });
 
       } catch (error) {
@@ -97,15 +103,15 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-gray-50 flex">
-        
+
         {/* 2. Add the Timeout Logic Here */}
         <SessionTimeout />
-        
+
         {/* 3. Activate Tour Here */}
         <RegistrarTour />
 
         {/* Sidebar */}
-        <aside 
+        <aside
           id="reg-tour-nav"
           className={`
           fixed top-0 left-0 z-40 h-screen w-64 bg-white border-r border-gray-200
@@ -131,24 +137,22 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
               <Link
                 href="/registrar/dashboard"
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${
-                  pathname === '/registrar/dashboard'
-                    ? 'text-[#06B4C9] bg-[#06B4C9]/10'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${pathname === '/registrar/dashboard'
+                  ? 'text-[#06B4C9] bg-[#06B4C9]/10'
+                  : 'text-gray-600 hover:bg-gray-50'
+                  }`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 Issue Credentials
               </Link>
-              
+
               <Link
                 href="/registrar/students"
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${
-                  pathname === '/registrar/students'
-                    ? 'text-[#06B4C9] bg-[#06B4C9]/10'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${pathname === '/registrar/students'
+                  ? 'text-[#06B4C9] bg-[#06B4C9]/10'
+                  : 'text-gray-600 hover:bg-gray-50'
+                  }`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                 Students
@@ -173,7 +177,7 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
                 </div>
 
                 {/* Logout Button */}
-                <button 
+                <button
                   onClick={() => setIsLogoutDialogOpen(true)}
                   className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors flex-shrink-0"
                   title="Logout"
@@ -190,24 +194,24 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
           <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
             {/* Invisible Anchor for Welcome Step */}
             <div id="reg-tour-welcome" className="absolute top-0 left-0 w-full h-20 pointer-events-none" />
-            
+
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 rounded-lg hover:bg-gray-100">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                 </button>
                 <div className="lg:hidden flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-[#06B4C9] rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold text-sm">V</span>
                   </div>
                   <span className="text-lg font-bold text-gray-900">VECTOR</span>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-4 ml-auto">
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full border border-gray-200">
-                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                   <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Admin Portal</span>
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                  <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Admin Portal</span>
                 </div>
                 <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
                 <span className="text-sm font-medium text-gray-500 hidden sm:block">
