@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import HelpTip from '@/components/shared/HelpTip';
 import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
@@ -461,7 +462,7 @@ export default function CoachPage() {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Career Intelligence Report</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Career Intelligence Report <HelpTip text="An AI-generated overview of your skills, how they match the job market, and what to improve." /></h1>
             </div>
             <p className="text-sm md:text-base text-gray-500">AI-powered analysis of your skill portfolio against real-time market data.</p>
           </div>
@@ -480,7 +481,7 @@ export default function CoachPage() {
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Market Demand Trends</h2>
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-1">Market Demand Trends <HelpTip text="A graph showing how many employers are hiring for each of your skills over time." size={14} /></h2>
               <p className="text-xs text-gray-500">Real-time job postings</p>
             </div>
             <select
@@ -525,7 +526,7 @@ export default function CoachPage() {
                   {metrics.portfolioScore}
                 </span>
               </div>
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Score</span>
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">Score <HelpTip text="A 0–100 rating of your overall skill portfolio strength based on verified credentials and market demand." size={11} /></span>
             </div>
 
             {/* Market Alignment */}
@@ -542,7 +543,7 @@ export default function CoachPage() {
               <div className="text-center">
                 <div className={`text-sm font-bold ${metrics.portfolioScore > 75 ? 'text-green-600' : metrics.portfolioScore > 50 ? 'text-[#06B4C9]' : 'text-amber-600'
                   }`}>{metrics.marketAlignment}</div>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Alignment</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">Alignment <HelpTip text="How closely your current skills match what employers are hiring for right now." size={11} /></span>
               </div>
             </div>
 
@@ -564,7 +565,7 @@ export default function CoachPage() {
                 <div className={`text-sm font-bold ${metrics.projectedGrowth >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                   {metrics.projectedGrowth >= 0 ? '+' : ''}{metrics.projectedGrowth}%
                 </div>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Growth</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">Growth <HelpTip text="The predicted change in demand for your skills over the coming months. Positive means demand is rising." size={11} /></span>
               </div>
             </div>
           </div>
@@ -582,6 +583,7 @@ export default function CoachPage() {
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
               Rising Skills
+              <HelpTip text="Skills where employer demand is growing — these are becoming more valuable in the job market." size={13} />
               {skillsList.filter(s => s.trend === 'growing').length > 0 && (
                 <span className="text-xs text-gray-400 font-normal ml-auto">{skillsList.filter(s => s.trend === 'growing').length} skills</span>
               )}
@@ -625,6 +627,7 @@ export default function CoachPage() {
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
               Declining Skills
+              <HelpTip text="Skills where job market demand is dropping. Consider upgrading or complementing these with newer skills." size={13} />
               {skillsList.filter(s => s.trend === 'declining').length > 0 && (
                 <span className="text-xs text-gray-400 font-normal ml-auto">{skillsList.filter(s => s.trend === 'declining').length} skills</span>
               )}
@@ -683,7 +686,7 @@ export default function CoachPage() {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="font-bold text-sm leading-tight">Vector Co-Pilot</h2>
+                <h2 className="font-bold text-sm leading-tight flex items-center gap-1">Vector Co-Pilot <HelpTip text="An AI assistant that can answer questions about your skills, career options, and market trends." size={12} /></h2>
                 <p className="text-[11px] font-medium text-[#06B4C9]">{chatLoading ? 'Thinking...' : 'Online'}</p>
               </div>
               <div className="flex items-center gap-1">

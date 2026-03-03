@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
 import Pagination from '@/components/shared/Pagination';
+import HelpTip from '@/components/shared/HelpTip';
 // ❌ REMOVED: import { decryptData } from '@/lib/encryption'; (Security Fix)
 
 interface CredentialLog {
@@ -64,59 +65,59 @@ export default function ManageCredentials() {
     <RegistrarLayout>
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Credential Audit Log</h1>
-          <p className="text-sm md:text-base text-gray-600">
-            Immutable record of all credentials issued on the Polygon blockchain + Encrypted Database Records.
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Issued Records <HelpTip text="This is a complete audit log of every certificate you have issued. You can search by student name, certificate type, or serial number. Each record includes a 'View Proof' link that opens the public blockchain transaction — anyone can use it to verify the certificate is authentic." /></h1>
+          <p className="text-sm md:text-base text-gray-600 dark:text-[#94A3B8]">
+            A secure list of certificates and records issued to students.
           </p>
         </div>
 
         {/* Search */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white dark:bg-[#0E1220] rounded-xl shadow-sm border border-gray-200 dark:border-[#1E2536] p-6 mb-6">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <input
+              <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06B4C9] text-gray-900 bg-white"
-              placeholder="Search by Student, Wallet, Skill, or Cert ID..."
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-[#283042] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06B4C9] text-gray-900 dark:text-white bg-white dark:bg-[#131825]"
+              placeholder="Search by name, certificate, or ID..."
             />
           </div>
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-[#0E1220] rounded-xl shadow-sm border border-gray-200 dark:border-[#1E2536] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-[#131825] border-b border-gray-200 dark:border-[#1E2536]">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Student</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Credential</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Cert No.</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Secure Notes</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Proof</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-[#94A3B8] uppercase">Student</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-[#94A3B8] uppercase">Certificate</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-[#94A3B8] uppercase">Cert No.</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-[#94A3B8] uppercase">Notes</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-[#94A3B8] uppercase">Proof <HelpTip size={13} text="Each certificate is recorded on the blockchain. 'View Proof' opens the public transaction record on Polygonscan — a third-party site where anyone (employers, other institutions) can independently verify the certificate is genuine and unaltered." /></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {loading ? (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading ledger...</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500 dark:text-[#64748B]">Loading records...</td></tr>
                 ) : filteredCredentials.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">No records found.</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500 dark:text-[#64748B]">No records found.</td></tr>
                 ) : (
                   paginatedCreds.map((cred) => (
-                    <tr key={cred.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={cred.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mr-3 ${cred.user ? 'bg-[#06B4C9]/10 text-[#06B4C9]' : 'bg-gray-200 text-gray-500'}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mr-3 ${cred.user ? 'bg-accent-10 text-accent' : 'bg-gray-200 text-gray-500'}`}>
                             {cred.user?.full_name?.[0] || '?'}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{cred.user?.full_name || 'Restricted'}</p>
-                            <p className="text-xs text-gray-500 font-mono">{cred.user?.wallet_address ? cred.user.wallet_address.slice(0, 6) + '...' : ''}</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{cred.user?.full_name || 'Restricted'}</p>
+                            <p className="text-xs text-gray-500 dark:text-[#64748B] font-mono">{cred.user?.wallet_address ? cred.user.wallet_address.slice(0, 6) + '...' : ''}</p>
                           </div>
                         </div>
                       </td>
@@ -126,7 +127,7 @@ export default function ManageCredentials() {
                         </span>
                       </td>
 
-                      <td className="px-6 py-4 text-sm text-gray-600 font-mono">
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-[#94A3B8] font-mono">
                         {cred.certificate_number || '-'}
                       </td>
 
@@ -134,12 +135,12 @@ export default function ManageCredentials() {
                       <td className="px-6 py-4">
                         {cred.private_notes ? (
                           <div className="group relative w-max">
-                            <span className="cursor-help text-[#06B4C9] text-xs font-medium border-b border-dotted border-[#06B4C9]">
-                              View Secure Note
+                            <span className="cursor-help text-accent text-xs font-medium border-b border-dotted border-accent">
+                              View Note
                             </span>
                             {/* The Tooltip */}
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xl">
-                              <p className="font-bold text-gray-400 mb-1 uppercase tracking-wider text-[10px]">Decrypted Content:</p>
+                              <p className="font-bold text-gray-400 mb-1 uppercase tracking-wider text-[10px]">Note:</p>
                               {/* ✅ Render directly (it's already decrypted by API) */}
                               {cred.private_notes}
                               <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
@@ -156,9 +157,9 @@ export default function ManageCredentials() {
                             href={`https://amoy.polygonscan.com/tx/${cred.transaction_hash}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-[#06B4C9] hover:text-[#157942] text-xs font-medium flex items-center gap-1"
+                            className="text-accent hover:text-accent-dark text-xs font-medium flex items-center gap-1"
                           >
-                            View TX
+                            View Proof
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                           </a>
                         )}
