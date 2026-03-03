@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/dashboard/AdminLayout';
+import Pagination from '@/components/shared/Pagination';
 import { supabase } from '@/lib/supabaseClient';
 
 interface UserRecord {
@@ -35,6 +36,9 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<'pending' | 'directory'>('pending');
+  const [pendingPage, setPendingPage] = useState(1);
+  const [dirPage, setDirPage] = useState(1);
+  const ROWS_PER_PAGE = 10;
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -60,6 +64,12 @@ export default function AdminDashboard() {
     const matchesRole = filterRole === 'all' || u.role === filterRole;
     return matchesSearch && matchesRole;
   });
+
+  const paginatedPending = pendingUsers.slice((pendingPage - 1) * ROWS_PER_PAGE, pendingPage * ROWS_PER_PAGE);
+  const paginatedDir = directoryUsers.slice((dirPage - 1) * ROWS_PER_PAGE, dirPage * ROWS_PER_PAGE);
+
+  // Reset pages on filter/search changes
+  useEffect(() => { setDirPage(1); }, [searchQuery, filterRole]);
 
   const handleRoleChange = async (userId: string, newRole: string, userName: string) => {
     const currentUser = allUsers.find((u) => u.id === userId);
@@ -123,8 +133,8 @@ export default function AdminDashboard() {
           <button
             onClick={() => setActiveTab('pending')}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'pending'
-                ? 'bg-white dark:bg-[#131825] shadow-sm text-[#06B4C9]'
-                : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'
+              ? 'bg-white dark:bg-[#131825] shadow-sm text-[#06B4C9]'
+              : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'
               }`}
           >
             Pending
@@ -137,8 +147,8 @@ export default function AdminDashboard() {
           <button
             onClick={() => setActiveTab('directory')}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'directory'
-                ? 'bg-white dark:bg-[#131825] shadow-sm text-[#06B4C9]'
-                : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'
+              ? 'bg-white dark:bg-[#131825] shadow-sm text-[#06B4C9]'
+              : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'
               }`}
           >
             All Users ({allUsers.length})
@@ -165,7 +175,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-[#1E2536]">
-                {pendingUsers.map((user) => (
+                {paginatedPending.map((user) => (
                   <div key={user.id} className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-[#1E2536] transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 bg-[#06B4C9]/10 text-[#06B4C9] rounded-full flex items-center justify-center font-bold flex-shrink-0">
@@ -192,6 +202,11 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+            {pendingUsers.length > 0 && (
+              <div className="px-6 py-2 border-t border-gray-100 dark:border-[#1E2536]">
+                <Pagination currentPage={pendingPage} totalItems={pendingUsers.length} itemsPerPage={ROWS_PER_PAGE} onPageChange={setPendingPage} />
               </div>
             )}
           </div>
@@ -242,7 +257,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-[#1E2536]">
-                    {directoryUsers.map((user) => (
+                    {paginatedDir.map((user) => (
                       <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-[#1E2536] transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -257,7 +272,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${user.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-emerald-500/10 dark:text-emerald-400'
-                              : ROLE_COLORS[user.status] || 'bg-gray-100 text-gray-600'
+                            : ROLE_COLORS[user.status] || 'bg-gray-100 text-gray-600'
                             }`}>
                             {user.status === 'active' ? '● Active' : user.status}
                           </span>
@@ -292,10 +307,11 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            <div className="px-6 py-3 border-t border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220]">
+            <div className="px-6 py-2 border-t border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220] flex items-center justify-between">
               <p className="text-xs text-gray-400 dark:text-[#64748B]">
-                Showing {directoryUsers.length} of {allUsers.length} users • Role changes are recorded in the audit log
+                {directoryUsers.length} of {allUsers.length} users • Role changes are audited
               </p>
+              <Pagination currentPage={dirPage} totalItems={directoryUsers.length} itemsPerPage={ROWS_PER_PAGE} onPageChange={setDirPage} />
             </div>
           </div>
         )}

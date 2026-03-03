@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import MarketInsightsPanel from '@/components/student/MarketInsightsPanel';
 import RecommendationsPanel, { CourseRecommendation } from '@/components/student/RecommendationsPanel';
+import Pagination from '@/components/shared/Pagination';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 import ReactMarkdown from 'react-markdown';
@@ -53,6 +54,8 @@ export default function CoachPage() {
   const [atRiskSkills, setAtRiskSkills] = useState<any[]>([]);
   const [userName, setUserName] = useState<string>('Student');
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [risingPage, setRisingPage] = useState(1);
+  const [decliningPage, setDecliningPage] = useState(1);
 
   const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', text: "👋 Hi! I'm connecting to the blockchain to analyze your career data..." }
@@ -579,63 +582,87 @@ export default function CoachPage() {
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
               Rising Skills
+              {skillsList.filter(s => s.trend === 'growing').length > 0 && (
+                <span className="text-xs text-gray-400 font-normal ml-auto">{skillsList.filter(s => s.trend === 'growing').length} skills</span>
+              )}
             </h3>
-            {skillsList.filter(s => s.trend === 'growing').length > 0 ? (
-              <div className="space-y-4">
-                {skillsList.filter(s => s.trend === 'growing').map((skill, i) => (
-                  <div key={i}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium">{skill.name}</span>
-                      <span className="text-green-600">+{Math.round(skill.growthRate * 100)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5">
-                      <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
-                    </div>
+            {(() => {
+              const rising = skillsList.filter(s => s.trend === 'growing');
+              const SKILLS_PER_PAGE = 8;
+              const totalRisingPages = Math.ceil(rising.length / SKILLS_PER_PAGE);
+              const risingSlice = rising.slice((risingPage - 1) * SKILLS_PER_PAGE, risingPage * SKILLS_PER_PAGE);
+              return rising.length > 0 ? (
+                <>
+                  <div className="space-y-4">
+                    {risingSlice.map((skill, i) => (
+                      <div key={i}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="font-medium">{skill.name}</span>
+                          <span className="text-green-600">+{Math.round(skill.growthRate * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-1.5">
+                          <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 gap-2">
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <Pagination currentPage={risingPage} totalItems={rising.length} itemsPerPage={SKILLS_PER_PAGE} onPageChange={setRisingPage} />
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 gap-2">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">No rising skills detected</p>
+                  <p className="text-xs text-gray-400">Growth trends appear after analysis</p>
                 </div>
-                <p className="text-sm font-medium text-gray-500">No rising skills detected</p>
-                <p className="text-xs text-gray-400">Growth trends appear after analysis</p>
-              </div>
-            )}
+              );
+            })()}
           </div>
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
               Declining Skills
+              {skillsList.filter(s => s.trend === 'declining').length > 0 && (
+                <span className="text-xs text-gray-400 font-normal ml-auto">{skillsList.filter(s => s.trend === 'declining').length} skills</span>
+              )}
             </h3>
-            {skillsList.filter(s => s.trend === 'declining').length > 0 ? (
-              <div className="space-y-4">
-                {skillsList.filter(s => s.trend === 'declining').map((skill, i) => (
-                  <div key={i}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium">{skill.name}</span>
-                      <span className="text-red-500">{Math.round(skill.growthRate * 100)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5">
-                      <div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
-                    </div>
+            {(() => {
+              const declining = skillsList.filter(s => s.trend === 'declining');
+              const SKILLS_PER_PAGE = 8;
+              const totalDecliningPages = Math.ceil(declining.length / SKILLS_PER_PAGE);
+              const decliningSlice = declining.slice((decliningPage - 1) * SKILLS_PER_PAGE, decliningPage * SKILLS_PER_PAGE);
+              return declining.length > 0 ? (
+                <>
+                  <div className="space-y-4">
+                    {decliningSlice.map((skill, i) => (
+                      <div key={i}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="font-medium">{skill.name}</span>
+                          <span className="text-red-500">{Math.round(skill.growthRate * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-1.5">
+                          <div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 gap-2">
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                    <path d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <Pagination currentPage={decliningPage} totalItems={declining.length} itemsPerPage={SKILLS_PER_PAGE} onPageChange={setDecliningPage} />
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 gap-2">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <path d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">No declining skills</p>
+                  <p className="text-xs text-gray-400">All skills are stable or growing</p>
                 </div>
-                <p className="text-sm font-medium text-gray-500">No declining skills</p>
-                <p className="text-xs text-gray-400">All skills are stable or growing</p>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       </div>

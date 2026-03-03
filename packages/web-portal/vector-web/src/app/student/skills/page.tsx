@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import Pagination from '@/components/shared/Pagination';
 import Link from 'next/link';
 
 interface RawCredential {
@@ -234,6 +235,13 @@ export default function SkillsPage() {
   const universityCards = skillCards.filter(c => c.source === 'university');
   const blockchainCards = skillCards.filter(c => c.source === 'blockchain');
 
+  const [uniPage, setUniPage] = useState(1);
+  const [bcPage, setBcPage] = useState(1);
+  const CARDS_PER_PAGE = 6;
+
+  const paginatedUni = universityCards.slice((uniPage - 1) * CARDS_PER_PAGE, uniPage * CARDS_PER_PAGE);
+  const paginatedBc = blockchainCards.slice((bcPage - 1) * CARDS_PER_PAGE, bcPage * CARDS_PER_PAGE);
+
   return (
     <DashboardLayout>
       <div className="mb-6">
@@ -295,8 +303,9 @@ export default function SkillsPage() {
                 <span className="text-xs text-gray-400">{universityCards.length} skill{universityCards.length !== 1 ? 's' : ''}</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {universityCards.map((card, i) => <SkillCardItem key={`u-${i}`} card={card} health={healthMap.get(card.skillName)} />)}
+                {paginatedUni.map((card, i) => <SkillCardItem key={`u-${i}`} card={card} health={healthMap.get(card.skillName)} />)}
               </div>
+              <Pagination currentPage={uniPage} totalItems={universityCards.length} itemsPerPage={CARDS_PER_PAGE} onPageChange={setUniPage} />
             </section>
           )}
 
@@ -310,8 +319,9 @@ export default function SkillsPage() {
                 <span className="text-xs text-gray-400">{blockchainCards.length} skill{blockchainCards.length !== 1 ? 's' : ''}</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {blockchainCards.map((card, i) => <SkillCardItem key={`bc-${i}`} card={card} health={healthMap.get(card.skillName)} />)}
+                {paginatedBc.map((card, i) => <SkillCardItem key={`bc-${i}`} card={card} health={healthMap.get(card.skillName)} />)}
               </div>
+              <Pagination currentPage={bcPage} totalItems={blockchainCards.length} itemsPerPage={CARDS_PER_PAGE} onPageChange={setBcPage} />
             </section>
           )}
 
