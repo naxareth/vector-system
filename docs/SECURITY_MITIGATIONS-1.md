@@ -1,4 +1,4 @@
-# 🛡️ Security Mitigations — Checkpoint #2
+# Security Mitigations — Checkpoint #2
 
 **Group 7** | Leader: Denulan, Ace Philip Soriano  
 Members: Amrinto, De Guzman, Doria, Valencia, Arenas
@@ -25,9 +25,9 @@ Members: Amrinto, De Guzman, Doria, Valencia, Arenas
 
 **Test Results (3 cases):**
 ```
-✅ Test 1: Valid CSV parsed correctly (2 rows, correct fields)
-✅ Test 2: Formula injection characters neutralized (=, +, @)
-✅ Test 3: Invalid format rejected (wrong headers, empty file, wrong MIME, oversized)
+Test 1: Valid CSV parsed correctly (2 rows, correct fields)
+Test 2: Formula injection characters neutralized (=, +, @)
+Test 3: Invalid format rejected (wrong headers, empty file, wrong MIME, oversized)
 ```
 
 ---
@@ -55,9 +55,9 @@ Members: Amrinto, De Guzman, Doria, Valencia, Arenas
 
 **Test Results (3 cases):**
 ```
-✅ Test 1: Missing key guard throws with specific error messages
-✅ Test 2: Client-side leak (NEXT_PUBLIC_GEMINI_API_KEY) detected and flagged
-✅ Test 3: Valid configuration with all keys passes silently
+Test 1: Missing key guard throws with specific error messages
+Test 2: Client-side leak (NEXT_PUBLIC_GEMINI_API_KEY) detected and flagged
+Test 3: Valid configuration with all keys passes silently
 ```
 
 ---
@@ -83,9 +83,9 @@ Members: Amrinto, De Guzman, Doria, Valencia, Arenas
 
 **Test Results (3 cases):**
 ```
-✅ Test 1: Sensitive fields (email, notes, wallet, studentId) stripped from output
-✅ Test 2: Public fields (skill, issuerDid, certNumber) correctly preserved
-✅ Test 3: Deep nested sensitive data (3 levels + arrays) detected and stripped
+Test 1: Sensitive fields (email, notes, wallet, studentId) stripped from output
+Test 2: Public fields (skill, issuerDid, certNumber) correctly preserved
+Test 3: Deep nested sensitive data (3 levels + arrays) detected and stripped
 ```
 
 ---
@@ -112,9 +112,9 @@ Members: Amrinto, De Guzman, Doria, Valencia, Arenas
 
 **Test Results (3 cases):**
 ```
-✅ Test 1: 5 requests under limit all allowed (remaining count correct)
-✅ Test 2: 11th request rejected with retryAfterMs > 0 (different IP unaffected)
-✅ Test 3: Blocked requests allowed again after window expires (500ms test window)
+Test 1: 5 requests under limit all allowed (remaining count correct)
+Test 2: 11th request rejected with retryAfterMs > 0 (different IP unaffected)
+Test 3: Blocked requests allowed again after window expires (500ms test window)
 ```
 
 ---
@@ -143,9 +143,9 @@ Members: Amrinto, De Guzman, Doria, Valencia, Arenas
 
 **Test Results (3 cases):**
 ```
-✅ Test 1: Registrar role successfully authorized to mint credential
-✅ Test 2: Student role rejected with 403 Forbidden on mint attempt
-✅ Test 3: Forged/unsigned mint payload rejected before reaching smart contract
+Test 1: Registrar role successfully authorized to mint credential
+Test 2: Student role rejected with 403 Forbidden on mint attempt
+Test 3: Forged/unsigned mint payload rejected before reaching smart contract
 ```
 
 ---
