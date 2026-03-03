@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/dashboard/AdminLayout';
+import Pagination from '@/components/shared/Pagination';
 
 interface SystemLog {
   id: string;
@@ -23,6 +24,8 @@ export default function SystemMetricsDashboard() {
   const [metrics, setMetrics] = useState<Metrics>({ total: 0, errorRate: '0', avgDuration: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [trafficPage, setTrafficPage] = useState(1);
+  const TRAFFIC_PER_PAGE = 20;
 
   const fetchLogs = async () => {
     try {
@@ -111,7 +114,7 @@ export default function SystemMetricsDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-[#1E2536]">
-                {logs.map((log) => (
+                {logs.slice((trafficPage - 1) * TRAFFIC_PER_PAGE, trafficPage * TRAFFIC_PER_PAGE).map((log) => (
                   <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-[#1E2536]">
                     <td className="px-6 py-3 font-mono text-xs text-gray-500 dark:text-[#64748B] whitespace-nowrap">
                       {new Date(log.created_at).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -140,6 +143,11 @@ export default function SystemMetricsDashboard() {
               </tbody>
             </table>
           </div>
+          {logs.length > 0 && (
+            <div className="px-6 py-2 border-t border-gray-100 dark:border-[#1E2536]">
+              <Pagination currentPage={trafficPage} totalItems={logs.length} itemsPerPage={TRAFFIC_PER_PAGE} onPageChange={setTrafficPage} />
+            </div>
+          )}
         </div>
       </div>
     </AdminLayout>

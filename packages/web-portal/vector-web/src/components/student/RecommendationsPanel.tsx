@@ -1,4 +1,6 @@
 'use client';
+import { useState } from 'react';
+import Pagination from '@/components/shared/Pagination';
 
 export interface CourseRecommendation {
   courseId: string;
@@ -107,6 +109,10 @@ export default function RecommendationsPanel({ recommendations, loading }: Props
   const hasExplore = recommendations.some(r => r.reasonType === 'explore');
   const hasTier1 = recommendations.some(r => r.reasonType !== 'explore');
 
+  const ITEMS_PER_PAGE = 5;
+  const [recPage, setRecPage] = useState(1);
+  const paginatedRecs = recommendations.slice((recPage - 1) * ITEMS_PER_PAGE, recPage * ITEMS_PER_PAGE);
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header */}
@@ -144,15 +150,14 @@ export default function RecommendationsPanel({ recommendations, loading }: Props
 
       {/* Course Cards */}
       <div className="divide-y divide-gray-50">
-        {recommendations.map((rec, i) => {
-          // Use fallback config if reasonType is unknown — prevents future crashes
+        {paginatedRecs.map((rec, i) => {
           const config = REASON_CONFIG[rec.reasonType] ?? FALLBACK_CONFIG;
+          const globalIndex = (recPage - 1) * ITEMS_PER_PAGE + i;
           return (
             <div key={rec.courseId} className="px-6 py-4 hover:bg-gray-50 transition-colors">
               <div className="flex items-start gap-4">
-                {/* Rank number */}
                 <div className="flex-shrink-0 w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 mt-0.5">
-                  {i + 1}
+                  {globalIndex + 1}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -204,6 +209,9 @@ export default function RecommendationsPanel({ recommendations, loading }: Props
             </div>
           );
         })}
+      </div>
+      <div className="px-6 pb-2">
+        <Pagination currentPage={recPage} totalItems={recommendations.length} itemsPerPage={ITEMS_PER_PAGE} onPageChange={setRecPage} />
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
+import Pagination from '@/components/shared/Pagination';
 // ❌ REMOVED: import { decryptData } from '@/lib/encryption'; (Security Fix)
 
 interface CredentialLog {
@@ -29,7 +30,7 @@ export default function ManageCredentials() {
     try {
       // 🚀 CHANGED: Fetch from Secure API instead of direct Supabase
       const res = await fetch('/api/registrar/credentials');
-      
+
       if (!res.ok) {
         throw new Error('Failed to fetch credentials');
       }
@@ -51,6 +52,13 @@ export default function ManageCredentials() {
     const cert = cred.certificate_number?.toLowerCase() || '';
     return name.includes(term) || wallet.includes(term) || skill.includes(term) || cert.includes(term);
   });
+
+  const ROWS_PER_PAGE = 10;
+  const [credPage, setCredPage] = useState(1);
+  const paginatedCreds = filteredCredentials.slice((credPage - 1) * ROWS_PER_PAGE, credPage * ROWS_PER_PAGE);
+
+  // Reset to page 1 when search changes
+  useEffect(() => { setCredPage(1); }, [searchQuery]);
 
   return (
     <RegistrarLayout>
@@ -99,7 +107,7 @@ export default function ManageCredentials() {
                 ) : filteredCredentials.length === 0 ? (
                   <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">No records found.</td></tr>
                 ) : (
-                  filteredCredentials.map((cred) => (
+                  paginatedCreds.map((cred) => (
                     <tr key={cred.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
@@ -108,7 +116,7 @@ export default function ManageCredentials() {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">{cred.user?.full_name || 'Restricted'}</p>
-                            <p className="text-xs text-gray-500 font-mono">{cred.user?.wallet_address ? cred.user.wallet_address.slice(0,6)+'...' : ''}</p>
+                            <p className="text-xs text-gray-500 font-mono">{cred.user?.wallet_address ? cred.user.wallet_address.slice(0, 6) + '...' : ''}</p>
                           </div>
                         </div>
                       </td>
@@ -117,7 +125,7 @@ export default function ManageCredentials() {
                           {cred.skill_name}
                         </span>
                       </td>
-                      
+
                       <td className="px-6 py-4 text-sm text-gray-600 font-mono">
                         {cred.certificate_number || '-'}
                       </td>
@@ -133,7 +141,7 @@ export default function ManageCredentials() {
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xl">
                               <p className="font-bold text-gray-400 mb-1 uppercase tracking-wider text-[10px]">Decrypted Content:</p>
                               {/* ✅ Render directly (it's already decrypted by API) */}
-                              {cred.private_notes} 
+                              {cred.private_notes}
                               <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
                             </div>
                           </div>
@@ -144,9 +152,9 @@ export default function ManageCredentials() {
 
                       <td className="px-6 py-4">
                         {cred.transaction_hash && (
-                          <a 
-                            href={`https://amoy.polygonscan.com/tx/${cred.transaction_hash}`} 
-                            target="_blank" 
+                          <a
+                            href={`https://amoy.polygonscan.com/tx/${cred.transaction_hash}`}
+                            target="_blank"
                             rel="noreferrer"
                             className="text-[#06B4C9] hover:text-[#157942] text-xs font-medium flex items-center gap-1"
                           >
@@ -161,6 +169,7 @@ export default function ManageCredentials() {
               </tbody>
             </table>
           </div>
+          <Pagination currentPage={credPage} totalItems={filteredCredentials.length} itemsPerPage={ROWS_PER_PAGE} onPageChange={setCredPage} />
         </div>
       </div>
     </RegistrarLayout>

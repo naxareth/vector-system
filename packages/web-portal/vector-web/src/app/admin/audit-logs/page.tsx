@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/dashboard/AdminLayout';
+import Pagination from '@/components/shared/Pagination';
 import { supabase } from '@/lib/supabaseClient';
 
 interface AuditLogEntry {
@@ -16,6 +17,8 @@ interface AuditLogEntry {
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [logPage, setLogPage] = useState(1);
+  const LOGS_PER_PAGE = 15;
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -75,7 +78,7 @@ export default function AuditLogsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-[#1E2536]">
-                  {logs.map((log) => (
+                  {logs.slice((logPage - 1) * LOGS_PER_PAGE, logPage * LOGS_PER_PAGE).map((log) => (
                     <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-[#1E2536] transition-colors">
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-[#94A3B8] whitespace-nowrap">
                         <span className="font-mono text-xs">{new Date(log.created_at).toISOString().split('T')[0]}</span>
@@ -108,6 +111,11 @@ export default function AuditLogsPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {logs.length > 0 && (
+            <div className="px-6 py-2 border-t border-gray-100 dark:border-[#1E2536]">
+              <Pagination currentPage={logPage} totalItems={logs.length} itemsPerPage={LOGS_PER_PAGE} onPageChange={setLogPage} />
             </div>
           )}
         </div>
