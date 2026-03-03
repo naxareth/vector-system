@@ -10,6 +10,7 @@ import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import CVRSuccessModal from '@/components/dashboard/CVRSuccessModal';
 import CVRAnalysisPanel from '@/components/cvr/CVRAnalysisPanel'; // Phase 12
 import CVRPreviewModal from '@/components/cvr/CVRPreviewModal';
+import HelpTip from '@/components/shared/HelpTip';
 import {
   PersonalDetailsSection,
   EducationSection,
@@ -457,11 +458,12 @@ export default function CVRPage() {
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
           {isGenerated ? 'Credential Verified Resume (CVR)' : 'Credential Verified Resume'}
+          <HelpTip text="A CVR is a resume where your certificates are linked to tamper-proof records, so employers can instantly verify they're real." />
         </h1>
         <p className="text-sm md:text-base text-gray-500">
           {isGenerated
-            ? 'Your blockchain-verified resume preview'
-            : 'Create your blockchain-verified resume with verified skills'}
+            ? 'Your verified resume is ready to share with employers'
+            : 'Build a resume backed by your verified certificates'}
         </p>
       </div>
 
@@ -484,10 +486,10 @@ export default function CVRPage() {
                     <svg className="w-4 h-4 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    Your CVR History
+                    Your CVR History <HelpTip size={14} text="Every resume you generate is saved permanently. Share the latest link with employers so they can verify your credentials." />
                   </h2>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Each export is permanent and immutable. Share the latest link with employers.
+                    Each version is saved permanently. Share the latest link with employers.
                   </p>
                 </div>
                 <span className="text-xs font-medium text-[#06B4C9] bg-[#06B4C9]/10 border border-[#06B4C9]/20 px-3 py-1 rounded-full">

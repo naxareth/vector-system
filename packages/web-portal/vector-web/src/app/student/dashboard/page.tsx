@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import CredentialCard from '@/components/dashboard/CredentialCard';
 import RecentActivity, { ActivityItem } from '@/components/dashboard/RecentActivity';
+import HelpTip from '@/components/shared/HelpTip';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 import studentIllustration from './student.png';
@@ -297,7 +298,7 @@ export default function StudentDashboard() {
             <div className="bg-white rounded-xl border border-gray-200 p-5 relative">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Verified Skills</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Verified Skills <HelpTip text="Skills confirmed by your university and recorded permanently on the network." /></h3>
                   <p className="text-3xl font-bold text-gray-900 mb-3">{allCredentials.length}</p>
                   <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${allCredentials.length > 2 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -320,7 +321,7 @@ export default function StudentDashboard() {
             <div className="bg-white rounded-xl border border-gray-200 p-5 relative">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Market Score</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Market Score <HelpTip text="How well your current skills match what employers are hiring for right now. Higher is better." /></h3>
                   <p className="text-3xl font-bold text-gray-900 mb-3">{marketScore}%</p>
                   <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${marketScore >= 70 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -345,7 +346,7 @@ export default function StudentDashboard() {
           {/* Skill Health Trends */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Top Skills Performance</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Top Skills Performance <HelpTip text="Shows how each of your skills is trending in the job market — growing, stable, or declining." /></h3>
               <div className="flex items-center gap-3 text-xs">
               </div>
             </div>
@@ -381,7 +382,7 @@ export default function StudentDashboard() {
                         </div>
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <span>Demand: {skill.currentDemand.toFixed(1)}%</span>
-                          <span>Decay Rate: {skill.decayRate.toFixed(2)}%</span>
+                          <span>Decay Rate: {skill.decayRate.toFixed(2)}% <HelpTip size={12} text="How quickly this skill loses relevance if not updated. A lower number means the skill stays valuable longer." /></span>
                         </div>
                       </div>
                     );
@@ -411,7 +412,7 @@ export default function StudentDashboard() {
           {/* Verified Credentials */}
           <div id="tour-credentials" className="bg-white rounded-xl border border-gray-200 p-5">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Verified Credentials</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Verified Credentials <HelpTip text="Certificates and qualifications issued by your university, securely stored and verifiable by employers." /></h2>
               <button
                 onClick={() => router.push('/student/skills')}
                 className="text-[#06B4C9] text-sm font-medium hover:underline"
@@ -466,13 +467,13 @@ export default function StudentDashboard() {
                 {user?.wallet_address
                   ? <span className="text-green-500 font-bold mr-2">✓</span>
                   : <span className="text-gray-300 mr-2">○</span>}
-                Connect Wallet
+                Connect Wallet <HelpTip size={13} text="A digital wallet (like MetaMask) stores your certificates securely on the blockchain so employers can verify them." />
               </li>
               <li className="flex items-center text-sm text-gray-600">
                 {allCredentials.length > 0 || hasPendingCVR
                   ? <span className="text-green-500 font-bold mr-2">✓</span>
                   : <span className="text-gray-300 mr-2">○</span>}
-                Upload Resume (CVR)
+                Upload Resume (CVR) <HelpTip size={13} text="CVR stands for Credential-Verified Resume — a resume that links to your verified certificates for proof." />
               </li>
               <li className="flex items-center text-sm text-gray-600">
                 <span className="text-gray-300 mr-2">○</span>

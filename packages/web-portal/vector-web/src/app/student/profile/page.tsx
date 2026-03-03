@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabaseClient';
 import { z } from 'zod'; // 1. Import Zod
+import HelpTip from '@/components/shared/HelpTip';
 
 // 2. Define Validation Schema
 const profileSchema = z.object({
@@ -352,10 +353,10 @@ export default function ProfilePage() {
 
                 {/* Wallet */}
                 <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-                  <h2 className="text-base font-semibold text-gray-900 mb-4">Blockchain Wallet</h2>
+                  <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-1">Blockchain Wallet <HelpTip text="A digital wallet (like MetaMask) that stores your verified certificates on the blockchain so they can't be tampered with." size={14} /></h2>
                   {formData.walletAddress ? (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Wallet Address</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">Wallet Address <HelpTip text="This is your unique blockchain identity (starts with 0x). It links your MetaMask to your on-chain certificates." size={12} /></label>
                       <div className="flex items-center gap-3">
                         <input type="text" value={formData.walletAddress} disabled={true} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 font-mono text-sm cursor-not-allowed" />
                         <button
@@ -434,7 +435,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Skill Expiry Alerts</p>
+                        <p className="text-sm font-medium text-gray-700 flex items-center gap-1">Skill Expiry Alerts <HelpTip text="Some certificates have expiration dates. This notifies you before they expire so you can renew them." size={12} /></p>
                         <p className="text-xs text-gray-500">Get notified when credentials are about to expire</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
@@ -444,7 +445,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Market Updates</p>
+                        <p className="text-sm font-medium text-gray-700 flex items-center gap-1">Market Updates <HelpTip text="A weekly AI-generated summary of how your skills are trending in the job market." size={12} /></p>
                         <p className="text-xs text-gray-500">Weekly summary of skill market trends</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
@@ -467,13 +468,13 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-                  <h2 className="text-base font-semibold text-gray-900 mb-1">Two-Factor Authentication</h2>
+                  <h2 className="text-base font-semibold text-gray-900 mb-1 flex items-center gap-1">Two-Factor Authentication <HelpTip text="An extra security step that requires a code from an app like Google Authenticator or Authy when you log in." size={14} /></h2>
                   <p className="text-xs text-gray-500 mb-4">Add an extra layer of security using TOTP authenticator</p>
                   <button type="button" onClick={() => router.push('/student/profile/security')} className="px-5 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors font-medium">Enable 2FA</button>
                 </div>
 
                 <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-                  <h2 className="text-base font-semibold text-gray-900 mb-1">Active Sessions</h2>
+                  <h2 className="text-base font-semibold text-gray-900 mb-1 flex items-center gap-1">Active Sessions <HelpTip text="Devices or browsers where you're currently logged in. You can see and manage them here." size={14} /></h2>
                   <p className="text-xs text-gray-500 mb-4">Manage devices where you're currently logged in</p>
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
