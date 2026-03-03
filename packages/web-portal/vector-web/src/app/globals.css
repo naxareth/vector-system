@@ -6,11 +6,21 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --accent: #06B4C9;
+  --accent-rgb: 6,180,201;
+  --accent-dark: #0496a3;
+  --muted: #6b7280;
+  --surface: #ffffff;
 }
 
 .dark {
   --background: #0B0F19;
   --foreground: #F1F5F9;
+  --accent: #06B4C9;
+  --accent-rgb: 6,180,201;
+  --accent-dark: #06B4C9;
+  --muted: #94A3B8;
+  --surface: #131825;
 }
 
 @theme inline {
@@ -35,6 +45,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Utility helpers for consistent colors (use these in JSX classes) */
+.text-accent { color: var(--accent) !important; }
+.text-accent-dark { color: var(--accent-dark) !important; }
+.bg-accent { background-color: var(--accent) !important; }
+.bg-accent-10 { background-color: rgba(var(--accent-rgb), 0.10) !important; }
+.border-accent { border-color: var(--accent) !important; }
+.ring-accent { box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.08) !important; }
+.hover\:text-accent-dark:hover { color: var(--accent-dark) !important; }
+.focus\:ring-accent:focus { box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.12); outline: none; }
+
 
 /* -------------------------------------------------------------------------- */
 /* 🌙 DARK MODE THEME                                                         */
