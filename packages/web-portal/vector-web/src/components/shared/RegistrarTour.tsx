@@ -28,8 +28,8 @@ export default function RegistrarTour() {
         { 
           element: '#reg-tour-mint', 
           popover: { 
-            title: 'Issue Credentials', 
-            description: 'Use this form to mint degrees or certificates. You can do single issuance or bulk CSV upload.',
+            title: 'Issue Certificate', 
+            description: 'Use this form to create a certificate. Issue a single certificate or upload many at once using CSV.',
             side: 'bottom' 
           } 
         },
