@@ -323,9 +323,9 @@ export default function RegistrarDashboard() {
 
                 {csvResult.rowErrors && csvResult.rowErrors.length > 0 && (
                   <div className="space-y-1.5 mb-3">
-                    {csvResult.rowErrors.map((re, i) => (
+                    {csvResult.rowErrors.map((re: any, i: number) => (
                       <p key={i} className="bg-red-100 text-red-700 px-3 py-1.5 rounded text-sm">
-                        Row {re.row}: {re.issues.join(', ')}
+                        Row {re.row}: {re.issues ? re.issues.join(', ') : re.message ? `${re.field}: ${re.message}` : JSON.stringify(re)}
                       </p>
                     ))}
                   </div>

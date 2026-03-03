@@ -19,7 +19,7 @@ import { requireEnv } from '@/lib/env-guard';
 // to double the effective daily quota from 20 to 40 RPD.
 // ---------------------------------------------------------------------------
 
-export const GEMINI_MODEL = 'gemini-2.5-flash';
+export const GEMINI_MODEL = 'gemini-2.5-flash-lite';
 
 /** 🛡️ Fails fast if GEMINI_API_KEY is missing — prevents silent empty-key usage */
 const GEMINI_API_KEY = requireEnv('GEMINI_API_KEY');

@@ -4,15 +4,29 @@ import dotenv from "dotenv";
 // Load environment variables from .env file
 dotenv.config();
 
-// 🛡️ SECURITY (Checkpoint #2): Runtime guard — fail fast if key is missing
-if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim().length === 0) {
-  throw new Error(
-    '🛡️ SECURITY: GEMINI_API_KEY is not set in ai-engine .env. ' +
-    'The AI engine cannot start without it.'
-  );
+// 🛡️ SECURITY (Checkpoint #2): Lazy guard — only crashes when Gemini is
+// actually used, not at import time. This lets Adzuna-only daily runs work
+// even when GEMINI_API_KEY isn't set.
+let _genAI: GoogleGenerativeAI | null = null;
+
+export function getGenAI(): GoogleGenerativeAI {
+  if (!_genAI) {
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim().length === 0) {
+      throw new Error(
+        '🛡️ SECURITY: GEMINI_API_KEY is not set. ' +
+        'The AI engine cannot use Gemini features without it.'
+      );
+    }
+    _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  }
+  return _genAI;
 }
 
-export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Backward-compatible export — existing code using `genAI` will still work
+// when the key IS available. For lazy usage, prefer `getGenAI()`.
+export const genAI = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : (null as unknown as GoogleGenerativeAI);
 
 /**
  * Open-domain skill extraction prompt.
@@ -113,7 +127,7 @@ Input tag: "${tag}"
 `.trim();
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 
