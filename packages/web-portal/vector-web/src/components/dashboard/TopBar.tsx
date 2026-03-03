@@ -301,21 +301,40 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
           {/* Right Section: Icons */}
           <div className="flex items-center gap-2">
 
-            {/* Theme Toggle */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
-              >
-                {theme === 'dark' ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            {/* Theme Indicator + Toggle */}
+            <div className="hidden sm:inline-flex items-center gap-2 mr-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-white/5 text-xs text-gray-700 dark:text-[#CBD5E1]">
+              {theme === 'dark' ? (
+                <>
+                  <svg className="w-4 h-4 text-yellow-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M21.64 13.42A9 9 0 1110.58 2.36a7 7 0 0011.06 11.06z" />
                   </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  <span>Dark</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M6.76 4.84l-1.8-1.79L3.17 5.84l1.79 1.79 1.8-2.79zM1 13h3v-2H1v2zm10 9h2v-3h-2v3zm7.24-2.76l1.79 1.79 1.79-1.79-1.79-1.79-1.79 1.79zM20 11v2h3v-2h-3zM11 1h2v3h-2V1zM4.22 19.78l1.79-1.79-1.79-1.79-1.79 1.79 1.79 1.79z" />
                   </svg>
-                )}
-              </button>
+                  <span>Light</span>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
 
             {/* Notification Bell */}
             <div id="tour-notifications" className="relative" ref={notificationsRef}>

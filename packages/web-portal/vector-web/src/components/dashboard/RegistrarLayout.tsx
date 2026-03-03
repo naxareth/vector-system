@@ -2,11 +2,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabaseClient';
-// 1. Import the Timeout Component
 import SessionTimeout from '../shared/SessionTimeout';
-// 2. Import Registrar Tour
 import RegistrarTour from '../shared/RegistrarTour';
 
 interface RegistrarLayoutProps {
@@ -19,62 +17,56 @@ interface UserProfile {
   role: string;
 }
 
-export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
+/* ── Inner shell (needs ThemeProvider above it) ────────────────────────── */
+function RegistrarShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
-
-  // ⚡ LOADING STATE: Default to true to prevent premature redirects
   const [isLoading, setIsLoading] = useState(true);
-
-  // ⚡ USER STATE: Default to null
   const [user, setUser] = useState<UserProfile | null>(null);
 
   const pathname = usePathname();
   const router = useRouter();
 
-  // ✅ 1. Fetch Dynamic User Data
+  // Theme toggle (safe fallback)
+  let theme: 'light' | 'dark' = 'light';
+  let toggleTheme = () => {};
+  try {
+    const ctx = useTheme();
+    theme = ctx.theme;
+    toggleTheme = ctx.toggleTheme;
+  } catch {}
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // A. Get Session (Contains Email & Auth ID)
         const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { router.replace('/login'); return; }
 
-        if (!session) {
-          router.replace('/login');
-          return;
-        }
-
-        // B. Get Profile (Contains Name & Role)
         const { data: profile } = await supabase
           .from('users')
           .select('full_name, role')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        // C. 🛡️ RBAC Gate — redirect non-registrar users
         if (profile?.role !== 'registrar' && profile?.role !== 'super_admin') {
           router.replace('/student/dashboard');
           return;
         }
 
-        // D. Set User State (Combine Session + DB)
         setUser({
           full_name: profile?.full_name || 'Registrar Admin',
           email: session.user.email || 'admin@vector.edu',
-          role: profile.role
+          role: profile.role,
         });
-
       } catch (error) {
-        console.error("Error loading registrar profile:", error);
+        console.error('Error loading registrar profile:', error);
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchUser();
   }, [router]);
 
-  // ✅ 2. Logout Logic
   const confirmLogout = async () => {
     await supabase.auth.signOut();
     setIsLogoutDialogOpen(false);
@@ -88,170 +80,215 @@ export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
     return name.slice(0, 2).toUpperCase();
   };
 
-  // ⚡ Render Loading Spinner while fetching
+  const navigation = [
+    {
+      name: 'Issue Certificate',
+      href: '/registrar/dashboard',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+    },
+    {
+      name: 'Students',
+      href: '/registrar/students',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ),
+    },
+  ];
+
+  /* ── Loading Spinner ─────────────────────────────────────────────────── */
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0B0F19]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-[#06B4C9] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-500 text-sm font-medium">Loading Registrar Portal...</p>
+          <div className="w-10 h-10 border-4 border-[#06B4C9] border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-500 dark:text-[#94A3B8] text-sm font-medium">Loading Registrar Portal…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0B0F19] flex">
+      <SessionTimeout />
+      <RegistrarTour />
 
-        {/* 2. Add the Timeout Logic Here */}
-        <SessionTimeout />
-
-        {/* 3. Activate Tour Here */}
-        <RegistrarTour />
-
-        {/* Sidebar */}
-        <aside
-          id="reg-tour-nav"
-          className={`
-          fixed top-0 left-0 z-40 h-screen w-64 bg-white border-r border-gray-200
+      {/* ── Sidebar ───────────────────────────────────────────────────── */}
+      <aside
+        id="reg-tour-nav"
+        className={`
+          fixed top-0 left-0 z-40 h-screen w-64
+          bg-white dark:bg-[#0E1220] border-r border-gray-200 dark:border-[#1E2536]
           transform transition-transform duration-200 ease-in-out
           lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}>
-          <div className="flex flex-col h-full">
-            {/* Logo */}
-            <div className="p-6 border-b border-gray-200">
-              <Link href="/registrar/dashboard" className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#06B4C9]/10 rounded-lg flex items-center justify-center">
-                  <span className="text-[#06B4C9] font-bold text-lg">V</span>
-                </div>
-                <div>
-                  <span className="text-xl font-bold text-gray-900">VECTOR</span>
-                  <p className="text-xs text-gray-500">Registrar Portal</p>
-                </div>
-              </Link>
-            </div>
+        `}
+      >
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="p-6 border-b border-gray-200 dark:border-[#1E2536]">
+            <Link href="/registrar/dashboard" className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-900 dark:bg-[#06B4C9]/15 rounded-lg flex items-center justify-center">
+                <span className="text-[#06B4C9] font-bold text-lg">V</span>
+              </div>
+              <div>
+                <span className="text-xl font-bold text-gray-900 dark:text-white">VECTOR</span>
+                <p className="text-xs text-gray-500 dark:text-[#64748B]">Registrar Portal</p>
+              </div>
+            </Link>
+          </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 p-4 space-y-1">
-              <Link
-                href="/registrar/dashboard"
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${pathname === '/registrar/dashboard'
-                  ? 'text-[#06B4C9] bg-[#06B4C9]/10'
-                  : 'text-gray-600 hover:bg-gray-50'
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-1">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium relative transition-all ${
+                    isActive
+                      ? 'text-[#06B4C9] bg-[#06B4C9]/10 dark:bg-[#06B4C9]/10'
+                      : 'text-gray-600 dark:text-[#94A3B8] hover:bg-gray-100/60 dark:hover:bg-white/5'
                   }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                Issue Credentials
-              </Link>
-
-              <Link
-                href="/registrar/students"
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium ${pathname === '/registrar/students'
-                  ? 'text-[#06B4C9] bg-[#06B4C9]/10'
-                  : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                Students
-              </Link>
-            </nav>
-
-            {/* ✅ Dynamic User Footer */}
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg justify-between group">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="w-9 h-9 bg-[#06B4C9] rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold text-xs">
-                    {getInitials(user?.full_name || '')}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {user?.full_name}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {user?.email}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Logout Button */}
-                <button
-                  onClick={() => setIsLogoutDialogOpen(true)}
-                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors flex-shrink-0"
-                  title="Logout"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                </button>
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-6 bg-gray-900 dark:bg-[#06B4C9] rounded-r-full" />
+                  )}
+                  {item.icon}
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* User Footer */}
+          <div className="p-4 border-t border-gray-200 dark:border-[#1E2536]">
+            <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-white/5 rounded-lg justify-between group">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 bg-[#06B4C9] rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold text-xs">
+                  {getInitials(user?.full_name || '')}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user?.full_name}</p>
+                  <p className="text-xs text-gray-500 dark:text-[#64748B] truncate">{user?.email}</p>
+                </div>
               </div>
+              <button
+                onClick={() => setIsLogoutDialogOpen(true)}
+                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors flex-shrink-0"
+                title="Sign out"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+              </button>
             </div>
           </div>
-        </aside>
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:ml-64">
-          <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
-            {/* Invisible Anchor for Welcome Step */}
-            <div id="reg-tour-welcome" className="absolute top-0 left-0 w-full h-20 pointer-events-none" />
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 rounded-lg hover:bg-gray-100">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                </button>
-                <div className="lg:hidden flex items-center gap-2">
-                  <div className="w-8 h-8 bg-[#06B4C9] rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">V</span>
-                  </div>
-                  <span className="text-lg font-bold text-gray-900">VECTOR</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 ml-auto">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full border border-gray-200">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                  <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Admin Portal</span>
-                </div>
-                <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
-                <span className="text-sm font-medium text-gray-500 hidden sm:block">
-                  {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </span>
-              </div>
-            </div>
-          </header>
-
-          <main className="flex-1 p-4 sm:p-6 lg:p-8">
-            {children}
-          </main>
         </div>
+      </aside>
 
-        {/* Mobile Overlay */}
-        {sidebarOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
-        )}
+      {/* ── Main Content ──────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col lg:ml-64">
+        <header className="sticky top-0 z-30 bg-white dark:bg-[#0E1220] border-b border-gray-200 dark:border-[#1E2536] px-4 sm:px-6 lg:px-8 py-3">
+          <div id="reg-tour-welcome" className="absolute top-0 left-0 w-full h-20 pointer-events-none" />
 
-        {/* Logout Confirmation Modal */}
-        {isLogoutDialogOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          <div className="flex items-center justify-between gap-4">
+            {/* Left – Hamburger + mobile logo */}
+            <div className="flex items-center gap-3">
+              <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-[#94A3B8]">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              </button>
+              <div className="lg:hidden flex items-center gap-2">
+                <div className="w-8 h-8 bg-gray-900 dark:bg-[#06B4C9]/15 rounded-lg flex items-center justify-center">
+                  <span className="text-[#06B4C9] font-bold text-sm">V</span>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Confirm Logout</h3>
-                  <p className="text-sm text-gray-600">Are you sure you want to log out?</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setIsLogoutDialogOpen(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-700">Cancel</button>
-                <button onClick={confirmLogout} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">Logout</button>
+                <span className="text-lg font-bold text-gray-900 dark:text-white">VECTOR</span>
               </div>
             </div>
+
+            {/* Right – Theme toggle, status badge, date */}
+            <div className="flex items-center gap-2 ml-auto">
+              {/* Theme indicator pill */}
+              <div className="hidden sm:inline-flex items-center gap-2 mr-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-white/5 text-xs text-gray-700 dark:text-[#CBD5E1]">
+                {theme === 'dark' ? (
+                  <><svg className="w-4 h-4 text-yellow-300" viewBox="0 0 24 24" fill="currentColor"><path d="M21.64 13.42A9 9 0 1110.58 2.36a7 7 0 0011.06 11.06z" /></svg><span>Dark</span></>
+                ) : (
+                  <><svg className="w-4 h-4 text-orange-400" viewBox="0 0 24 24" fill="currentColor"><path d="M6.76 4.84l-1.8-1.79L3.17 5.84l1.79 1.79 1.8-2.79zM1 13h3v-2H1v2zm10 9h2v-3h-2v3zm7.24-2.76l1.79 1.79 1.79-1.79-1.79-1.79-1.79 1.79zM20 11v2h3v-2h-3zM11 1h2v3h-2V1zM4.22 19.78l1.79-1.79-1.79-1.79-1.79 1.79 1.79 1.79z" /></svg><span>Light</span></>
+                )}
+              </div>
+
+              {/* Theme toggle button */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                )}
+              </button>
+
+              <div className="h-8 w-px bg-gray-200 dark:bg-[#1E2536] hidden sm:block" />
+
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-white/5 rounded-full border border-gray-200 dark:border-[#1E2536]">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-xs font-semibold text-gray-700 dark:text-[#CBD5E1] uppercase tracking-wide">Registrar</span>
+              </div>
+
+              <div className="h-8 w-px bg-gray-200 dark:bg-[#1E2536] hidden sm:block" />
+
+              <span className="text-sm font-medium text-gray-500 dark:text-[#64748B] hidden sm:block">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </span>
+            </div>
           </div>
-        )}
+        </header>
+
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {isLogoutDialogOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#131825] rounded-xl max-w-md w-full p-6 shadow-xl animate-fade-in-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 dark:bg-red-500/15 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sign Out</h3>
+                <p className="text-sm text-gray-600 dark:text-[#94A3B8]">Are you sure you want to sign out?</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setIsLogoutDialogOpen(false)} className="flex-1 px-4 py-2 border border-gray-300 dark:border-[#283042] rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 font-medium text-gray-700 dark:text-[#CBD5E1]">Cancel</button>
+              <button onClick={confirmLogout} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">Sign Out</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Wrapper that provides ThemeProvider ────────────────────────────────── */
+export default function RegistrarLayout({ children }: RegistrarLayoutProps) {
+  return (
+    <ThemeProvider>
+      <RegistrarShell>{children}</RegistrarShell>
     </ThemeProvider>
   );
 }

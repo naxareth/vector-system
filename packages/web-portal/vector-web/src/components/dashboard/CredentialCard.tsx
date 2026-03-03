@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import HelpTip from '@/components/shared/HelpTip';
 
 interface CredentialCardProps {
   id: string; 
@@ -74,7 +75,7 @@ export default function CredentialCard({
         {/* Footer */}
         <div className="mt-auto pt-4 border-t border-gray-50 flex items-end justify-between relative z-10">
           <div>
-            <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-tight">Market Relevance</p>
+            <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-tight">Market Relevance <HelpTip size={11} text="How in-demand this skill is with employers right now, based on live job market data." /></p>
             <div className="flex items-center gap-2">
               <span className="text-2xl font-black text-gray-900 group-hover:text-[#06B4C9] transition-colors">
                 {marketRelevance}%
