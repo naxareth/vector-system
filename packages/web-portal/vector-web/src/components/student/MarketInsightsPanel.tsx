@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import HelpTip from '@/components/shared/HelpTip';
 
 // --- Types (mirrors market-insights/route.ts) ---
 
@@ -245,7 +246,7 @@ export default function MarketInsightsPanel({ userId }: Props) {
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Rich Market Intelligence</h2>
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-1">Rich Market Intelligence <HelpTip text="Real salary data and job demand pulled from job aggregators for each of your skills." size={14} /></h2>
           <p className="text-xs text-gray-500">Salary & regional demand for your skills</p>
         </div>
         <span className="text-xs text-gray-400">
@@ -311,16 +312,16 @@ export default function MarketInsightsPanel({ userId }: Props) {
               {isOpen && (
                 <div className="px-6 pb-5 pt-1 bg-gray-50 border-t border-gray-100 space-y-4">
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                      Salary Range
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                      Salary Range <HelpTip text="The minimum, average, and maximum salaries from real job postings — not guaranteed, but reflects current market rates." size={11} />
                     </p>
                     <SalaryBar salary={skill.salary} />
                   </div>
 
                   {skill.top_locations.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                        Top Hiring Locations
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        Top Hiring Locations <HelpTip text="Cities or regions with the most job postings for this skill." size={11} />
                       </p>
                       <LocationBars locations={skill.top_locations} color={color} />
                     </div>

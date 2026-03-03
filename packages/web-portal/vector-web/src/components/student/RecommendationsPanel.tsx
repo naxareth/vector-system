@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Pagination from '@/components/shared/Pagination';
+import HelpTip from '@/components/shared/HelpTip';
 
 export interface CourseRecommendation {
   courseId: string;
@@ -23,24 +24,28 @@ const REASON_CONFIG = {
     color: 'bg-orange-50 text-orange-700 border-orange-200',
     dot: 'bg-orange-500',
     bar: 'bg-orange-500',
+    tip: "You're missing a skill that employers frequently look for.",
   },
   decay: {
     label: 'Urgent Upgrade',
     color: 'bg-red-50 text-red-700 border-red-200',
     dot: 'bg-red-500',
     bar: 'bg-red-500',
+    tip: 'A skill you have is losing market relevance — upgrading it can keep you competitive.',
   },
   growth: {
     label: 'Rising Demand',
     color: 'bg-green-50 text-green-700 border-green-200',
     dot: 'bg-green-500',
     bar: 'bg-green-500',
+    tip: 'Job postings for this skill are growing fast — a great opportunity to get ahead.',
   },
   complement: {
     label: 'Builds On Skills',
     color: 'bg-blue-50 text-blue-700 border-blue-200',
     dot: 'bg-blue-400',
     bar: 'bg-blue-400',
+    tip: 'This course complements skills you already have, making your profile stronger.',
   },
   // Tier 2 fallback: courses outside the student's domain surfaced as
   // expansion suggestions. Styled neutrally so they're visually distinct
@@ -50,6 +55,7 @@ const REASON_CONFIG = {
     color: 'bg-gray-50 text-gray-500 border-gray-200',
     dot: 'bg-gray-400',
     bar: 'bg-gray-400',
+    tip: 'Outside your current field but high-demand — an opportunity to broaden your skill set.',
   },
 };
 
@@ -60,6 +66,7 @@ const FALLBACK_CONFIG = {
   color: 'bg-gray-50 text-gray-500 border-gray-200',
   dot: 'bg-gray-400',
   bar: 'bg-gray-400',
+  tip: 'A suggested course to help improve your profile.',
 };
 
 export default function RecommendationsPanel({ recommendations, loading }: Props) {
@@ -118,7 +125,7 @@ export default function RecommendationsPanel({ recommendations, loading }: Props
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Recommended Actions</h2>
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-1">Recommended Actions <HelpTip text="AI-suggested courses ranked by how urgently they can improve your job prospects. Skill gaps and urgent upgrades appear first." size={14} /></h2>
           <p className="text-xs text-gray-500">Ranked by market urgency — gap fills first, then upgrades</p>
         </div>
         <span className="text-xs text-gray-400">{recommendations.length} suggestion{recommendations.length !== 1 ? 's' : ''}</span>
@@ -174,6 +181,7 @@ export default function RecommendationsPanel({ recommendations, loading }: Props
                     <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 ${config.color}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
                       {config.label}
+                      <HelpTip text={config.tip} size={10} />
                     </span>
                   </div>
 
