@@ -16,7 +16,7 @@ const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
 
@@ -90,7 +90,6 @@ export async function GET(
           token_id: true,
           transaction_hash: true,
           issued_at: true,
-          certificate_number: true,
           batch: {
             select: {
               batch_name: true,
@@ -109,7 +108,7 @@ export async function GET(
   // -------------------------------------------------------------------------
   // 4. On-chain verification per credential
   // -------------------------------------------------------------------------
-  const walletAddress = cvrExport.users.wallet_address;
+  const walletAddress = cvrExport.users?.wallet_address;
   const verifiedCredentials = await Promise.all(
     credentials.map(async (cred) => {
       let onChain: { verified: boolean; balance: number | null; error: string | null } =
@@ -120,7 +119,7 @@ export async function GET(
           const provider = new ethers.JsonRpcProvider(POLYGON_AMOY_RPC);
           const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
           const balance: bigint = await contract.balanceOf(walletAddress, BigInt(cred.token_id));
-          onChain = { verified: balance > 0n, balance: Number(balance), error: null };
+          onChain = { verified: balance > BigInt(0), balance: Number(balance), error: null };
         } catch {
           onChain = { verified: false, balance: null, error: 'Could not reach Polygon Amoy RPC.' };
         }
@@ -134,7 +133,6 @@ export async function GET(
         tokenId: cred.token_id,
         transactionHash: cred.transaction_hash ?? null,
         issuedAt: cred.issued_at,
-        certificateNumber: cred.certificate_number ?? null,
         batchName: cred.batch?.batch_name ?? null,
         registrarName: cred.batch?.registrar?.full_name ?? null,
         onChain,
@@ -152,8 +150,8 @@ export async function GET(
       template: cvrExport.template,
     },
     student: {
-      fullName: cvrExport.users.full_name ?? 'Unknown',
-      studentId: cvrExport.users.student_id ?? null,
+      fullName: cvrExport.users?.full_name ?? 'Unknown',
+      studentId: cvrExport.users?.student_id ?? null,
       walletAddress: walletAddress ?? null,
     },
     credentials: verifiedCredentials,

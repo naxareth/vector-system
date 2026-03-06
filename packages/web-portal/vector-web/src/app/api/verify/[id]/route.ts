@@ -20,7 +20,7 @@ const POLYGON_AMOY_RPC = 'https://rpc-amoy.polygon.technology/';
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
 
