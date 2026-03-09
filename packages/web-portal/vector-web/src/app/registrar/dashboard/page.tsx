@@ -222,10 +222,10 @@ export default function RegistrarDashboard() {
             <button onClick={() => setActiveTab('issue')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'issue' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
               Issue Certificate
             </button>
-            <button onClick={() => setActiveTab('batch')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'batch' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-green-600' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
+            <button onClick={() => setActiveTab('batch')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'batch' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
               Bulk Upload
             </button>
-            <button onClick={() => setActiveTab('build')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'build' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-blue-600' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
+            <button onClick={() => setActiveTab('build')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'build' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
               Certificate Template
             </button>
           </div>
@@ -667,7 +667,7 @@ export default function RegistrarDashboard() {
               {(mintingProgress.status === 'complete' || mintingProgress.status === 'error') && (
                 <button
                   onClick={() => setMintingProgress({ isOpen: false, progress: 0, status: 'minting', message: '' })}
-                  className="w-full py-3 bg-gray-900 dark:bg-white/10 text-white font-bold rounded-xl hover:opacity-90 transition-all"
+                  className="w-full py-3 bg-[#06B4C9] hover:bg-[#0496a3] text-white font-bold rounded-xl transition-all"
                 >
                   Close
                 </button>

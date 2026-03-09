@@ -301,25 +301,6 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
           {/* Right Section: Icons */}
           <div className="flex items-center gap-2">
 
-            {/* Theme Indicator + Toggle */}
-            <div className="hidden sm:inline-flex items-center gap-2 mr-1 px-2 py-1 rounded-full bg-gray-100 dark:bg-white/5 text-xs text-gray-700 dark:text-[#CBD5E1]">
-              {theme === 'dark' ? (
-                <>
-                  <svg className="w-4 h-4 text-yellow-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M21.64 13.42A9 9 0 1110.58 2.36a7 7 0 0011.06 11.06z" />
-                  </svg>
-                  <span>Dark</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 text-orange-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M6.76 4.84l-1.8-1.79L3.17 5.84l1.79 1.79 1.8-2.79zM1 13h3v-2H1v2zm10 9h2v-3h-2v3zm7.24-2.76l1.79 1.79 1.79-1.79-1.79-1.79-1.79 1.79zM20 11v2h3v-2h-3zM11 1h2v3h-2V1zM4.22 19.78l1.79-1.79-1.79-1.79-1.79 1.79 1.79 1.79z" />
-                  </svg>
-                  <span>Light</span>
-                </>
-              )}
-            </div>
-
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
