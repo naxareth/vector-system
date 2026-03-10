@@ -386,33 +386,44 @@ export default function RegistrarDashboard() {
                             const signer = await provider.getSigner();
                             const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
 
-                            let completed = 0;
                             const total = rows.length;
 
+                            // ── Build batch arrays for single ERC-1155 batchMintSkills call ──
+                            const addresses: string[] = [];
+                            const tokenIds: number[] = [];
+                            const amounts: number[] = [];
+
+                            for (const row of rows) {
+                              addresses.push(row.wallet_address);
+                              tokenIds.push(Math.floor(Math.random() * 1000000));
+                              amounts.push(1);
+                            }
+
+                            // Phase 1: Single on-chain transaction (1 MetaMask popup)
+                            setMintingProgress(prev => ({
+                              ...prev,
+                              progress: 15,
+                              message: `Minting ${total} credential${total > 1 ? 's' : ''} — sign once in MetaMask...`,
+                            }));
+
+                            const tx = await contract.batchMintSkills(addresses, tokenIds, amounts);
+
+                            // Phase 2: Wait for chain confirmation
+                            setMintingProgress(prev => ({
+                              ...prev,
+                              progress: 45,
+                              message: `Confirming batch transaction on Polygon...`,
+                            }));
+                            await tx.wait();
+
+                            // Phase 3: Save each credential to database
+                            let completed = 0;
                             for (let idx = 0; idx < rows.length; idx++) {
                               const row = rows[idx];
-
-                              // Phase 1: Request signature
                               setMintingProgress(prev => ({
                                 ...prev,
-                                progress: Math.round(((idx) / total) * 85) + 10,
-                                message: `Record ${idx + 1} of ${total} — sign in MetaMask...`,
-                              }));
-
-                              const numericTokenId = Math.floor(Math.random() * 1000000);
-                              const tx = await contract.mintSkill(row.wallet_address, numericTokenId, 1);
-
-                              // Phase 2: Wait for chain confirmation
-                              setMintingProgress(prev => ({
-                                ...prev,
-                                message: `Record ${idx + 1} of ${total} — confirming on chain...`,
-                              }));
-                              await tx.wait();
-
-                              // Phase 3: Save to database
-                              setMintingProgress(prev => ({
-                                ...prev,
-                                message: `Record ${idx + 1} of ${total} — saving to database...`,
+                                progress: 50 + Math.round((idx / total) * 45),
+                                message: `Saving record ${idx + 1} of ${total} to database...`,
                               }));
 
                               const { student_id, wallet_address, skill_tags: rawTags, ...credentialData } = row;
@@ -429,7 +440,7 @@ export default function RegistrarDashboard() {
                                   credential_data: credentialData,
                                   private_notes: '',
                                   certificate_number: `BATCH-${Date.now()}-${idx + 1}`,
-                                  token_id: numericTokenId.toString(),
+                                  token_id: tokenIds[idx].toString(),
                                   transaction_hash: tx.hash,
                                 }),
                               });

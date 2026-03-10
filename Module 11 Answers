@@ -1,0 +1,36 @@
+# Module 11: Bridge Recall & Planning Framework (Sprint 2)
+*VECTOR — Decentralized Micro-Credentialing System*
+
+## Bridge Recall: Security to Performance
+
+**1. Define "Bottleneck"**
+> What does this term mean in the context of system performance and data flow?
+**Answer:** A bottleneck is a point of severe congestion in a system that slows down the overall process. In the context of Vector, the bottleneck was the CSV minting process where N students required N individual transactions and N MetaMask signatures, causing a massive slowdown and high gas fees.
+
+**2. Previous Fix & Metrics**
+> Name the fix your team applied last time and specifically what metric it improved (e.g., time, gas, memory).
+**Answer:** We implemented **ERC-1155 `batchMintSkills`** to convert the per-row mint loop into a single batch call. This drastically improved **time** (reducing N metamask popups to 1) and **gas efficiency** (one transaction fee instead of 50).
+
+**3. Scaling Strategy**
+> Which would scale better for 10x users—caching or vertical scaling? Why?
+**Answer:** **Caching** scales better for our system. Vertical scaling (upgrading server hardware) eventually hits a physical limit and gets extremely expensive. Caching (e.g., storing AI recommendations or public credential payloads in Supabase/CDN) offloads repeated requests entirely, allowing the read-heavy student dashboard to handle 10x traffic with near-zero extra database load.
+
+---
+
+## Sprint 2 Plan Table
+
+| ITEM CATEGORY | DESCRIPTION & DETAILS |
+| :--- | :--- |
+| **New Feature** | **AI Career Coach & Portfolio Analytics:** Added a student coach dashboard showing an AI-generated portfolio score, rising/declining skills, and domain-aware course recommendations. |
+| **Integration** | **Gemini AI API & Adzuna Market Data:** Integrated Gemini for NLP skill extraction from resumes/credentials, and mapped them to Adzuna job market demand logic. |
+| **Success Criteria** | **Accuracy and Utility:** System accurately extracts skills from a student's profile, maps them to Tier 1 (domain-specific) or Tier 2 (explore) courses, and correctly flags decaying skills based on job count history. |
+| **Risks & Fixes** | **Risk:** Gemini API rate limit exceeded during peak student traffic.<br>**Fix:** Implement Supabase caching for AI responses and rate limiting via a token bucket algorithm to prevent abuse. |
+
+---
+
+## Verification: Before vs After Table
+
+| TEST CASE/SCENARIO | BEFORE STATE | AFTER STATE | IMPROVEMENT TYPE |
+| :--- | :--- | :--- | :--- |
+| **Batch CSV Minting** | Required 50 MetaMask popups and 50 transactions for 50 records. | 1 MetaMask popup and 1 transaction for batch minting 50 records. | **EXPANDED FEATURE** |
+| **Course Recommendations** | Displayed static, generic courses for all users regardless of their background. | AI algorithm recommends domain-aware courses filling specific market gaps. | **EXPANDED INTEGRATION** |

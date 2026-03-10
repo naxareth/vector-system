@@ -1,0 +1,94 @@
+﻿
+[1mVECTOR ΓÇö Skill Extractor F1 Evaluation[0m
+[2m20 cases ┬╖ match mode: SOFT ┬╖ delay: 13000ms/call[0m
+
+[2m[1/20] Extracting: Bachelor of Science in Information Technology...[0m
+[32m[PASS][0m Bachelor of Science in Information Technology  P:[36m1.00[0m  R:[36m1.00[0m  F1:[36m1.00[0m
+  [2m  Γ£ô TP: Database Management, System Administration, Networking, IT Support, Software Development[0m
+[2m[2/20] Extracting: Bachelor of Science in Accountancy...[0m
+[32m[PASS][0m Bachelor of Science in Accountancy             P:[36m0.83[0m  R:[36m1.00[0m  F1:[36m0.91[0m
+  [2m  Γ£ô TP: Accounting, Auditing, Taxation, Financial Reporting, Financial Analysis[0m
+  [31m  Γ£ù FP: Bookkeeping[0m
+[2m[3/20] Extracting: Bachelor of Science in Computer Science...[0m
+[33m[PARTIAL][0m Bachelor of Science in Computer Science        P:[36m0.50[0m  R:[36m0.60[0m  F1:[36m0.55[0m
+  [2m  Γ£ô TP: Data Structures, Software Development, Programming[0m
+  [31m  Γ£ù FP: Computer Science Fundamentals, Algorithms, Database Systems[0m
+  [33m  Γ£ù FN: Algorithm Design, Computer Architecture[0m
+[2m[4/20] Extracting: Bachelor of Science in Business Administration maj...[0m
+[33m[PARTIAL][0m Bachelor of Science in Business Administratio  P:[36m0.67[0m  R:[36m0.80[0m  F1:[36m0.73[0m
+  [2m  Γ£ô TP: Financial Management, Financial Analysis, Investment Management, Corporate Finance[0m
+  [31m  Γ£ù FP: Business Administration, Risk Management[0m
+  [33m  Γ£ù FN: Financial Reporting[0m
+[2m[5/20] Extracting: Bachelor of Science in Criminology...[0m
+[32m[PASS][0m Bachelor of Science in Criminology             P:[36m0.83[0m  R:[36m1.00[0m  F1:[36m0.91[0m
+  [2m  Γ£ô TP: Criminal Justice, Forensic Science, Criminology, Legal Procedures, Investigative Techniques[0m
+  [31m  Γ£ù FP: Law Enforcement[0m
+[2m[6/20] Extracting: Full-Stack Web Development Bootcamp...[0m
+[32m[PASS][0m Full-Stack Web Development Bootcamp            P:[36m0.75[0m  R:[36m1.00[0m  F1:[36m0.86[0m
+  [2m  Γ£ô TP: Web Development, Frontend Development, Backend Development, Database Management, API Development, JavaScript[0m
+  [31m  Γ£ù FP: HTML, CSS[0m
+[2m[7/20] Extracting: AWS Cloud Practitioner Bootcamp...[0m
+[33m[PARTIAL][0m AWS Cloud Practitioner Bootcamp                P:[36m0.50[0m  R:[36m0.60[0m  F1:[36m0.55[0m
+  [2m  Γ£ô TP: Cloud Computing, AWS, Cloud Security[0m
+  [31m  Γ£ù FP: Cloud Architecture, Scalability, Cost Management[0m
+  [33m  Γ£ù FN: Cloud Infrastructure, Cloud Deployment[0m
+[2m[8/20] Extracting: UI/UX Design Intensive Bootcamp...[0m
+[33m[PARTIAL][0m UI/UX Design Intensive Bootcamp                P:[36m0.83[0m  R:[36m0.83[0m  F1:[36m0.83[0m
+  [2m  Γ£ô TP: UI/UX Design, User Research, Wireframing, Prototyping, Usability Testing[0m
+  [31m  Γ£ù FP: Frontend Development[0m
+  [33m  Γ£ù FN: Interaction Design[0m
+[2m[9/20] Extracting: Cybersecurity Fundamentals Bootcamp...[0m
+[33m[PARTIAL][0m Cybersecurity Fundamentals Bootcamp            P:[36m0.50[0m  R:[36m0.50[0m  F1:[36m0.50[0m
+  [2m  Γ£ô TP: Cybersecurity, Network Security, Information Security[0m
+  [31m  Γ£ù FP: Threat Analysis, Incident Response, Security Principles[0m
+  [33m  Γ£ù FN: Threat Detection, Vulnerability Assessment, Risk Management[0m
+[2m[10/20] Extracting: Python...[0m
+[33m[PARTIAL][0m Python                                         P:[36m0.60[0m  R:[36m1.00[0m  F1:[36m0.75[0m
+  [2m  Γ£ô TP: Python, Programming, Scripting[0m
+  [31m  Γ£ù FP: Data Analysis, Automation[0m
+[2m[11/20] Extracting: Regional Hackathon 2026...[0m
+[32m[PASS][0m Regional Hackathon 2026                        P:[36m1.00[0m  R:[36m1.00[0m  F1:[36m1.00[0m
+  [2m  Γ£ô TP: Problem Solving, Programming, Teamwork, Prototyping, Software Development[0m
+[2m[12/20] Extracting: National Cybersecurity CTF Competition 2025...[0m
+[33m[PARTIAL][0m National Cybersecurity CTF Competition 2025    P:[36m0.50[0m  R:[36m0.60[0m  F1:[36m0.55[0m
+  [2m  Γ£ô TP: Cybersecurity, Network Security, Problem Solving[0m
+  [31m  Γ£ù FP: Capture The Flag, Penetration Testing, Incident Response[0m
+  [33m  Γ£ù FN: Cryptography, Ethical Hacking[0m
+[2m[13/20] Extracting: University Data Science Summit ΓÇö Best Presenter Aw...[0m
+[32m[PASS][0m University Data Science Summit ΓÇö Best Present  P:[36m1.00[0m  R:[36m1.00[0m  F1:[36m1.00[0m
+  [2m  Γ£ô TP: Data Science, Public Speaking, Presentation Skills, Data Visualization, Research[0m
+[2m[14/20] Extracting: Fintech Innovation Challenge 2025 ΓÇö Finalist...[0m
+[32m[PASS][0m Fintech Innovation Challenge 2025 ΓÇö Finalist   P:[36m1.00[0m  R:[36m1.00[0m  F1:[36m1.00[0m
+  [2m  Γ£ô TP: Financial Technology, Innovation, Business Strategy, Problem Solving, Prototyping[0m
+[2m[15/20] Extracting: TESDA National Certificate II in Computer Systems ...[0m
+[32m[PASS][0m TESDA National Certificate II in Computer Sys  P:[36m1.00[0m  R:[36m1.00[0m  F1:[36m1.00[0m
+  [2m  Γ£ô TP: Computer Hardware Repair, Network Configuration, Operating System Installation, Troubleshooting, Preventive Maintenance[0m
+[2m[16/20] Extracting: TESDA National Certificate III in Bookkeeping...[0m
+[32m[PASS][0m TESDA National Certificate III in Bookkeeping  P:[36m1.00[0m  R:[36m1.00[0m  F1:[36m1.00[0m
+  [2m  Γ£ô TP: Bookkeeping, Accounting, Financial Record Keeping, Financial Reporting, Payroll[0m
+[2m[17/20] Extracting: TESDA National Certificate II in Bread and Pastry ...[0m
+[33m[PARTIAL][0m TESDA National Certificate II in Bread and Pa  P:[36m0.50[0m  R:[36m0.60[0m  F1:[36m0.55[0m
+  [2m  Γ£ô TP: Pastry Making, Baking, Food Safety[0m
+  [31m  Γ£ù FP: Bread Making, Kitchen Operations, Recipe Development[0m
+  [33m  Γ£ù FN: Food Preparation, Hygiene[0m
+[2m[18/20] Extracting: TESDA National Certificate II in Electrical Instal...[0m
+[33m[PARTIAL][0m TESDA National Certificate II in Electrical I  P:[36m0.60[0m  R:[36m0.60[0m  F1:[36m0.60[0m
+  [2m  Γ£ô TP: Electrical Wiring, Troubleshooting, Maintenance[0m
+  [31m  Γ£ù FP: Electrical System Installation, Electrical Safety[0m
+  [33m  Γ£ù FN: Electrical Installation, Safety Procedures[0m
+[2m[19/20] Extracting: DICT Digital Literacy Certificate...[0m
+[33m[PARTIAL][0m DICT Digital Literacy Certificate              P:[36m0.60[0m  R:[36m0.60[0m  F1:[36m0.60[0m
+  [2m  Γ£ô TP: Digital Literacy, Computer Fundamentals, Online Safety[0m
+  [31m  Γ£ù FP: Internet Navigation, Basic Software Usage[0m
+  [33m  Γ£ù FN: Productivity Software, Digital Communication[0m
+[2m[20/20] Extracting: DICT Cybersecurity Essentials Certification...[0m
+[33m[PARTIAL][0m DICT Cybersecurity Essentials Certification    P:[36m0.60[0m  R:[36m0.60[0m  F1:[36m0.60[0m
+  [2m  Γ£ô TP: Cybersecurity, Network Security, Information Security[0m
+  [31m  Γ£ù FP: Risk Management, Incident Response[0m
+  [33m  Γ£ù FN: Risk Assessment, Threat Detection[0m
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+[1mOverall[0m ΓÇö Precision: [36m0.73[0m  Recall: [36m0.81[0m  F1: [1m[36m0.77[0m
+[2m20/20 cases evaluated  ([32m9 PASS[0m[2m, [33m11 PARTIAL[0m[2m, [31m0 FAIL[0m[2m, 0 ERROR)[0m
+[2mMatch mode: SOFT[0m
+
