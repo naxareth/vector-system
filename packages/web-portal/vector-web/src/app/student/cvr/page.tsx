@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ethers } from 'ethers';
@@ -133,6 +133,8 @@ export default function CVRPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [draftBanner, setDraftBanner] = useState(false);
+  const dbFormDataRef = useRef<typeof formData | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -169,6 +171,26 @@ export default function CVRPage() {
     });
 
   // ---------------------------------------------------------------------------
+  // Auto-save draft to localStorage (debounced, skips during initial load)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (loading) return;
+    const timer = setTimeout(() => {
+      localStorage.setItem('cvr_form_draft', JSON.stringify(formData));
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [formData, loading]);
+
+  // Save immediately when the tab/window is closed
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!loading) localStorage.setItem('cvr_form_draft', JSON.stringify(formData));
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [formData, loading]);
+
+  // ---------------------------------------------------------------------------
   // Field change + error clear
   // ---------------------------------------------------------------------------
   const handleChange = (field: string, value: string) => {
@@ -197,15 +219,16 @@ export default function CVRPage() {
           .eq('id', session.user.id)
           .maybeSingle();
 
-        setFormData((prev) => ({
-          ...prev,
+        const dbData = {
           fullName: userRecord?.full_name || '',
           email: session.user.email || '',
           phone: profileRecord?.phone || '',
           title: profileRecord?.major || '',
           summary: profileRecord?.bio || '',
           portfolio: profileRecord?.linkedin_url || '',
-        }));
+        };
+        dbFormDataRef.current = dbData as typeof formData;
+        setFormData((prev) => ({ ...prev, ...dbData }));
 
         if (userRecord?.wallet_address) await fetchVerifiedSkills(userRecord.wallet_address);
 
@@ -218,6 +241,18 @@ export default function CVRPage() {
 
         // Load CVR history
         await fetchCVRHistory(session.user.id);
+
+        // Restore draft if user had unsaved work
+        const savedDraft = localStorage.getItem('cvr_form_draft');
+        if (savedDraft) {
+          try {
+            const draft = JSON.parse(savedDraft);
+            setFormData(draft);
+            setDraftBanner(true);
+          } catch {
+            localStorage.removeItem('cvr_form_draft');
+          }
+        }
       } catch (error) {
         console.error('CVR Data Error:', error);
       } finally {
@@ -418,6 +453,7 @@ export default function CVRPage() {
 
       localStorage.setItem('sampleCVRData', JSON.stringify(cvrData));
       localStorage.setItem('pendingCVR', 'true');
+      localStorage.removeItem('cvr_form_draft'); // clear draft once successfully generated
 
       setGeneratedData(cvrData);
       setIsGenerated(true);
@@ -566,6 +602,32 @@ export default function CVRPage() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Draft restored banner */}
+          {draftBanner && (
+            <div className="mb-4 flex items-center justify-between gap-4 bg-[#06B4C9]/10 border border-[#06B4C9]/30 text-[#06B4C9] text-sm px-4 py-3 rounded-xl">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <span>Draft restored &mdash; your unsaved changes have been recovered.</span>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDraftBanner(false)}
+                  className="px-3 py-1 bg-[#06B4C9] text-white text-xs font-semibold rounded-lg hover:bg-[#06B4C9]/80 transition-colors"
+                >Keep</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem('cvr_form_draft');
+                    if (dbFormDataRef.current) setFormData((prev) => ({ ...prev, ...dbFormDataRef.current }));
+                    setDraftBanner(false);
+                  }}
+                  className="px-3 py-1 border border-[#06B4C9]/40 text-[#06B4C9] text-xs font-semibold rounded-lg hover:bg-[#06B4C9]/10 transition-colors"
+                >Discard</button>
               </div>
             </div>
           )}

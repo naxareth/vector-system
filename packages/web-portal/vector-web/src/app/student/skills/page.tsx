@@ -282,8 +282,8 @@ export default function SkillsPage() {
 
       {!credentialsLoading && skillCards.length > 0 && (
         <div className="space-y-8">
-          <div className="flex items-center gap-4 text-sm text-gray-500">
-            <span><span className="font-bold text-gray-900">{skillCards.length}</span> skill{skillCards.length !== 1 ? 's' : ''}</span>
+          <div className="flex items-center text-sm text-gray-500">
+            <span><span className="font-bold text-gray-900">{skillCards.length}</span> skill{skillCards.length !== 1 ? 's' :''}</span>
             <span className="text-gray-300">·</span>
             <span>from <span className="font-bold text-gray-900">{credentials.length}</span> credential{credentials.length !== 1 ? 's' : ''}</span>
             {healthLoading && (

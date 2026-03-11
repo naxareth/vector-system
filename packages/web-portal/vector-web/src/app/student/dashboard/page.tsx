@@ -49,6 +49,7 @@ interface CredentialItem {
 export default function StudentDashboard() {
   const router = useRouter();
   const [hasPendingCVR, setHasPendingCVR] = useState(false);
+  const [hasCVRExport, setHasCVRExport] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [aiData, setAiData] = useState<AIAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -213,6 +214,15 @@ export default function StudentDashboard() {
             full_name: profile.full_name ? capitalizeWords(profile.full_name) : 'Student'
           };
           setUser(capitalizedProfile);
+
+          // Check cvr_exports to accurately determine if user has uploaded a CVR
+          const { data: cvrExports } = await supabase
+            .from('cvr_exports')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .limit(1);
+          if (cvrExports && cvrExports.length > 0) setHasCVRExport(true);
+
           await refreshPipeline(profile.wallet_address || '', profile.student_id || session.user.id);
         }
       } catch (error) {
@@ -271,13 +281,18 @@ export default function StudentDashboard() {
                       </button>
                     </span>
                   ) : (
-                    <button
-                      onClick={connectWallet}
-                      disabled={isWalletConnecting}
-                      className="flex items-center gap-2 text-sm bg-[#06B4C9] text-white px-4 py-2.5 rounded-lg hover:bg-[#06B4C9]/90"
-                    >
-                      {isWalletConnecting ? 'Connecting...' : 'Connect Wallet'}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={connectWallet}
+                        disabled={isWalletConnecting}
+                        className="flex items-center gap-2 text-sm bg-[#06B4C9] text-white px-4 py-2.5 rounded-lg hover:bg-[#06B4C9]/90"
+                      >
+                        {isWalletConnecting ? 'Connecting...' : 'Connect Wallet'}
+                      </button>
+                      <a href="/student/help" className="text-xs text-white/70 hover:text-white underline underline-offset-2">
+                        Need help?
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>
@@ -357,9 +372,9 @@ export default function StudentDashboard() {
                   .slice(0, 3)
                   .map((skill, index) => {
                     const trendColors = {
-                      growing: { bg: 'bg-green-500', text: 'text-green-700', light: 'bg-green-50' },
-                      stable: { bg: 'bg-blue-500', text: 'text-blue-700', light: 'bg-blue-50' },
-                      declining: { bg: 'bg-orange-500', text: 'text-orange-700', light: 'bg-orange-50' }
+                      growing: { bg: 'bg-[#06B4C9]', text: 'text-cyan-700', light: 'bg-cyan-50' },
+                      stable: { bg: 'bg-slate-300', text: 'text-slate-600', light: 'bg-slate-100' },
+                      declining: { bg: 'bg-amber-400', text: 'text-amber-700', light: 'bg-amber-50' }
                     };
                     const colors = trendColors[skill.trend];
                     
@@ -374,9 +389,9 @@ export default function StudentDashboard() {
                           </div>
                           <span className="text-sm font-bold text-gray-900">{skill.healthScore}%</span>
                         </div>
-                        <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="relative h-3.5 bg-gray-100 rounded-sm overflow-hidden">
                           <div
-                            className={`absolute top-0 left-0 h-full ${colors.bg} transition-all duration-700 ease-out rounded-full`}
+                            className={`absolute top-0 left-0 h-full ${colors.bg} transition-all duration-700 ease-out rounded-sm`}
                             style={{ width: `${skill.healthScore}%` }}
                           ></div>
                         </div>
@@ -452,12 +467,12 @@ export default function StudentDashboard() {
                   {user?.wallet_address && allCredentials.length > 0 ? 'Almost Done' : 'In Progress'}
                 </span>
                 <span className="text-xs font-semibold text-[#06B4C9]">
-                  {user?.wallet_address ? (allCredentials.length > 0 ? '75%' : '50%') : '25%'}
+                  {user?.wallet_address ? ((hasPendingCVR || hasCVRExport) ? '75%' : '50%') : '25%'}
                 </span>
               </div>
               <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-[#06B4C9]/10">
                 <div
-                  style={{ width: user?.wallet_address ? (allCredentials.length > 0 ? '75%' : '50%') : '25%' }}
+                  style={{ width: user?.wallet_address ? ((hasPendingCVR || hasCVRExport) ? '75%' : '50%') : '25%' }}
                   className="bg-[#06B4C9] transition-all duration-500"
                 ></div>
               </div>
@@ -470,7 +485,7 @@ export default function StudentDashboard() {
                 Connect Wallet <HelpTip size={13} text="A digital wallet (like MetaMask) stores your certificates securely on the blockchain so employers can verify them." />
               </li>
               <li className="flex items-center text-sm text-gray-600">
-                {allCredentials.length > 0 || hasPendingCVR
+                {hasPendingCVR || hasCVRExport
                   ? <span className="text-green-500 font-bold mr-2">✓</span>
                   : <span className="text-gray-300 mr-2">○</span>}
                 Upload Resume (CVR) <HelpTip size={13} text="CVR stands for Credential-Verified Resume — a resume that links to your verified certificates for proof." />
@@ -487,6 +502,7 @@ export default function StudentDashboard() {
               Complete Setup
             </button>
           </div>
+
         </div>
 
       </div>

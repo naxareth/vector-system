@@ -51,7 +51,11 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security'>('profile');
   
   // 3. Add Error State
-  const [errors, setErrors] = useState<Record<string, string>>({}); 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // 2FA status for security tab
+  const [mfa2faEnabled, setMfa2faEnabled] = useState(false);
+  const [mfa2faFactorId, setMfa2faFactorId] = useState<string | null>(null); 
 
   const [formData, setFormData] = useState<ProfileData>({
     firstName: '',
@@ -124,6 +128,22 @@ export default function ProfilePage() {
 
     loadUserProfile();
   }, [router]);
+
+  useEffect(() => {
+    if (activeTab !== 'security') return;
+    const checkMfa = async () => {
+      const { data } = await supabase.auth.mfa.listFactors();
+      const verified = data?.totp?.filter(f => f.status === 'verified') ?? [];
+      if (verified.length > 0) {
+        setMfa2faEnabled(true);
+        setMfa2faFactorId(verified[0].id);
+      } else {
+        setMfa2faEnabled(false);
+        setMfa2faFactorId(null);
+      }
+    };
+    checkMfa();
+  }, [activeTab]);
 
   const calculateProgress = (): { percentage: number; items: ProgressItem[] } => {
     const progressItems: ProgressItem[] = [
@@ -468,9 +488,32 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-                  <h2 className="text-base font-semibold text-gray-900 mb-1 flex items-center gap-1">Two-Factor Authentication <HelpTip text="An extra security step that requires a code from an app like Google Authenticator or Authy when you log in." size={14} /></h2>
-                  <p className="text-xs text-gray-500 mb-4">Add an extra layer of security using TOTP authenticator</p>
-                  <button type="button" onClick={() => router.push('/student/profile/security')} className="px-5 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors font-medium">Enable 2FA</button>
+                  <h2 className="text-base font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                    Two-Factor Authentication
+                    <HelpTip text="An extra security step that requires a code from an app like Google Authenticator or Authy when you log in." size={14} />
+                    {mfa2faEnabled && (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                        Enabled
+                      </span>
+                    )}
+                  </h2>
+                  <p className="text-xs text-gray-500 mb-4">
+                    {mfa2faEnabled
+                      ? 'Your account is protected with an authenticator app.'
+                      : 'Add an extra layer of security using TOTP authenticator'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/student/profile/security')}
+                    className={`px-5 py-2 text-sm rounded-lg transition-colors font-medium ${
+                      mfa2faEnabled
+                        ? 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                        : 'bg-[#06B4C9] text-white hover:bg-[#06B4C9]/80'
+                    }`}
+                  >
+                    {mfa2faEnabled ? 'Manage 2FA' : 'Enable 2FA'}
+                  </button>
                 </div>
 
                 <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">

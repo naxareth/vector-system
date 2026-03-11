@@ -3,8 +3,16 @@ import { NextResponse, type NextRequest, type NextFetchEvent } from 'next/server
 import { logSystemTraffic } from '@/lib/logger';
 
 const PROTECTED_PATHS = ['/registrar', '/student', '/admin', '/api/admin'];
-// 1. Added '/registrar-register' to AUTH_PATHS
-const AUTH_PATHS = ['/login', '/register', '/registrar-register', '/forgot-password'];
+// 1. Added registrar and student quick-entry routes to AUTH_PATHS
+const AUTH_PATHS = [
+  '/login',
+  '/register',
+  '/registrar-register',
+  '/registrar-login',
+  '/student-register',
+  '/student-login',
+  '/forgot-password',
+];
 
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const startTime = Date.now(); // Start the timer

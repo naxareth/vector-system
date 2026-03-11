@@ -123,11 +123,16 @@ export default function PersonalDetailsSection({
           </p>
           <textarea
             value={formData.summary}
-            onChange={(e) => onChange('summary', e.target.value)}
+            onChange={(e) => onChange('summary', e.target.value.slice(0, 500))}
             rows={4}
+            maxLength={500}
+            style={{ resize: 'none' }}
             className={inputClass('summary')}
             placeholder="e.g., Diligent Computer Science student with a passion for blockchain technology..."
           />
+          <p className={`text-xs mt-1 text-right ${(formData.summary?.length ?? 0) >= 500 ? 'text-red-500' : 'text-gray-400'}`}>
+            {formData.summary?.length ?? 0}/500
+          </p>
           {errors.summary && <p className="text-xs text-red-500 mt-1">{errors.summary}</p>}
         </div>
       </div>

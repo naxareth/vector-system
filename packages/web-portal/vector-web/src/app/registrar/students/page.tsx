@@ -127,6 +127,36 @@ export default function ManageCredentials() {
           </p>
         </div>
 
+        {/* Summary Stats */}
+        {credentials.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white dark:bg-[#0E1220] rounded-xl border border-gray-200 dark:border-[#1E2536] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Total Issued</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{credentials.length}</p>
+            </div>
+            <div className="bg-white dark:bg-[#0E1220] rounded-xl border border-gray-200 dark:border-[#1E2536] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Certificate Types</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{allSkills.length}</p>
+            </div>
+            <div className="bg-white dark:bg-[#0E1220] rounded-xl border border-gray-200 dark:border-[#1E2536] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Unique Students</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                {new Set(credentials.map(c => c.user?.full_name).filter(Boolean)).size}
+              </p>
+            </div>
+            <div className="bg-white dark:bg-[#0E1220] rounded-xl border border-gray-200 dark:border-[#1E2536] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">This Month</p>
+              <p className="text-2xl font-bold text-[#06B4C9] mt-1">
+                {credentials.filter(c => {
+                  const d = new Date(c.issued_at);
+                  const now = new Date();
+                  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                }).length}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
           {/* Search */}

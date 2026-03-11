@@ -155,21 +155,21 @@ export default function RegistrarDashboard() {
     }
 
     try {
-      setMintingProgress({ isOpen: true, progress: 20, status: 'minting', message: 'Connecting to secure wallet…' });
+      setMintingProgress({ isOpen: true, progress: 20, status: 'minting', message: 'Opening secure wallet…' });
 
       const { ethereum } = window as any;
       const provider = new ethers.BrowserProvider(ethereum, "any");
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
 
-      setMintingProgress(prev => ({ ...prev, progress: 40, message: 'Recording certificate on the network…' }));
+      setMintingProgress(prev => ({ ...prev, progress: 40, message: 'Recording certificate on the blockchain…' }));
       const numericTokenId = Math.floor(Math.random() * 1000000);
       const tx = await contract.mintSkill(selectedStudent.wallet_address, numericTokenId, 1);
 
-      setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Confirming verification…' }));
+      setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Waiting for confirmation…' }));
       await tx.wait();
 
-      setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Saving certificate details…' }));
+      setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Saving certificate to the database…' }));
 
       // Build credential_data without skill_tags (it's promoted to its own column)
       const { skill_tags: _removed, ...credentialDataWithoutTags } = dynamicData;
@@ -194,7 +194,7 @@ export default function RegistrarDashboard() {
 
       setMintingProgress({
         isOpen: true, progress: 100, status: 'complete',
-        message: 'Verified certificate successfully issued!',
+        message: 'Certificate issued and verified successfully!',
         txHash: tx.hash
       });
     } catch (error: any) {
@@ -217,16 +217,16 @@ export default function RegistrarDashboard() {
     <RegistrarLayout>
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-gray-200 dark:border-[#1E2536] pb-4 gap-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Certificates & Records <HelpTip text="This is your main workspace for managing student certificates. Use the tabs above to issue individual certificates, upload in bulk, or create new certificate templates. Every certificate you issue is permanently recorded and verifiable." /></h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Certificate Workspace <HelpTip text="This is your main workspace for managing student certificates. Use the tabs to issue individual certificates, upload in bulk, or design new certificate templates. Every certificate you issue is permanently recorded and verifiable on the blockchain." /></h1>
           <div className="flex bg-gray-100 dark:bg-[#131825] p-1 rounded-lg">
             <button onClick={() => setActiveTab('issue')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'issue' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
               Issue Certificate
             </button>
             <button onClick={() => setActiveTab('batch')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'batch' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
-              Bulk Upload
+              Batch Import
             </button>
             <button onClick={() => setActiveTab('build')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'build' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
-              Certificate Template
+              Template Builder
             </button>
           </div>
         </div>
@@ -235,14 +235,14 @@ export default function RegistrarDashboard() {
           <SchemaBuilder />
         ) : activeTab === 'batch' ? (
           <div className="bg-white dark:bg-[#0E1220] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1E2536] p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Batch Upload <HelpTip text="Upload a CSV spreadsheet to issue many certificates at once. This saves time when processing graduations or group certifications. Each row in the spreadsheet becomes one certificate." /></h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Batch Import <HelpTip text="Upload a spreadsheet (CSV) to issue many certificates at once. This saves time when processing graduations or group certifications. Each row in the spreadsheet becomes one certificate." /></h2>
             <p className="text-sm text-gray-500 dark:text-[#94A3B8] mb-6">
-              Upload a CSV file to issue certificates in bulk. Select a template first — the required columns will match the template.
+              Upload a spreadsheet to issue multiple certificates at once. Select a template first — the required columns will match the template.
             </p>
 
             {/* Step 1: Template selector */}
             <div className="mb-5">
-              <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-1">1. Choose Template <HelpTip text="Pick which certificate type you're issuing (e.g. Academic Degree, Bootcamp Certificate). The template determines what columns your CSV file needs. You can create new templates in the 'Certificate Template' tab." /></label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-1">1. Choose Template <HelpTip text="Pick which certificate type you're issuing (e.g. Academic Degree, Bootcamp Certificate). The template determines what columns your spreadsheet needs. You can create new templates in the 'Template Builder' tab." /></label>
               <select
                 value={batchSchemaId}
                 onChange={(e) => { setBatchSchemaId(e.target.value); setCsvResult(null); }}
@@ -266,7 +266,7 @@ export default function RegistrarDashboard() {
             </div>
 
             {/* Step 2: File upload */}
-            <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-1">2. Upload CSV File</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-1">2. Upload Spreadsheet (CSV)</label>
               <div
               onDragOver={(e) => { e.preventDefault(); setCsvDragOver(true); }}
               onDragLeave={() => setCsvDragOver(false)}
@@ -329,7 +329,7 @@ export default function RegistrarDashboard() {
                 : 'bg-accent text-white hover:opacity-90 shadow-lg'
                 }`}
             >
-              {csvUploading ? 'Validating...' : !batchSchemaId ? 'Select a template first' : 'Validate CSV'}
+              {csvUploading ? 'Checking file…' : !batchSchemaId ? 'Select a template first' : 'Validate & Preview'}
             </button>
 
             {/* Validation Results */}
@@ -418,7 +418,7 @@ export default function RegistrarDashboard() {
                               setMintingProgress(prev => ({
                                 ...prev,
                                 progress: Math.round(((idx) / total) * 85) + 10,
-                                message: `Record ${idx + 1} of ${total} — approve in your wallet…`,
+                                message: `Record ${idx + 1} of ${total} — please approve in your wallet…`,
                               }));
 
                               const numericTokenId = Math.floor(Math.random() * 1000000);
@@ -427,14 +427,14 @@ export default function RegistrarDashboard() {
                               // Phase 2: Wait for chain confirmation
                               setMintingProgress(prev => ({
                                 ...prev,
-                                message: `Record ${idx + 1} of ${total} — confirming…`,
+                                message: `Record ${idx + 1} of ${total} — waiting for blockchain confirmation…`,
                               }));
                               await tx.wait();
 
                               // Phase 3: Save to database
                               setMintingProgress(prev => ({
                                 ...prev,
-                                message: `Record ${idx + 1} of ${total} — saving record…`,
+                                message: `Record ${idx + 1} of ${total} — saving to database…`,
                               }));
 
                               const { student_id, wallet_address, skill_tags: rawTags, ...credentialData } = row;
@@ -484,11 +484,11 @@ export default function RegistrarDashboard() {
 
             {/* Help text */}
             <div className="mt-5 bg-gray-50 dark:bg-[#131825] rounded-xl p-4 border border-gray-100 dark:border-[#1E2536]">
-              <p className="text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-2">CSV Format</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-2">Spreadsheet Format Tips</p>
               <p className="text-xs text-gray-500 dark:text-[#94A3B8]">Select a template above to see the exact columns needed. <strong>student_id</strong> and <strong>wallet_address</strong> are always required.</p>
               <div className="mt-2 space-y-0.5">
-                <p className="text-xs text-gray-400 dark:text-[#64748B]">• Special characters in cells are automatically cleaned</p>
-                <p className="text-xs text-gray-400 dark:text-[#64748B]">• Max file size: 1 MB — Max rows: 500</p>
+                <p className="text-xs text-gray-400 dark:text-[#64748B]">• Special characters are automatically cleaned</p>
+                <p className="text-xs text-gray-400 dark:text-[#64748B]">• Maximum file size: 1 MB — Maximum rows: 500</p>
               </div>
             </div>
           </div>
@@ -528,7 +528,7 @@ export default function RegistrarDashboard() {
 
               {/* Schema Selection */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-2">Certificate Template <HelpTip text="Each template defines different fields to fill in. For example, an Academic Degree template asks for degree name, GPA, and graduation date, while a Bootcamp template asks for program name and hours completed. Create new templates under the 'Certificate Template' tab." /></label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-2">Certificate Template <HelpTip text="Each template defines different fields to fill in. For example, an Academic Degree template asks for degree name, GPA, and graduation date, while a Bootcamp template asks for program name and hours completed. Create new templates under the 'Template Builder' tab." /></label>
                 <select
                   value={selectedSchema?.id || ''}
                   onChange={(e) => handleSchemaChange(e.target.value)}

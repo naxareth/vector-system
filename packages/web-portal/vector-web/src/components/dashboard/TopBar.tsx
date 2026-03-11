@@ -63,6 +63,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
     if (path.includes('/cvr')) return 'CVR Record';
     if (path.includes('/coach')) return 'AI Career Coach';
     if (path.includes('/profile')) return 'My Profile';
+    if (path.includes('/help')) return 'Help & Support';
     return 'Dashboard';
   };
 
