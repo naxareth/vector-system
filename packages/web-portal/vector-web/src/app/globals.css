@@ -26,8 +26,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-open-sans, 'Open Sans', sans-serif);
 }
 
 /* Hide browser default password reveal icon (Edge / Chrome) */
@@ -43,7 +42,9 @@ input.hide-password-toggle::-webkit-textfield-decoration-container > * {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-open-sans, 'Open Sans', sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Utility helpers for consistent colors (use these in JSX classes) */

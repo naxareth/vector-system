@@ -170,7 +170,7 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
               </svg>
             </div>
             <div>
-              <h2 className="font-semibold text-gray-800">AI CVR Analysis</h2>
+              <h2 className="text-base font-semibold text-gray-900">AI CVR Analysis</h2>
               <p className="text-xs text-gray-400">
                 Powered by Gemini · Skill strength, market alignment &amp; gap analysis
               </p>
@@ -281,7 +281,7 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
             </svg>
           </div>
           <div>
-            <h2 className="font-semibold text-gray-800">AI CVR Analysis</h2>
+            <h2 className="text-base font-semibold text-gray-900">AI CVR Analysis</h2>
             <p className="text-xs text-gray-400">Powered by Gemini · Live market data</p>
           </div>
         </div>
@@ -310,7 +310,7 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
             <div className="relative flex-shrink-0">
               <ScoreRing score={analysis.overallScore} size={72} />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-base font-bold text-gray-800">
+                <span className="text-base font-semibold text-gray-900">
                   {analysis.overallScore}
                 </span>
               </div>

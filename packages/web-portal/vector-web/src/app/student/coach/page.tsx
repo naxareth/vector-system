@@ -278,9 +278,8 @@ export default function CoachPage() {
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Only {realHistory.length} snapshot{realHistory.length !== 1 ? 's' : ''} available.
-            Trend lines improve after 4+ daily cron runs. Check back tomorrow!
-          </div>
+            Only {realHistory.length} resume{realHistory.length !== 1 ? 's' : ''} version is available so far.
+            More insights and trends will appear after you’ve created a few more over the next several days. Check back soon!          </div>
         )}
 
         {/* Chart */}

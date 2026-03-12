@@ -79,21 +79,50 @@ function SalaryBar({ salary }: { salary: SalaryInsights }) {
   const fmt = (n: number | null) =>
     n != null ? `$${(n / 1000).toFixed(0)}k` : '—';
 
+  const max = salary.max ?? 1;
+  const min = salary.min ?? 0;
+  const avg = salary.avg ?? 0;
+
+  // Percentage positions (clamp between 0–100)
+  const minPct = Math.min(100, Math.max(0, (min / max) * 100));
+  const avgPct = Math.min(98, Math.max(2, (avg / max) * 100));
+
   return (
     <div className="w-full">
-      <div className="flex justify-between text-xs text-gray-500 mb-1">
-        <span>{fmt(salary.min)}</span>
-        <span className="font-semibold text-gray-800">avg {fmt(salary.avg)}</span>
-        <span>{fmt(salary.max)}</span>
-      </div>
-      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+      {/* Bar with avg tick + floating badge */}
+      <div className="relative w-full mb-1" style={{ paddingTop: '28px' }}>
+        {/* Avg pill badge — floats above the tick */}
         <div
-          className="h-full bg-gradient-to-r from-[#06B4C9]/70 to-[#06B4C9] rounded-full"
-          style={{
-            marginLeft: `${((salary.min ?? 0) / (salary.max ?? 1)) * 40}%`,
-            width: '60%',
-          }}
-        />
+          className="absolute top-0 -translate-x-1/2 bg-[#06B4C9] text-white text-[11px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap shadow-sm"
+          style={{ left: `${avgPct}%` }}
+        >
+          avg {fmt(avg)}
+        </div>
+
+        {/* Track */}
+        <div className="relative h-3 w-full bg-gray-100 rounded-full overflow-visible">
+          {/* Filled portion: min → avg */}
+          <div
+            className="absolute top-0 h-full bg-gradient-to-r from-[#06B4C9]/60 to-[#06B4C9] rounded-full"
+            style={{ left: `${minPct}%`, width: `${avgPct - minPct}%` }}
+          />
+          {/* Remainder: avg → max (lighter) */}
+          <div
+            className="absolute top-0 h-full bg-[#06B4C9]/15 rounded-r-full"
+            style={{ left: `${avgPct}%`, width: `${100 - avgPct}%` }}
+          />
+          {/* Avg tick marker */}
+          <div
+            className="absolute -top-1 -translate-x-1/2 w-0.5 h-5 bg-[#06B4C9] rounded-full"
+            style={{ left: `${avgPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Min / Max labels */}
+      <div className="flex justify-between text-xs text-gray-400 mt-1">
+        <span>{fmt(min)}</span>
+        <span>{fmt(max)}</span>
       </div>
     </div>
   );

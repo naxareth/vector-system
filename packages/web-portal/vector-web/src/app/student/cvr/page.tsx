@@ -242,9 +242,10 @@ export default function CVRPage() {
         // Load CVR history
         await fetchCVRHistory(session.user.id);
 
-        // Restore draft if user had unsaved work
+        // Restore draft if user had unsaved work and not discarded
+        const draftDiscarded = localStorage.getItem('cvr_form_draft_discarded');
         const savedDraft = localStorage.getItem('cvr_form_draft');
-        if (savedDraft) {
+        if (savedDraft && !draftDiscarded) {
           try {
             const draft = JSON.parse(savedDraft);
             setFormData(draft);
@@ -492,11 +493,11 @@ export default function CVRPage() {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight leading-tight mb-1">
           {isGenerated ? 'Credential Verified Resume (CVR)' : 'Credential Verified Resume'}
           <HelpTip text="A CVR is a resume where your certificates are linked to tamper-proof records, so employers can instantly verify they're real." />
         </h1>
-        <p className="text-sm md:text-base text-gray-500">
+        <p className="text-sm text-gray-400 font-normal">
           {isGenerated
             ? 'Your verified resume is ready to share with employers'
             : 'Build a resume backed by your verified certificates'}
@@ -518,13 +519,13 @@ export default function CVRPage() {
             <div className="mb-6 bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div>
-                  <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+                  <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
                     <svg className="w-4 h-4 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Your CVR History <HelpTip size={14} text="Every resume you generate is saved permanently. Share the latest link with employers so they can verify your credentials." />
                   </h2>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-gray-400 font-normal mt-0.5">
                     Each version is saved permanently. Share the latest link with employers.
                   </p>
                 </div>
@@ -551,7 +552,7 @@ export default function CVRPage() {
                         <div className={`mt-1.5 flex-shrink-0 w-2 h-2 rounded-full ${isLatest ? 'bg-emerald-500' : 'bg-gray-300'}`} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-gray-800">
+                            <span className="text-sm font-semibold text-gray-900">
                               {formatDateTime(cvr.generated_at)}
                             </span>
                             {isLatest ? (
@@ -564,7 +565,7 @@ export default function CVRPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-gray-400 mt-0.5 capitalize">
+                          <p className="text-xs text-gray-400 font-normal mt-0.5 capitalize">
                             {cvr.template || 'professional'} template
                             {certCount > 0 && ` · ${certCount} verified credential${certCount !== 1 ? 's' : ''}`}
                             {skillCount > 0 && ` · ${skillCount} skill${skillCount !== 1 ? 's' : ''}`}
@@ -623,6 +624,7 @@ export default function CVRPage() {
                   type="button"
                   onClick={() => {
                     localStorage.removeItem('cvr_form_draft');
+                    localStorage.setItem('cvr_form_draft_discarded', 'true');
                     if (dbFormDataRef.current) setFormData((prev) => ({ ...prev, ...dbFormDataRef.current }));
                     setDraftBanner(false);
                   }}

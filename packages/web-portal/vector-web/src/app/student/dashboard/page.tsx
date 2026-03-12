@@ -1,4 +1,17 @@
-'use client';
+"use client";
+// Extract up to 3 meaningful keyword tags from the course title
+function extractTags(title: string): string[] {
+  const stop = new Set([
+    'and','the','of','in','for','to','a','an','with','on','at','by',
+    'i','ii','iii','iv','introduction','advanced','fundamentals','complete','guide',
+    'course','bootcamp','certification','essentials','mastery','professional'
+  ]);
+  return title
+    .replace(/[():,]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stop.has(w.toLowerCase()))
+    .slice(0, 3);
+}
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -6,6 +19,7 @@ import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import CredentialCard from '@/components/dashboard/CredentialCard';
 import RecentActivity, { ActivityItem } from '@/components/dashboard/RecentActivity';
+import Link from 'next/link';
 import HelpTip from '@/components/shared/HelpTip';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
@@ -44,6 +58,18 @@ interface CredentialItem {
   verified: boolean;
   certificateNumber?: string;
   credentialData?: Record<string, any>;
+}
+
+function providerPill(provider: string | null): string {
+  if (!provider) return 'bg-[#06B4C9]/10 text-[#06B4C9]';
+  const p = provider.toLowerCase();
+  if (p === 'udemy') return 'bg-purple-100 text-purple-700';
+  if (p === 'coursera') return 'bg-blue-100 text-blue-700';
+  if (p.startsWith('edx')) return 'bg-slate-100 text-slate-700';
+  if (p.includes('freecodecamp')) return 'bg-green-100 text-green-700';
+  if (p === 'hubspot') return 'bg-orange-100 text-orange-700';
+  if (p.includes('linkedin')) return 'bg-sky-100 text-sky-700';
+  return 'bg-[#06B4C9]/10 text-[#06B4C9]';
 }
 
 export default function StudentDashboard() {
@@ -501,6 +527,84 @@ export default function StudentDashboard() {
             >
               Complete Setup
             </button>
+          </div>
+
+          {/* ── Quick Course Picks ── */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-gray-900">Recommended Courses</h3>
+              <Link href="/student/explore-courses" className="text-xs font-semibold text-[#06B4C9] hover:text-[#06B4C9]/70 transition-colors">
+                Explore More →
+              </Link>
+            </div>
+
+            {aiData?.recommendations && (aiData.recommendations as any[]).length > 0 ? (
+              <div className="space-y-3">
+                {(aiData.recommendations as any[]).slice(0, 3).map((rec: any, i: number) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                    <div className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                      i === 0 ? 'bg-amber-400 text-white' : i === 1 ? 'bg-gray-300 text-gray-700' : 'bg-orange-300 text-white'
+                    }`}>
+                      #{i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2">
+                          {rec.courseTitle || rec.courseName || 'Course'}
+                        </p>
+                        <span className="flex-shrink-0 text-xs font-bold text-[#06B4C9]">
+                          {rec.relevanceScore || 80}%
+                        </span>
+                      </div>
+                      {rec.provider && (
+                        <span className={`mt-1.5 inline-block text-xs font-semibold px-2 py-0.5 rounded-md ${providerPill(rec.provider)}`}>
+                          {rec.provider}
+                        </span>
+                      )}
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {extractTags(rec.courseTitle || rec.courseName || '').map(tag => (
+                          <span key={tag} className="text-xs text-gray-500 border border-gray-200 rounded-full px-2 py-0.5 bg-gray-50">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      {rec.link && (
+                        <div className="flex justify-end mt-1.5">
+                          <a
+                            href={rec.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-medium text-gray-400 hover:text-[#06B4C9] transition-colors inline-flex items-center gap-0.5"
+                          >
+                            Take Course
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-xs text-gray-400 mb-2">No suggestions yet</p>
+                <Link
+                  href="/student/explore-courses"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#06B4C9] hover:underline"
+                >
+                  Browse all courses →
+                </Link>
+              </div>
+            )}
           </div>
 
         </div>
