@@ -51,8 +51,9 @@ Input: A credential title, degree name, or certification label
 Output: A JSON object with a "skills" array of normalized skill tag strings
 
 Rules:
-1. Extract ALL skills implied by the credential — technical, professional, vocational,
-   and academic. Do not limit to any fixed taxonomy.
+1. Extract ALL core skills implied by the credential — technical, professional,
+   vocational, and academic. Cover the key competencies the credential holder
+   would be expected to have.
 2. Normalize variations to standard names:
    - "React.js", "ReactJS" → "React"
    - "Python 3", "Python3" → "Python"
@@ -60,16 +61,83 @@ Rules:
    - "Machine Learning", "ML" → "Machine Learning"
    - "UI/UX", "UX Design" → "UI/UX Design"
    - "k8s" → "Kubernetes"
-3. For degree names (e.g. "Bachelor of Science in Accountancy"), extract the core
-   skills that discipline teaches — not the degree title itself.
-4. For government certifications (e.g. TESDA NC II, DICT certificates), extract the
-   vocational or professional skills the certification represents.
-5. For event badges (e.g. hackathons, competitions), extract the skills demonstrated
-   or the domain of the event.
-6. Return 2-6 skills per credential. Do not over-extract.
-7. Return ONLY valid JSON — no markdown fences, no explanation, no preamble.
+3. For degree names, extract the core professional skills the discipline teaches,
+   not the degree title itself. Think: "what would a graduate of this program
+   be able to do professionally?"
+4. For government certifications (TESDA, DICT, etc.), extract the specific
+   vocational or professional skills the certification validates.
+5. For event badges (hackathons, competitions, summits), extract the skills
+   demonstrated by participating, including both domain skills and soft skills
+   like Problem Solving, Teamwork, Presentation Skills, or Public Speaking.
+6. For bootcamp certificates, extract both the primary technology/domain AND
+   the component sub-skills (e.g. a Full-Stack bootcamp implies Frontend
+   Development, Backend Development, Database Management, API Development).
+7. Return 4-7 skills per credential. Aim for comprehensive coverage.
+8. Return ONLY valid JSON — no markdown fences, no explanation, no preamble.
 
-Return format: { "skills": ["Skill1", "Skill2", "Skill3"] }
+Few-shot examples (follow this granularity and naming style):
+
+Input: "Bachelor of Science in Information Technology"
+Output: { "skills": ["Database Management", "System Administration", "Networking", "IT Support", "Software Development"] }
+
+Input: "Bachelor of Science in Accountancy"
+Output: { "skills": ["Accounting", "Auditing", "Taxation", "Financial Reporting", "Financial Analysis"] }
+
+Input: "Full-Stack Web Development Bootcamp"
+Output: { "skills": ["Web Development", "Frontend Development", "Backend Development", "Database Management", "API Development", "JavaScript"] }
+
+Input: "TESDA National Certificate II in Computer Systems Servicing"
+Output: { "skills": ["Computer Hardware Repair", "Network Configuration", "Operating System Installation", "Troubleshooting", "Preventive Maintenance"] }
+
+Input: "Regional Hackathon 2026"
+Output: { "skills": ["Problem Solving", "Programming", "Teamwork", "Prototyping", "Software Development"] }
+
+Input: "University Data Science Summit — Best Presenter Award"
+Output: { "skills": ["Data Science", "Public Speaking", "Presentation Skills", "Data Visualization", "Research"] }
+
+Input: "Bachelor of Science in Criminology"
+Output: { "skills": ["Criminal Justice", "Forensic Science", "Criminology", "Legal Procedures", "Investigative Techniques"] }
+
+Input: "Fintech Innovation Challenge 2025 — Finalist"
+Output: { "skills": ["Financial Technology", "Innovation", "Business Strategy", "Problem Solving", "Prototyping"] }
+
+Input: "TESDA National Certificate III in Bookkeeping"
+Output: { "skills": ["Bookkeeping", "Accounting", "Financial Record Keeping", "Financial Reporting", "Payroll"] }
+
+Input: "Bachelor of Science in Computer Science"
+Output: { "skills": ["Programming", "Data Structures", "Algorithms", "Software Development", "Computer Architecture"] }
+
+Input: "AWS Cloud Practitioner Bootcamp"
+Output: { "skills": ["AWS", "Cloud Computing", "Cloud Security", "Cloud Architecture", "Scalability"] }
+
+Input: "Cybersecurity Fundamentals Bootcamp"
+Output: { "skills": ["Cybersecurity", "Network Security", "Information Security", "Threat Analysis", "Incident Response"] }
+
+Input: "TESDA National Certificate II in Electrical Installation and Maintenance"
+Output: { "skills": ["Electrical Installation", "Electrical Maintenance", "Electrical Wiring", "Troubleshooting", "Electrical Safety"] }
+
+Input: "TESDA National Certificate II in Bread and Pastry Production"
+Output: { "skills": ["Baking", "Food Safety", "Pastry Making", "Bread Making", "Kitchen Operations"] }
+
+Input: "DICT Digital Literacy Certificate"
+Output: { "skills": ["Digital Literacy", "Computer Fundamentals", "Online Safety", "Internet Navigation", "Productivity Software"] }
+
+Input: "DICT Cybersecurity Essentials Certification"
+Output: { "skills": ["Cybersecurity", "Network Security", "Information Security", "Risk Management", "Incident Response"] }
+
+Input: "Bachelor of Science in Business Administration major in Financial Management"
+Output: { "skills": ["Financial Analysis", "Financial Management", "Investment Management", "Corporate Finance", "Business Administration"] }
+
+Input: "UI/UX Design Intensive Bootcamp"
+Output: { "skills": ["UI/UX Design", "Prototyping", "User Research", "Wireframing", "Usability Testing"] }
+
+Input: "Python"
+Output: { "skills": ["Python", "Programming", "Scripting"] }
+
+Input: "National Cybersecurity CTF Competition 2025"
+Output: { "skills": ["Cybersecurity", "Network Security", "Cryptography", "Problem Solving", "Penetration Testing"] }
+
+Return format: { "skills": ["Skill1", "Skill2", "Skill3", ...] }
 `;
 
 // --- Types ---

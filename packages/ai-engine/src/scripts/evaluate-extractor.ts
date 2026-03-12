@@ -155,7 +155,7 @@ function computeMetrics(extracted: string[], expected: string[]): {
 
 function statusFromMetrics(precision: number, recall: number, f1: number): CaseResult['status'] {
   if (f1 >= 0.85) return 'PASS';
-  if (f1 >= 0.4)  return 'PARTIAL';
+  if (f1 >= 0.4) return 'PARTIAL';
   return 'FAIL';
 }
 
@@ -163,20 +163,20 @@ function statusFromMetrics(precision: number, recall: number, f1: number): CaseR
 // Formatting
 // ---------------------------------------------------------------------------
 
-const RESET  = '\x1b[0m';
-const GREEN  = '\x1b[32m';
+const RESET = '\x1b[0m';
+const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
-const RED    = '\x1b[31m';
-const CYAN   = '\x1b[36m';
-const BOLD   = '\x1b[1m';
-const DIM    = '\x1b[2m';
+const RED = '\x1b[31m';
+const CYAN = '\x1b[36m';
+const BOLD = '\x1b[1m';
+const DIM = '\x1b[2m';
 
 function colourStatus(status: CaseResult['status']): string {
   switch (status) {
-    case 'PASS':    return `${GREEN}[PASS]${RESET}`;
+    case 'PASS': return `${GREEN}[PASS]${RESET}`;
     case 'PARTIAL': return `${YELLOW}[PARTIAL]${RESET}`;
-    case 'FAIL':    return `${RED}[FAIL]${RESET}`;
-    case 'ERROR':   return `${RED}[ERROR]${RESET}`;
+    case 'FAIL': return `${RED}[FAIL]${RESET}`;
+    case 'ERROR': return `${RED}[ERROR]${RESET}`;
   }
 }
 
@@ -239,7 +239,7 @@ function sleep(ms: number): Promise<void> {
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  const args    = process.argv.slice(2);
+  const args = process.argv.slice(2);
   const verbose = args.includes('--verbose');
   const jsonOut = args.includes('--json');
 
@@ -324,21 +324,21 @@ async function main(): Promise<void> {
 
   // Micro-averaged aggregate (better than macro for unequal expected-set sizes)
   const aggPrecision = totalTP + totalFP > 0 ? totalTP / (totalTP + totalFP) : 0;
-  const aggRecall    = totalTP + totalFN > 0 ? totalTP / (totalTP + totalFN) : 0;
-  const aggF1        = aggPrecision + aggRecall > 0
+  const aggRecall = totalTP + totalFN > 0 ? totalTP / (totalTP + totalFN) : 0;
+  const aggF1 = aggPrecision + aggRecall > 0
     ? 2 * (aggPrecision * aggRecall) / (aggPrecision + aggRecall)
     : 0;
 
   const summary: SummaryResult = {
-    totalCases:   goldenCases.length,
-    errorCases:   results.filter(r => r.status === 'ERROR').length,
-    precision:    aggPrecision,
-    recall:       aggRecall,
-    f1:           aggF1,
-    passCases:    results.filter(r => r.status === 'PASS').length,
+    totalCases: goldenCases.length,
+    errorCases: results.filter(r => r.status === 'ERROR').length,
+    precision: aggPrecision,
+    recall: aggRecall,
+    f1: aggF1,
+    passCases: results.filter(r => r.status === 'PASS').length,
     partialCases: results.filter(r => r.status === 'PARTIAL').length,
-    failCases:    results.filter(r => r.status === 'FAIL').length,
-    cases:        results,
+    failCases: results.filter(r => r.status === 'FAIL').length,
+    cases: results,
   };
 
   if (jsonOut) {
@@ -349,7 +349,7 @@ async function main(): Promise<void> {
 
   // Exit non-zero if aggregate F1 is below a minimum threshold
   // Useful for CI — adjust threshold as extraction improves over time
-  const F1_THRESHOLD = 0.60;
+  const F1_THRESHOLD = 0.90;
   if (summary.f1 < F1_THRESHOLD) {
     if (!jsonOut) {
       console.error(

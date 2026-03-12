@@ -95,15 +95,22 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+    let channel: any = null;
+    let pollInterval: NodeJS.Timeout | null = null;
+
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      
+      if (!isMounted || !session) return;
 
       const { data: profile } = await supabase
         .from('users')
         .select('full_name, role')
         .eq('id', session.user.id)
         .maybeSingle();
+
+      if (!isMounted) return;
 
       const userData: UserProfile = {
         id: session.user.id,
@@ -122,51 +129,53 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
 
       // -----------------------------------------------------------------
       // Supabase Realtime subscription
-      // Listens for INSERT events on the notifications table filtered to
-      // this user's rows. New notifications appear instantly the moment
-      // the registrar mints — no page refresh needed.
       // -----------------------------------------------------------------
-      const channel = supabase
-        .channel(`notifications:${session.user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${session.user.id}`,
-          },
-          (payload) => {
-            // Prepend the new notification to the top of the list
-            setNotifications(prev => {
-              const newNotif = payload.new as NotificationItem;
-              // Guard against duplicates (realtime can occasionally fire twice)
-              if (prev.some(n => n.id === newNotif.id)) return prev;
-              return [newNotif, ...prev].slice(0, 10);
-            });
-          }
-        )
-        .subscribe();
+      try {
+        channel = supabase
+          .channel(`notifications:${session.user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${session.user.id}`,
+            },
+            (payload: any) => {
+              if (!isMounted) return;
+              setNotifications(prev => {
+                const newNotif = payload.new as NotificationItem;
+                if (prev.some(n => n.id === newNotif.id)) return prev;
+                return [newNotif, ...prev].slice(0, 10);
+              });
+            }
+          )
+          .subscribe((status: string) => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.warn('Supabase Realtime subscription status:', status);
+            }
+          });
+      } catch (err) {
+        console.error('Failed to subscribe to Realtime channel:', err);
+      }
 
       // -----------------------------------------------------------------
       // Polling fallback — every 30 seconds
-      // Realtime covers the fast path. Polling is a safety net for cases
-      // where the websocket connection drops (mobile sleep, network switch).
       // -----------------------------------------------------------------
-      const pollInterval = setInterval(() => {
-        if (userIdRef.current) {
+      pollInterval = setInterval(() => {
+        if (isMounted && userIdRef.current) {
           fetchNotifications(userIdRef.current);
         }
       }, 30_000);
-
-      // Cleanup: unsubscribe from realtime + clear polling on unmount
-      return () => {
-        supabase.removeChannel(channel);
-        clearInterval(pollInterval);
-      };
     };
 
     getUser();
+
+    return () => {
+      isMounted = false;
+      if (channel) supabase.removeChannel(channel);
+      if (pollInterval) clearInterval(pollInterval);
+    };
   }, [fetchNotifications]);
 
   // ---------------------------------------------------------------------------
