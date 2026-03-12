@@ -1,0 +1,73 @@
+Module 10: Performance & Scalability
+GROUP 7: VECTOR — Decentralized Micro-Credentialing System
+Members
+Denulan, Ace Philip Soriano
+Amrinto, Kyle James
+De Guzman, Gemerald
+Doria, Charry Mae Sison
+Valencia, Symon Aquino
+Arenas, Justin
+
+SESSION 1: Prototype Monitoring
+Gather evidence from your builds. Measure how fast or costly your prototype runs to identify bottlenecks.
+
+Blockchain Track Instructions
+1. Open Remix IDE and load your contract.
+2. Run a function (e.g., setMessage).
+3. Check "Gas cost" in the console output.
+4. Record costs for 3 different test cases.
+
+Performance Testing Lab Results
+
+SESSION 2: Plan Your Fix
+Before optimizing, let's recall key concepts and define your strategy for improvement.
+
+Quick Recall
+Question 1
+What is a bottleneck in a system?
+Question 2
+Name one optimization technique to reduce load time.
+Question 3
+What does "horizontal scaling" mean?
+Question 4
+Why is it important to store API keys securely?
+
+Main Task: Identify & Plan
+1. Identify the Bottleneck
+Review your monitoring table from Session 1. Choose one clear performance issue (e.g., slow API call or high gas cost).
+The "Long Input" test case — parsing and validating a 500-row CSV batch took ~1.8 seconds and briefly froze the browser UI during Zod schema validation.
+
+2. Define Your Fix
+Write one sentence describing exactly how you will solve it.
+Offload the synchronous CSV validation loop to a Web Worker so that Zod schema parsing runs off the main thread, preventing UI freeze during large batch uploads.
+
+3. Get Approval
+Show your written plan to your teacher before writing any code.
+
+Root Cause Analysis
+What made that case slow or costly?
+The CSV parser runs synchronously on the main JavaScript thread. For 500 rows, each row triggers Zod .safeParse() with regex-based UUID and Ethereum address validation, plus formula injection sanitization — all blocking the event loop.
+
+Implementation & Results
+Did your fix work? Measure the impact by comparing performance metrics before and after optimization.
+
+Performance Comparison Table
+
+Grading Rubric (50 pts)
+
+=== TABLE 0 ===
+Row 0: TEST CASE | STEPS (SHORT) | EXPECTED | ACTUAL (time/gas) | PASS/FAIL
+Row 1: Normal Input | Validate and mint a 5-row CSV batch | < 500ms validation; < 15s chain confirmation | ~945ms validation; ~8s chain | PASS
+Row 2: Long Input | Parse and validate 500-row CSV batch | Process without crashing; display per-row errors | ~1.29s total parsing; 7 validation errors shown | PASS
+Row 3: Empty Input | Upload CSV with only headers, no data rows | Show graceful error message | "CSV file has headers but no data rows" | PASS
+Row 4: Custom Case 1 (AI Analysis) | Trigger /api/analyze for a student with 8 skills | Return skillHealth + recommendations in < 3s | ~2.1s full pipeline | PASS
+Row 5: Custom Case 2 (Batch Gas) | Compare gas: 50x mintSkill() vs 1x batchMintSkills(50) | Batch should cost < 20% of individual sum | Batch: ~180K gas vs Individual sum: ~3.25M gas (5.5%) | PASS
+
+=== TABLE 1 ===
+Row 0: TEST CASE | BEFORE | AFTER | IMPROVEMENT
+Row 1: Chatbot Response | 3.2 sec | 1.9 sec | Faster by 1.3 sec
+Row 2: Contract Execution | 50,000 gas | 35,000 gas | Saved 15,000 gas
+
+=== TABLE 2 ===
+Row 0: 46–50 | 40–45 | 30–39 | 0–29
+Row 1: Fix applied correctly. Before/after results clear. Improvement is significant. | Fix applied. Results shown. Improvement is moderate or noted. | Fix incomplete or documentation is weak/unclear. | Minimal attempt. Missing data or no fix applied.

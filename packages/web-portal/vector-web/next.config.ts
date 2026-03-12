@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 🛡️ Remove X-Powered-By header
+  poweredByHeader: false,
+
   // 🛡️ SECURITY HEADERS
   async headers() {
     return [
@@ -34,6 +37,10 @@ const nextConfig: NextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()' // Blocks access to sensitive hardware
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://generativelanguage.googleapis.com https://*.pinata.cloud https://rpc-amoy.polygon.technology https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none';"
           }
         ],
       },

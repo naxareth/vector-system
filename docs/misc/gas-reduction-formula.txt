@@ -1,0 +1,40 @@
+======================================================================
+VECTOR — Batch Minting Gas Reduction Formula
+======================================================================
+
+GAS REDUCTION FORMULA (94%)
+──────────────────────────────────────────────────────────────────────
+
+  Gas Reduction % = (1 - Batch Gas / Individual Gas) × 100
+                  = (1 - 180,000 / 3,250,000) × 100
+                  = (1 - 0.055) × 100
+                  = 94.5%
+
+BATCH COST AS % OF INDIVIDUAL (5.5%)
+──────────────────────────────────────────────────────────────────────
+
+  Batch % = (Batch Gas / Individual Gas) × 100
+          = (180,000 / 3,250,000) × 100
+          = 5.5%   ← well under the 20% threshold
+
+IN PESO (₱) — Based on MetaMask: $3.11 for 500 batch mints
+──────────────────────────────────────────────────────────────────────
+
+  Exchange rate: $1 = ₱58
+
+  Batch (500 mints):      $3.11    = ₱180.38
+  Individual (500 mints): $56.55   = ₱3,279.73
+
+  Savings:  ₱3,279.73 - ₱180.38   = ₱3,099.35 saved
+
+  Cost per credential:
+    Batch:      ₱180.38  / 500 = ₱0.36 each
+    Individual: ₱3,279.73 / 500 = ₱6.56 each
+
+SUMMARY
+──────────────────────────────────────────────────────────────────────
+
+  Batch minting costs ₱0.36/credential vs ₱6.56/credential
+  individually = 94.5% cheaper
+
+======================================================================
