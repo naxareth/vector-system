@@ -40,7 +40,18 @@ export default function StudentRegisterForm() {
     }
 
     try {
-      // 2. Verify the CAPTCHA token securely on the server before creating the user
+      // 2. Validate that the email domain actually exists and can receive email
+      const emailCheckResponse = await fetch('/api/auth/validate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: validData.email }),
+      });
+      const emailCheckResult = await emailCheckResponse.json();
+      if (!emailCheckResponse.ok || !emailCheckResult.success) {
+        throw new Error(emailCheckResult.message || 'Invalid email address.');
+      }
+
+      // 3. Verify the CAPTCHA token securely on the server before creating the user
       const captchaResponse = await fetch('/api/auth/verify-captcha', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -11,8 +11,8 @@ import HelpTip from '@/components/shared/HelpTip';
 const profileSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters").max(50, "First name too long").regex(/^[a-zA-Z\s]*$/, "Name can only contain letters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters").max(50, "Last name too long"),
-  phone: z.string().regex(/^\+?[0-9\s-]{7,20}$/, "Invalid phone number format").optional().or(z.literal('')),
-  bio: z.string().max(500, "Bio must be under 500 characters").optional(),
+  phone: z.string().regex(/^\+?[0-9\s-]{7,12}$/, "Phone must be 7-12 characters").optional().or(z.literal('')),
+  bio: z.string().max(100, "Bio must be under 100 characters").optional(),
   university: z.string().min(2, "University name is required"),
   major: z.string().max(100, "Major name too long").optional(),
   graduationYear: z.string().regex(/^\d{4}$/, "Year must be 4 digits (e.g. 2026)").optional().or(z.literal('')),
@@ -99,13 +99,14 @@ export default function ProfilePage() {
         }
 
         if (userRecord) {
-          const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+          // Capitalize every word in a string
+          const capitalizeWords = (s: string) => s.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
           const nameParts = (userRecord.full_name || '').split(' ');
           const profile = Array.isArray(userRecord.profiles) ? userRecord.profiles[0] : userRecord.profiles;
 
           setFormData({
-            firstName: capitalize(nameParts[0] || ''),
-            lastName: nameParts.slice(1).map(capitalize).join(' ') || '',
+            firstName: capitalizeWords(nameParts[0] || ''),
+            lastName: capitalizeWords(nameParts.slice(1).join(' ')) || '',
             email: userEmail,
             walletAddress: userRecord.wallet_address || '',
             location: userRecord.location || '',
@@ -169,12 +170,54 @@ export default function ProfilePage() {
   const { percentage: profileCompletion, items: progressItems } = calculateProgress();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    let sanitizedValue = value;
+
+    // Phone validation: only allow numbers, spaces, hyphens, and plus sign (max 12 chars)
+    if (name === 'phone') {
+      sanitizedValue = value.replace(/[^0-9\s+-]/g, '');
+      if (sanitizedValue.length > 12) {
+        return; // Don't update if exceeds limit
+      }
+    }
+    // Name fields: only letters and spaces (no symbols or emojis)
+    else if (name === 'firstName' || name === 'lastName') {
+      sanitizedValue = value.replace(/[^a-zA-Z\s]/g, '');
+      // Auto-capitalize first letter of each word
+      sanitizedValue = sanitizedValue
+        .split(' ')
+        .map(word => {
+          if (word.length === 0) return word;
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        })
+        .join(' ');
+    }
+    // Graduation year: only numbers
+    else if (name === 'graduationYear') {
+      sanitizedValue = value.replace(/[^0-9]/g, '');
+    }
+    // Text fields: allow letters, numbers, spaces, and basic punctuation only (no symbols or emojis)
+    else if (name === 'bio' || name === 'location' || name === 'major' || name === 'university') {
+      // Remove emojis and special symbols, keep letters, numbers, spaces, and basic punctuation (.,'-())
+      sanitizedValue = value.replace(/[^a-zA-Z0-9\s.,'\-()]/g, '');
+    }
+
+    // Bio validation: max 100 characters
+    if (name === 'bio' && sanitizedValue.length > 100) {
+      return; // Don't update if exceeds limit
+    }
+
+    // Prevent excessive spaces in all text fields (no more than 2 consecutive spaces)
+    if (name !== 'phone') {
+      sanitizedValue = sanitizedValue.replace(/\s{3,}/g, '  ');
+    }
+
+    setFormData({ ...formData, [name]: sanitizedValue });
     // Clear error for this field when user types
-    if (errors[e.target.name]) {
+    if (errors[name]) {
        setErrors(prev => {
           const newErrors = { ...prev };
-          delete newErrors[e.target.name];
+          delete newErrors[name];
           return newErrors;
        });
     }
@@ -264,7 +307,7 @@ export default function ProfilePage() {
         {/* Profile Card */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
           <div className="flex items-center gap-4 sm:gap-6">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#06B4C9] to-[#011018] rounded-full flex items-center justify-center text-white font-bold text-xl sm:text-2xl flex-shrink-0">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#06B4C9] rounded-full flex items-center justify-center text-white font-bold text-xl sm:text-2xl flex-shrink-0">
               {formData.firstName?.[0]}{formData.lastName?.[0]}
             </div>
             <div className="flex-1 min-w-0">
@@ -303,8 +346,26 @@ export default function ProfilePage() {
             {/* ═══ EDIT PROFILE TAB ═══ */}
             {activeTab === 'profile' && (
               <form onSubmit={handleSubmit}>
+                {/* Editing Mode Banner */}
+                {isEditing && (
+                  <div className="bg-gradient-to-r from-[#06B4C9]/10 to-[#06B4C9]/5 border-l-4 border-[#06B4C9] rounded-lg p-4 mb-4 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-[#06B4C9] rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-[#06B4C9]">Edit Mode Active</h3>
+                      <p className="text-xs text-gray-600">Make your changes and click Save Changes when done</p>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500">
+                      <span className="w-2 h-2 bg-[#06B4C9] rounded-full animate-pulse"></span>
+                      Editing
+                    </div>
+                  </div>
+                )}
                 {/* Personal Information */}
-                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+                <div className={`bg-white rounded-xl border p-5 mb-4 transition-all ${isEditing ? 'border-[#06B4C9]' : 'border-gray-200'}`}>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-base font-semibold text-gray-900">Personal Information</h2>
                     {!isEditing && (
@@ -331,6 +392,7 @@ export default function ProfilePage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
                       <input type="tel" name="phone" value={formData.phone} onChange={handleChange} disabled={!isEditing} 
+                        placeholder="+63 912 345 6789"
                         className={`w-full px-4 py-2 border rounded-lg outline-none disabled:bg-gray-50 ${errors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
                       {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                     </div>
@@ -340,8 +402,14 @@ export default function ProfilePage() {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50" />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Bio</label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-sm font-medium text-gray-700">Bio</label>
+                        <span className={`text-xs ${formData.bio.length >= 100 ? 'text-red-500 font-semibold' : 'text-gray-500'}`}>
+                          {formData.bio.length}/100
+                        </span>
+                      </div>
                       <textarea name="bio" value={formData.bio} onChange={handleChange} rows={3} disabled={!isEditing} 
+                        placeholder="Tell us about yourself..."
                         className={`w-full px-4 py-2 border rounded-lg outline-none resize-none disabled:bg-gray-50 ${errors.bio ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
                       {errors.bio && <p className="text-red-500 text-xs mt-1">{errors.bio}</p>}
                     </div>
@@ -349,7 +417,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Education */}
-                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+                <div className={`bg-white rounded-xl border p-5 mb-4 transition-all ${isEditing ? 'border-[#06B4C9]' : 'border-gray-200'}`}>
                   <h2 className="text-base font-semibold text-gray-900 mb-4">Education</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -372,7 +440,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Wallet */}
-                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+                <div className={`bg-white rounded-xl border p-5 mb-4 transition-all ${isEditing ? 'border-[#06B4C9]' : 'border-gray-200'}`}>
                   <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-1">Blockchain Wallet <HelpTip text="A digital wallet (like MetaMask) that stores your verified certificates on the blockchain so they can't be tampered with." size={14} /></h2>
                   {formData.walletAddress ? (
                     <div>
@@ -542,47 +610,125 @@ export default function ProfilePage() {
 
           {/* Right sidebar — only show on Edit Profile tab */}
           {activeTab === 'profile' && (
-            <div className="w-full lg:w-80 flex-shrink-0">
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <h2 className="text-base font-semibold text-gray-900 mb-4">Complete your profile</h2>
-                <div className="flex flex-col items-center mb-6">
-                  <div className="relative w-28 h-28">
-                    <svg className="w-28 h-28 transform -rotate-90">
-                      <circle cx="56" cy="56" r="48" stroke="#e5e7eb" strokeWidth="10" fill="none" />
-                      <circle cx="56" cy="56" r="48" stroke="#22c55e" strokeWidth="10" fill="none" strokeDasharray={`${2 * Math.PI * 48}`} strokeDashoffset={`${2 * Math.PI * 48 * (1 - profileCompletion / 100)}`} strokeLinecap="round" className="transition-all duration-500" />
+            <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
+
+              {/* Profile Completion Card */}
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                {/* Header */}
+                <div className="bg-[#06B4C9]  px-5 py-4">
+                  <h2 className="text-sm font-semibold text-white">Profile Strength</h2>
+                  <p className="text-xs text-white/70 mt-0.5">Fill in the missing fields below</p>
+                </div>
+
+                {/* Progress Ring */}
+                <div className="flex flex-col items-center py-6 px-5">
+                  <div className="relative w-28 h-28 mb-3">
+                    <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 112 112">
+                      <circle cx="56" cy="56" r="46" stroke="#f3f4f6" strokeWidth="10" fill="none" />
+                      <circle
+                        cx="56" cy="56" r="46" fill="none"
+                        stroke={profileCompletion >= 80 ? '#22c55e' : profileCompletion >= 50 ? '#06B4C9' : '#f59e0b'}
+                        strokeWidth="10"
+                        strokeDasharray={`${2 * Math.PI * 46}`}
+                        strokeDashoffset={`${2 * Math.PI * 46 * (1 - profileCompletion / 100)}`}
+                        strokeLinecap="round"
+                        className="transition-all duration-700"
+                      />
                     </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-2xl font-bold text-gray-900">{profileCompletion}%</div>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-bold text-gray-900">{profileCompletion}%</span>
+                      <span className="text-[10px] text-gray-400 font-medium">Complete</span>
+                    </div>
+                  </div>
+
+                  {/* Status badge */}
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full ${
+                    profileCompletion >= 80 ? 'bg-green-100 text-green-700' :
+                    profileCompletion >= 50 ? 'bg-cyan-100 text-[#06B4C9]' :
+                    'bg-amber-100 text-amber-700'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      profileCompletion >= 80 ? 'bg-green-500' :
+                      profileCompletion >= 50 ? 'bg-[#06B4C9]' :
+                      'bg-amber-500'
+                    }`}></span>
+                    {profileCompletion >= 80 ? 'Looking great!' : profileCompletion >= 50 ? 'Good progress' : 'Just getting started'}
+                  </span>
+                </div>
+
+                {/* Divider */}
+                <div className="mx-5 border-t border-gray-100" />
+
+                {/* Checklist */}
+                <div className="px-5 py-4 space-y-4">
+                  {/* Personal Section */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-5 h-5 rounded-md bg-[#06B4C9]/10 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-3 h-3 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      </div>
+                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Personal</span>
+                    </div>
+                    <div className="space-y-1.5 pl-1">
+                      {progressItems.slice(0, 7).map((item, index) => (
+                        <div key={index} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 transition-colors ${item.completed ? 'bg-gray-50' : 'bg-amber-50/60 hover:bg-amber-50'}`}>
+                          <div className="flex items-center gap-2.5">
+                            {item.completed ? (
+                              <span className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                              </span>
+                            ) : (
+                              <span className="w-4 h-4 rounded-full border-2 border-dashed border-gray-300 flex-shrink-0"></span>
+                            )}
+                            <span className={`text-xs ${item.completed ? 'text-gray-400 line-through' : 'text-gray-700 font-medium'}`}>{item.label}</span>
+                          </div>
+                          {!item.completed && (
+                            <span className="text-[11px] font-bold text-[#06B4C9] bg-[#06B4C9]/10 px-1.5 py-0.5 rounded-md">+{item.weight}%</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Education Section */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-5 h-5 rounded-md bg-purple-100 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-3 h-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0v6m0-6l-9-5m9 5l9-5" /></svg>
+                      </div>
+                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Education</span>
+                    </div>
+                    <div className="space-y-1.5 pl-1">
+                      {progressItems.slice(7, 10).map((item, index) => (
+                        <div key={index} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 transition-colors ${item.completed ? 'bg-gray-50' : 'bg-amber-50/60 hover:bg-amber-50'}`}>
+                          <div className="flex items-center gap-2.5">
+                            {item.completed ? (
+                              <span className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                              </span>
+                            ) : (
+                              <span className="w-4 h-4 rounded-full border-2 border-dashed border-gray-300 flex-shrink-0"></span>
+                            )}
+                            <span className={`text-xs ${item.completed ? 'text-gray-400 line-through' : 'text-gray-700 font-medium'}`}>{item.label}</span>
+                          </div>
+                          {!item.completed && (
+                            <span className="text-[11px] font-bold text-[#06B4C9] bg-[#06B4C9]/10 px-1.5 py-0.5 rounded-md">+{item.weight}%</span>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="mb-3">
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Personal</h3>
-                    {progressItems.slice(0, 7).map((item, index) => (
-                      <div key={index} className="flex items-center justify-between py-1">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-3.5 h-3.5 rounded-full border ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}></span>
-                          <span className={`text-xs ${item.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{item.label}</span>
-                        </div>
-                        {!item.completed && <span className="text-xs font-medium text-[#06B4C9]">+{item.weight}%</span>}
-                      </div>
-                    ))}
+
+                {/* Footer tip */}
+                {profileCompletion < 100 && (
+                  <div className="mx-5 mb-5 bg-[#06B4C9]/5 border border-[#06B4C9]/20 rounded-xl px-4 py-3 flex items-start gap-2.5">
+                    <svg className="w-4 h-4 text-[#06B4C9] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" /></svg>
+                    <p className="text-[11px] text-gray-500 leading-relaxed">A complete profile increases your chances of getting noticed by employers.</p>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Education</h3>
-                    {progressItems.slice(7, 10).map((item, index) => (
-                      <div key={index} className="flex items-center justify-between py-1">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-3.5 h-3.5 rounded-full border ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}></span>
-                          <span className={`text-xs ${item.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{item.label}</span>
-                        </div>
-                        {!item.completed && <span className="text-xs font-medium text-[#06B4C9]">+{item.weight}%</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                )}
               </div>
+
             </div>
           )}
         </div>

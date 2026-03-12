@@ -2,6 +2,7 @@
 import { useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
 
 function VerifyEmailForm() {
   const router = useRouter();
@@ -146,6 +147,18 @@ function VerifyEmailForm() {
           Didn't receive the code?{' '}
           <button onClick={handleResend} type="button" className="text-purple-600 font-bold hover:underline outline-none">
             Resend
+          </button>
+        </p>
+        <p className="mt-4">
+          <button
+            type="button"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.push('/login');
+            }}
+            className="text-gray-500 hover:text-purple-600 font-medium underline underline-offset-2 text-sm"
+          >
+            &larr; Back to Login
           </button>
         </p>
       </div>
