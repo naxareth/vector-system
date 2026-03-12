@@ -31,7 +31,7 @@ function truncateAddress(addr: string): string {
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // -------------------------------------------------------------------------
   // 🛡️ Rate Limiting (Checkpoint #2)

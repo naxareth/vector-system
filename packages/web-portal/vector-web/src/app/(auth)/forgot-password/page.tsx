@@ -88,7 +88,7 @@ export default function ForgotPasswordPage() {
       setSuccessMsg(`Code sent to ${sanitizedEmail}`);
 
     } catch (err: any) {
-      setError(err instanceof z.ZodError ? err.errors[0].message : err.message);
+      setError(err instanceof z.ZodError ? err.issues[0].message : err.message);
       // Reset Turnstile widget so the user can generate a fresh token
       if (step === 'email') {
         turnstileRef.current?.reset();
@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
       setStep('reset');
       setSuccessMsg("Identity checks out. Set your new password.");
     } catch (err: any) {
-      setError(err instanceof z.ZodError ? err.errors[0].message : "Invalid code format");
+      setError(err instanceof z.ZodError ? err.issues[0].message : "Invalid code format");
     }
   };
 
@@ -147,7 +147,7 @@ export default function ForgotPasswordPage() {
       router.push('/login?reset=success');
 
     } catch (err: any) {
-      setError(err instanceof z.ZodError ? err.errors[0].message : err.message);
+      setError(err instanceof z.ZodError ? err.issues[0].message : err.message);
     } finally {
       setLoading(false);
     }

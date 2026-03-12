@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ 
         status: 'error', 
         message: 'Invalid request schema',
-        errors: result.error.errors 
+        errors: result.error.issues 
       }, { status: 400 });
     }
 
@@ -141,7 +141,7 @@ export async function POST(req: Request) {
     });
     const chartDataMap: Record<string, any> = {};
     marketHistoryRaw.forEach(record => {
-      const dateKey = new Date(record.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dateKey = new Date(record.recorded_at ?? Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       if (!chartDataMap[dateKey]) chartDataMap[dateKey] = { date: dateKey };
       chartDataMap[dateKey][record.skill_name] = record.job_count;
     });

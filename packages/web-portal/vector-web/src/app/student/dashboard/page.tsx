@@ -1,4 +1,17 @@
-'use client';
+"use client";
+// Extract up to 3 meaningful keyword tags from the course title
+function extractTags(title: string): string[] {
+  const stop = new Set([
+    'and','the','of','in','for','to','a','an','with','on','at','by',
+    'i','ii','iii','iv','introduction','advanced','fundamentals','complete','guide',
+    'course','bootcamp','certification','essentials','mastery','professional'
+  ]);
+  return title
+    .replace(/[():,]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stop.has(w.toLowerCase()))
+    .slice(0, 3);
+}
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -6,6 +19,8 @@ import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import CredentialCard from '@/components/dashboard/CredentialCard';
 import RecentActivity, { ActivityItem } from '@/components/dashboard/RecentActivity';
+import Link from 'next/link';
+import HelpTip from '@/components/shared/HelpTip';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 import studentIllustration from './student.png';
@@ -45,9 +60,22 @@ interface CredentialItem {
   credentialData?: Record<string, any>;
 }
 
+function providerPill(provider: string | null): string {
+  if (!provider) return 'bg-[#06B4C9]/10 text-[#06B4C9]';
+  const p = provider.toLowerCase();
+  if (p === 'udemy') return 'bg-purple-100 text-purple-700';
+  if (p === 'coursera') return 'bg-blue-100 text-blue-700';
+  if (p.startsWith('edx')) return 'bg-slate-100 text-slate-700';
+  if (p.includes('freecodecamp')) return 'bg-green-100 text-green-700';
+  if (p === 'hubspot') return 'bg-orange-100 text-orange-700';
+  if (p.includes('linkedin')) return 'bg-sky-100 text-sky-700';
+  return 'bg-[#06B4C9]/10 text-[#06B4C9]';
+}
+
 export default function StudentDashboard() {
   const router = useRouter();
   const [hasPendingCVR, setHasPendingCVR] = useState(false);
+  const [hasCVRExport, setHasCVRExport] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [aiData, setAiData] = useState<AIAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -212,6 +240,15 @@ export default function StudentDashboard() {
             full_name: profile.full_name ? capitalizeWords(profile.full_name) : 'Student'
           };
           setUser(capitalizedProfile);
+
+          // Check cvr_exports to accurately determine if user has uploaded a CVR
+          const { data: cvrExports } = await supabase
+            .from('cvr_exports')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .limit(1);
+          if (cvrExports && cvrExports.length > 0) setHasCVRExport(true);
+
           await refreshPipeline(profile.wallet_address || '', profile.student_id || session.user.id);
         }
       } catch (error) {
@@ -270,13 +307,18 @@ export default function StudentDashboard() {
                       </button>
                     </span>
                   ) : (
-                    <button
-                      onClick={connectWallet}
-                      disabled={isWalletConnecting}
-                      className="flex items-center gap-2 text-sm bg-[#06B4C9] text-white px-4 py-2.5 rounded-lg hover:bg-[#06B4C9]/90"
-                    >
-                      {isWalletConnecting ? 'Connecting...' : 'Connect Wallet'}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={connectWallet}
+                        disabled={isWalletConnecting}
+                        className="flex items-center gap-2 text-sm bg-[#06B4C9] text-white px-4 py-2.5 rounded-lg hover:bg-[#06B4C9]/90"
+                      >
+                        {isWalletConnecting ? 'Connecting...' : 'Connect Wallet'}
+                      </button>
+                      <a href="/student/help" className="text-xs text-white/70 hover:text-white underline underline-offset-2">
+                        Need help?
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>
@@ -297,7 +339,7 @@ export default function StudentDashboard() {
             <div className="bg-white rounded-xl border border-gray-200 p-5 relative">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Verified Skills</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Verified Skills <HelpTip text="Skills confirmed by your university and recorded permanently on the network." /></h3>
                   <p className="text-3xl font-bold text-gray-900 mb-3">{allCredentials.length}</p>
                   <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${allCredentials.length > 2 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -320,7 +362,7 @@ export default function StudentDashboard() {
             <div className="bg-white rounded-xl border border-gray-200 p-5 relative">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Market Score</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Market Score <HelpTip text="How well your current skills match what employers are hiring for right now. Higher is better." /></h3>
                   <p className="text-3xl font-bold text-gray-900 mb-3">{marketScore}%</p>
                   <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${marketScore >= 70 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -345,7 +387,7 @@ export default function StudentDashboard() {
           {/* Skill Health Trends */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Top Skills Performance</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Top Skills Performance <HelpTip text="Shows how each of your skills is trending in the job market — growing, stable, or declining." /></h3>
               <div className="flex items-center gap-3 text-xs">
               </div>
             </div>
@@ -356,9 +398,9 @@ export default function StudentDashboard() {
                   .slice(0, 3)
                   .map((skill, index) => {
                     const trendColors = {
-                      growing: { bg: 'bg-green-500', text: 'text-green-700', light: 'bg-green-50' },
-                      stable: { bg: 'bg-blue-500', text: 'text-blue-700', light: 'bg-blue-50' },
-                      declining: { bg: 'bg-orange-500', text: 'text-orange-700', light: 'bg-orange-50' }
+                      growing: { bg: 'bg-[#06B4C9]', text: 'text-cyan-700', light: 'bg-cyan-50' },
+                      stable: { bg: 'bg-slate-300', text: 'text-slate-600', light: 'bg-slate-100' },
+                      declining: { bg: 'bg-amber-400', text: 'text-amber-700', light: 'bg-amber-50' }
                     };
                     const colors = trendColors[skill.trend];
                     
@@ -373,15 +415,15 @@ export default function StudentDashboard() {
                           </div>
                           <span className="text-sm font-bold text-gray-900">{skill.healthScore}%</span>
                         </div>
-                        <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="relative h-3.5 bg-gray-100 rounded-sm overflow-hidden">
                           <div
-                            className={`absolute top-0 left-0 h-full ${colors.bg} transition-all duration-700 ease-out rounded-full`}
+                            className={`absolute top-0 left-0 h-full ${colors.bg} transition-all duration-700 ease-out rounded-sm`}
                             style={{ width: `${skill.healthScore}%` }}
                           ></div>
                         </div>
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <span>Demand: {skill.currentDemand.toFixed(1)}%</span>
-                          <span>Decay Rate: {skill.decayRate.toFixed(2)}%</span>
+                          <span>Decay Rate: {skill.decayRate.toFixed(2)}% <HelpTip size={12} text="How quickly this skill loses relevance if not updated. A lower number means the skill stays valuable longer." /></span>
                         </div>
                       </div>
                     );
@@ -411,7 +453,7 @@ export default function StudentDashboard() {
           {/* Verified Credentials */}
           <div id="tour-credentials" className="bg-white rounded-xl border border-gray-200 p-5">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Verified Credentials</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Verified Credentials <HelpTip text="Certificates and qualifications issued by your university, securely stored and verifiable by employers." /></h2>
               <button
                 onClick={() => router.push('/student/skills')}
                 className="text-[#06B4C9] text-sm font-medium hover:underline"
@@ -451,12 +493,12 @@ export default function StudentDashboard() {
                   {user?.wallet_address && allCredentials.length > 0 ? 'Almost Done' : 'In Progress'}
                 </span>
                 <span className="text-xs font-semibold text-[#06B4C9]">
-                  {user?.wallet_address ? (allCredentials.length > 0 ? '75%' : '50%') : '25%'}
+                  {user?.wallet_address ? ((hasPendingCVR || hasCVRExport) ? '75%' : '50%') : '25%'}
                 </span>
               </div>
               <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-[#06B4C9]/10">
                 <div
-                  style={{ width: user?.wallet_address ? (allCredentials.length > 0 ? '75%' : '50%') : '25%' }}
+                  style={{ width: user?.wallet_address ? ((hasPendingCVR || hasCVRExport) ? '75%' : '50%') : '25%' }}
                   className="bg-[#06B4C9] transition-all duration-500"
                 ></div>
               </div>
@@ -466,13 +508,13 @@ export default function StudentDashboard() {
                 {user?.wallet_address
                   ? <span className="text-green-500 font-bold mr-2">✓</span>
                   : <span className="text-gray-300 mr-2">○</span>}
-                Connect Wallet
+                Connect Wallet <HelpTip size={13} text="A digital wallet (like MetaMask) stores your certificates securely on the blockchain so employers can verify them." />
               </li>
               <li className="flex items-center text-sm text-gray-600">
-                {allCredentials.length > 0 || hasPendingCVR
+                {hasPendingCVR || hasCVRExport
                   ? <span className="text-green-500 font-bold mr-2">✓</span>
                   : <span className="text-gray-300 mr-2">○</span>}
-                Upload Resume (CVR)
+                Upload Resume (CVR) <HelpTip size={13} text="CVR stands for Credential-Verified Resume — a resume that links to your verified certificates for proof." />
               </li>
               <li className="flex items-center text-sm text-gray-600">
                 <span className="text-gray-300 mr-2">○</span>
@@ -486,6 +528,85 @@ export default function StudentDashboard() {
               Complete Setup
             </button>
           </div>
+
+          {/* ── Quick Course Picks ── */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-gray-900">Recommended Courses</h3>
+              <Link href="/student/explore-courses" className="text-xs font-semibold text-[#06B4C9] hover:text-[#06B4C9]/70 transition-colors">
+                Explore More →
+              </Link>
+            </div>
+
+            {aiData?.recommendations && (aiData.recommendations as any[]).length > 0 ? (
+              <div className="space-y-3">
+                {(aiData.recommendations as any[]).slice(0, 3).map((rec: any, i: number) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                    <div className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                      i === 0 ? 'bg-amber-400 text-white' : i === 1 ? 'bg-gray-300 text-gray-700' : 'bg-orange-300 text-white'
+                    }`}>
+                      #{i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2">
+                          {rec.courseTitle || rec.courseName || 'Course'}
+                        </p>
+                        <span className="flex-shrink-0 text-xs font-bold text-[#06B4C9]">
+                          {rec.relevanceScore || 80}%
+                        </span>
+                      </div>
+                      {rec.provider && (
+                        <span className={`mt-1.5 inline-block text-xs font-semibold px-2 py-0.5 rounded-md ${providerPill(rec.provider)}`}>
+                          {rec.provider}
+                        </span>
+                      )}
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {extractTags(rec.courseTitle || rec.courseName || '').map(tag => (
+                          <span key={tag} className="text-xs text-gray-500 border border-gray-200 rounded-full px-2 py-0.5 bg-gray-50">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      {rec.link && (
+                        <div className="flex justify-end mt-1.5">
+                          <a
+                            href={rec.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-medium text-gray-400 hover:text-[#06B4C9] transition-colors inline-flex items-center gap-0.5"
+                          >
+                            Take Course
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-xs text-gray-400 mb-2">No suggestions yet</p>
+                <Link
+                  href="/student/explore-courses"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#06B4C9] hover:underline"
+                >
+                  Browse all courses →
+                </Link>
+              </div>
+            )}
+          </div>
+
         </div>
 
       </div>

@@ -89,7 +89,7 @@ export default function EnrollMFA({ onComplete }: { onComplete: () => void }) {
 
       <button
         onClick={handleEnable}
-        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded-lg transition-colors"
+        className="w-full bg-bg-[#06B4C9] hover:bg-bg-[#06B4C9]/10 !text-white font-bold py-2 rounded-lg transition-colors"
       >
         Activate 2FA
       </button>

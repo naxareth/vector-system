@@ -89,7 +89,7 @@ const templates = [
   {
     id: 'simple',
     label: 'Simple',
-    description: 'Traditional, ATS-friendly and minimal.',
+    description: 'Traditional and minimal.',
     Preview: SimplePreview,
   },
 ];

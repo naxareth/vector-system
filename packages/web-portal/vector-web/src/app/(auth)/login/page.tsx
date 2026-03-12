@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import mockupImg from './mockup.png';
+import registrarImg from '../registrar-register/registrar.jpg';
 import { z } from 'zod';
 import { ChallengeMFA } from '@/components/auth/ChallengeMFA'; 
 import { Eye, EyeOff } from 'lucide-react';
@@ -105,26 +106,7 @@ export default function LoginPage() {
         throw new Error("Invalid email or password.");
       }
 
-      // 3. Check for MFA Factors
-      const { data: factorsData } = await supabase.auth.mfa.listFactors();
-      const totpFactors = factorsData?.totp?.filter(f => f.status === 'verified') ?? [];
-
-      if (totpFactors.length > 0) {
-        setMfaFactorId(totpFactors[0].id);
-        
-        const { data: userData } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', data.user.id)
-          .single();
-          
-        setPendingRole(userData?.role || 'student');
-        setMfaRequired(true);
-        setLoading(false); 
-        return; 
-      }
-
-      // 4. No MFA? Proceed to standard redirect
+      // Fetch canonical role for this user and block if visiting registrar login but account isn't a registrar
       const { data: userData, error: fetchError } = await supabase
         .from('users')
         .select('role')
@@ -136,6 +118,38 @@ export default function LoginPage() {
         throw new Error("Account integrity error. Please contact support.");
       }
 
+      // If on the student login page, prevent registrar accounts from signing in here
+      if (!isRegistrarFlow && userData.role === 'registrar') {
+        await supabase.auth.signOut();
+        setError("This email is registered as a Registrar. Please sign in through the Registrar portal or contact support if this is unexpected.");
+        setLoading(false);
+        turnstileRef.current?.reset();
+        setTurnstileToken(null);
+        return;
+      }
+
+      if (isRegistrarFlow && userData.role !== 'registrar') {
+        await supabase.auth.signOut();
+        setError("You are not authorized to sign in here. This portal is for registrars only.");
+        setLoading(false);
+        turnstileRef.current?.reset();
+        setTurnstileToken(null);
+        return;
+      }
+
+      // 3. Check for MFA Factors
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const totpFactors = factorsData?.totp?.filter(f => f.status === 'verified') ?? [];
+
+      if (totpFactors.length > 0) {
+        setMfaFactorId(totpFactors[0].id);
+        setPendingRole(userData?.role || 'student');
+        setMfaRequired(true);
+        setLoading(false); 
+        return; 
+      }
+
+      // 4. No MFA? Proceed to standard redirect
       router.refresh();
 
       const returnUrl = searchParams.get('redirectTo');
@@ -353,28 +367,26 @@ export default function LoginPage() {
           
           <p className="text-sm text-gray-500 text-center mt-8">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-semibold text-gray-900 hover:underline">
-              Create an account
-            </Link>
+            {(() => {
+              const roleParam = searchParams.get('role');
+              const href = roleParam === 'registrar' ? '/registrar-register' : '/register';
+              return (
+                <Link href={href} className="font-semibold text-gray-900 hover:underline">
+                  Create an account
+                </Link>
+              );
+            })()}
           </p>
 
-          {!isRegistrarFlow && (
-            <p className="text-xs text-gray-400 text-center mt-4">
-              Registering your institution?{' '}
-              <Link href="/registrar-register" className="font-semibold text-[#06B4C9] hover:underline">
-                Register as a Registrar
-              </Link>
-            </p>
-          )}
         </div>
 
         {/* ── Right column: accent image panel ── */}
-        <div className="hidden md:flex rounded-2xl m-3 items-center justify-center overflow-hidden relative" style={{ background: 'radial-gradient(circle at 50% 100%, #06B4C9 0%, #033a44 35%, #011018 70%)' }}>
+        <div className={isRegistrarFlow ? "hidden md:flex items-center justify-center overflow-hidden relative p-0" : "hidden md:flex rounded-2xl m-3 items-center justify-center overflow-hidden relative"} style={isRegistrarFlow ? undefined : { background: 'radial-gradient(circle at 50% 100%, #06B4C9 0%, #033a44 35%, #011018 70%)' }}>
           <Image
-            src={mockupImg}
-            alt="Vector platform preview"
+            src={isRegistrarFlow ? registrarImg : mockupImg}
+            alt={isRegistrarFlow ? "Registrar portal preview" : "Vector platform preview"}
             fill
-            className="object-contain p-2 drop-shadow-2xl"
+            className={isRegistrarFlow ? "object-cover" : "object-contain p-2 drop-shadow-2xl"}
             priority
           />
         </div>

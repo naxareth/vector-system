@@ -2,6 +2,7 @@
 import { useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
 
 function VerifyEmailForm() {
   const router = useRouter();
@@ -90,7 +91,7 @@ function VerifyEmailForm() {
     return (
       <div className="text-center">
         <p className="text-red-500 mb-4">No email address provided.</p>
-        <Link href="/register" className="text-purple-600 font-bold hover:underline">Return to Registration</Link>
+        <Link href="/register" className="text-[#06B4C9] font-semibold hover:underline">Return to Registration</Link>
       </div>
     );
   }
@@ -98,7 +99,7 @@ function VerifyEmailForm() {
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
       <div className="text-center mb-6">
-        <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 bg-[#06B4C9]/10 text-[#06B4C9] rounded-full flex items-center justify-center mx-auto mb-4">
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
@@ -131,12 +132,12 @@ function VerifyEmailForm() {
               value={digit}
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
-              className="w-12 h-14 text-center text-2xl font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+              className="w-12 h-14 text-center text-2xl font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none transition-all"
             />
           ))}
         </div>
 
-        <button type="submit" disabled={loading} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-all transform active:scale-[0.98] shadow-md flex items-center justify-center gap-2 disabled:opacity-50">
+        <button type="submit" disabled={loading} className="w-full bg-[#06B4C9] hover:bg-[#06B4C9]/85 text-white font-semibold py-3 rounded-lg transition-all transform active:scale-[0.98] shadow-md flex items-center justify-center gap-2 disabled:opacity-50">
           {loading ? 'Verifying...' : 'Verify Account'}
         </button>
       </form>
@@ -144,8 +145,20 @@ function VerifyEmailForm() {
       <div className="text-center mt-6">
         <p className="text-sm text-gray-600">
           Didn't receive the code?{' '}
-          <button onClick={handleResend} type="button" className="text-purple-600 font-bold hover:underline outline-none">
+          <button onClick={handleResend} type="button" className="text-[#06B4C9] font-semibold hover:underline outline-none">
             Resend
+          </button>
+        </p>
+        <p className="mt-4">
+          <button
+            type="button"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.push('/login');
+            }}
+            className="text-gray-500 hover:text-[#06B4C9] font-medium underline underline-offset-2 text-sm"
+          >
+            &larr; Back to Login
           </button>
         </p>
       </div>
@@ -156,14 +169,14 @@ function VerifyEmailForm() {
 // Wrap in Suspense boundary for Next.js App Router (useSearchParams requirement)
 export default function VerifyEmailPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center px-6 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-[#06B4C9]/5 via-white to-[#06B4C9]/10 flex items-center justify-center px-6 py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-[#06B4C9] rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">V</span>
             </div>
-            <span className="text-2xl font-bold text-gray-900">VECTOR</span>
+            <span className="text-2xl font-bold text-gray-900 tracking-tight">VECTOR</span>
           </Link>
         </div>
         

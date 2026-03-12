@@ -35,8 +35,7 @@ export default function AdminDashboard() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<'pending' | 'directory'>('pending');
-  const [pendingPage, setPendingPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<'directory'>('directory');
   const [dirPage, setDirPage] = useState(1);
   const ROWS_PER_PAGE = 10;
 
@@ -55,7 +54,6 @@ export default function AdminDashboard() {
     fetchUsers();
   }, []);
 
-  const pendingUsers = allUsers.filter((u) => u.status === 'pending_verification');
   const directoryUsers = allUsers.filter((u) => {
     const matchesSearch =
       !searchQuery ||
@@ -65,7 +63,6 @@ export default function AdminDashboard() {
     return matchesSearch && matchesRole;
   });
 
-  const paginatedPending = pendingUsers.slice((pendingPage - 1) * ROWS_PER_PAGE, pendingPage * ROWS_PER_PAGE);
   const paginatedDir = directoryUsers.slice((dirPage - 1) * ROWS_PER_PAGE, dirPage * ROWS_PER_PAGE);
 
   // Reset pages on filter/search changes
@@ -75,7 +72,7 @@ export default function AdminDashboard() {
     const currentUser = allUsers.find((u) => u.id === userId);
     if (currentUser?.role === newRole) return;
 
-    if (!confirm(`Change ${userName}'s role to ${ROLE_LABELS[newRole as Role] || newRole}? This action will be audited.`)) return;
+    if (!confirm(`Change ${userName}'s role to ${ROLE_LABELS[newRole as Role] || newRole}? This change will take effect immediately and will be recorded in the activity log.`)) return;
 
     setProcessingId(userId);
     try {
@@ -100,7 +97,7 @@ export default function AdminDashboard() {
   };
 
   const handleQuickApprove = async (userId: string, newRole: 'registrar' | 'student') => {
-    if (!confirm(`Approve this user as ${newRole.toUpperCase()}? This action will be audited.`)) return;
+    if (!confirm(`Approve this user as a ${ROLE_LABELS[newRole as Role] || newRole}? They will receive access immediately.`)) return;
 
     setProcessingId(userId);
     try {
@@ -125,29 +122,15 @@ export default function AdminDashboard() {
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="mb-2">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">User Management</h1>
-          <p className="text-gray-500 dark:text-[#94A3B8]">Approve pending accounts and manage user roles. All changes are audited.</p>
+          <p className="text-gray-500 dark:text-[#94A3B8]">Approve new accounts and manage existing user roles.</p>
         </div>
 
         {/* Tab Switcher */}
         <div className="flex gap-1 bg-gray-100 dark:bg-[#1E2536] p-1 rounded-lg w-fit">
           <button
-            onClick={() => setActiveTab('pending')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'pending'
-              ? 'bg-white dark:bg-[#131825] shadow-sm text-[#06B4C9]'
-              : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'
-              }`}
-          >
-            Pending
-            {pendingUsers.length > 0 && (
-              <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                {pendingUsers.length}
-              </span>
-            )}
-          </button>
-          <button
             onClick={() => setActiveTab('directory')}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'directory'
-              ? 'bg-white dark:bg-[#131825] shadow-sm text-[#06B4C9]'
+              ? 'bg-white dark:bg-[#131825] text-[#06B4C9]'
               : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'
               }`}
           >
@@ -156,65 +139,11 @@ export default function AdminDashboard() {
         </div>
 
         {/* ── Pending Tab ── */}
-        {activeTab === 'pending' && (
-          <div className="bg-white dark:bg-[#131825] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1E2536] overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220] flex justify-between items-center">
-              <span className="font-semibold text-gray-700 dark:text-[#E2E8F0]">Verification Queue ({pendingUsers.length})</span>
-              <button onClick={fetchUsers} className="text-sm text-[#06B4C9] hover:text-[#06B4C9]/70 font-medium">Refresh</button>
-            </div>
-
-            {loading ? (
-              <div className="p-8 text-center text-gray-500 dark:text-[#94A3B8]">Loading requests...</div>
-            ) : pendingUsers.length === 0 ? (
-              <div className="p-12 text-center flex flex-col items-center">
-                <div className="w-16 h-16 bg-green-50 dark:bg-emerald-500/10 text-green-500 dark:text-emerald-400 rounded-full flex items-center justify-center mb-4">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">All caught up!</h3>
-                <p className="text-gray-500 dark:text-[#94A3B8]">No pending verification requests.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100 dark:divide-[#1E2536]">
-                {paginatedPending.map((user) => (
-                  <div key={user.id} className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-[#1E2536] transition-colors">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 bg-[#06B4C9]/10 text-[#06B4C9] rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                        {user.full_name ? user.full_name[0] : '?'}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 dark:text-white truncate">{user.full_name || 'Unknown'}</p>
-                        <p className="text-sm text-gray-500 dark:text-[#94A3B8] truncate">{user.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {processingId === user.id ? (
-                        <span className="text-sm text-gray-500 animate-pulse">Processing...</span>
-                      ) : (
-                        <>
-                          <button onClick={() => handleQuickApprove(user.id, 'registrar')} className="px-3 py-1.5 bg-[#06B4C9] text-white text-sm font-medium rounded-lg hover:bg-[#06B4C9]/80 transition-all">
-                            Approve Registrar
-                          </button>
-                          <button onClick={() => handleQuickApprove(user.id, 'student')} className="px-3 py-1.5 bg-white dark:bg-[#1E2536] border border-gray-300 dark:border-[#283042] text-gray-700 dark:text-[#E2E8F0] text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-[#283042] transition-all">
-                            Approve Student
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {pendingUsers.length > 0 && (
-              <div className="px-6 py-2 border-t border-gray-100 dark:border-[#1E2536]">
-                <Pagination currentPage={pendingPage} totalItems={pendingUsers.length} itemsPerPage={ROWS_PER_PAGE} onPageChange={setPendingPage} />
-              </div>
-            )}
-          </div>
-        )}
+        {/* Pending tab removed — directly showing Directory */}
 
         {/* ── Directory Tab ── */}
         {activeTab === 'directory' && (
-          <div className="bg-white dark:bg-[#131825] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1E2536] overflow-hidden">
+          <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] overflow-hidden">
             {/* Search & Filter Bar */}
             <div className="px-6 py-4 border-b border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220] flex flex-col sm:flex-row gap-3">
               <input
@@ -233,7 +162,6 @@ export default function AdminDashboard() {
                 {ROLES.map((r) => (
                   <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                 ))}
-                <option value="pending_verification">Pending</option>
               </select>
               <button onClick={fetchUsers} className="px-4 py-2 text-sm text-[#06B4C9] hover:text-[#06B4C9]/70 font-medium border border-gray-300 dark:border-[#283042] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1E2536]">
                 Refresh
@@ -309,7 +237,7 @@ export default function AdminDashboard() {
 
             <div className="px-6 py-2 border-t border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220] flex items-center justify-between">
               <p className="text-xs text-gray-400 dark:text-[#64748B]">
-                {directoryUsers.length} of {allUsers.length} users • Role changes are audited
+                Showing {directoryUsers.length} of {allUsers.length} users
               </p>
               <Pagination currentPage={dirPage} totalItems={directoryUsers.length} itemsPerPage={ROWS_PER_PAGE} onPageChange={setDirPage} />
             </div>

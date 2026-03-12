@@ -49,7 +49,7 @@ export default function VerifiedCertificationsBlock({
               }`}
             >
               <div>
-                <h3 className="font-bold text-gray-800">{cert.skill_name}</h3>
+                <h3 className="text-sm font-semibold text-gray-900">{cert.skill_name}</h3>
                 <p className="text-xs text-gray-500">
                   Issued: {new Date(cert.issued_at).toLocaleDateString()}
                 </p>
