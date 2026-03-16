@@ -458,9 +458,77 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation failed', details: error.errors }, { status: 400 });
+      return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
     }
     console.error('POST /api/registrar/credentials error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  const cookieStore = await cookies();
+  
+  // 1. Auth Client (Anon) to get current session
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value },
+      },
+    }
+  );
+
+  // 2. Admin Client (Service Role) to bypass RLS and perform update
+  const supabaseAdmin = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        get(name: string) { return cookieStore.get(name)?.value },
+      },
+    }
+  );
+
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Verify role via supabaseAdmin (bypasses port 6543)
+    const { data: dbUser, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || dbUser?.role !== 'registrar') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { id, revoked } = await req.json();
+    if (!id) return NextResponse.json({ error: 'Missing credential ID' }, { status: 400 });
+
+    const isRevoked = revoked ?? true;
+
+    // Perform update via supabaseAdmin (HTTPS port 443 - stable)
+    const { error: updateError } = await supabaseAdmin
+      .from('verified_credentials')
+      .update({ revoked: isRevoked })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error('[API] Update failed:', updateError.message);
+      throw new Error(updateError.message);
+    }
+
+    console.log(`[API] Credential ${id} marked revoked=${isRevoked} via Supabase Admin`);
+    return NextResponse.json({ success: true });
+
+  } catch (error: any) {
+    console.error('PATCH /api/registrar/credentials error:', error);
+    return NextResponse.json({ 
+      error: 'Database Sync Failed', 
+      details: error.message 
+    }, { status: 500 });
   }
 }

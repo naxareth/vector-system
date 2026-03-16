@@ -24,6 +24,15 @@ interface StudentRecord {
   wallet_address: string | null;
 }
 
+interface VerifiedCredential {
+  id: string;
+  skill_name: string;
+  issued_at: string;
+  transaction_hash: string;
+  token_id: string;
+  revoked?: boolean;
+}
+
 interface MintingProgress {
   isOpen: boolean;
   progress: number;
@@ -84,6 +93,8 @@ export default function RegistrarDashboard() {
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [selectedSchema, setSelectedSchema] = useState<CredentialSchema | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<StudentRecord | null>(null);
+  const [studentCredentials, setStudentCredentials] = useState<VerifiedCredential[]>([]);
+  const [credentialsLoading, setCredentialsLoading] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -115,6 +126,31 @@ export default function RegistrarDashboard() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [router]);
+
+  // Fetch credentials whenever a student is selected
+  const fetchCreds = async () => {
+    if (!selectedStudent) {
+      setStudentCredentials([]);
+      return;
+    }
+    setCredentialsLoading(true);
+    const { data, error } = await supabase
+      .from('verified_credentials')
+      .select('*')
+      .eq('user_id', selectedStudent.id)
+      .order('issued_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading credentials:', error);
+    } else if (data) {
+      setStudentCredentials(data);
+    }
+    setCredentialsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCreds();
+  }, [selectedStudent]);
 
   const fetchSchemas = async () => {
     const { data } = await supabase.from('credential_schemas').select('*').order('created_at', { ascending: false });
@@ -187,7 +223,8 @@ export default function RegistrarDashboard() {
       const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
 
       setMintingProgress(prev => ({ ...prev, progress: 40, message: 'Recording certificate on the blockchain…' }));
-      const numericTokenId = Math.floor(Math.random() * 1000000);
+      // Use timestamp for higher uniqueness than random
+      const numericTokenId = Date.now() % 100000000;
       const tx = await contract.mintSkill(selectedStudent!.wallet_address, numericTokenId, 1);
 
       setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Waiting for confirmation…' }));
@@ -222,9 +259,109 @@ export default function RegistrarDashboard() {
         message: 'Certificate issued and verified successfully!',
         txHash: tx.hash
       });
+
+      // ✅ Refresh the credentials list immediately so the new one appears in the management panel
+      await fetchCreds();
+
+      // Clear form
+      setDynamicData({});
+      setStaticData({ certificateNumber: '', privateNotes: '' });
+      setValidationErrors({});
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
       setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
+    }
+  };
+
+  const handleRevokeCredential = async (cred: VerifiedCredential) => {
+    if (!selectedStudent || !selectedStudent.wallet_address) {
+      alert("Selected student does not have a connected wallet.");
+      return;
+    }
+
+    const confirmRevoke = window.confirm(
+      `Are you sure you want to REVOKE "${cred.skill_name}" for ${selectedStudent.full_name}?\n\nThis will permanently burn the blockchain token and mark the credential as revoked in the database.`
+    );
+    if (!confirmRevoke) return;
+
+    try {
+      setMintingProgress({
+        isOpen: true,
+        progress: 10,
+        status: 'minting',
+        message: 'Requesting signature to burn token...',
+      });
+
+      const { ethereum } = window as unknown as { ethereum: ethers.Eip1193Provider };
+      if (!ethereum) throw new Error('MetaMask not found. Please install MetaMask to revoke credentials.');
+
+      const provider = new ethers.BrowserProvider(ethereum, 'any');
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
+      let tx: any = null;
+
+      // Verify balance before burning to prevent silent reverts
+      const balance = await contract.balanceOf(selectedStudent.wallet_address, cred.token_id);
+      let skipBlockchain = false;
+
+      if (balance < BigInt(1)) {
+        const forceRevoke = window.confirm(
+          `GHOST TOKEN DETECTED: The blockchain reports balance 0 for Token ID ${cred.token_id}.\n\nThis usually happens if the local Hardhat node was restarted. Would you like to mark this as REVOKED in the database anyway (Soft Cleanup)?`
+        );
+        if (forceRevoke) {
+          skipBlockchain = true;
+        } else {
+          setMintingProgress({ isOpen: false, progress: 0, status: 'complete', message: '' });
+          return;
+        }
+      }
+
+      if (!skipBlockchain) {
+        setMintingProgress({ isOpen: true, progress: 40, status: 'minting', message: 'Executing revoke on Polygon...' });
+        
+        // Execute Burn (Revoke)
+        tx = await contract.revokeSkill(selectedStudent.wallet_address, cred.token_id, 1);
+        
+        setMintingProgress({ isOpen: true, progress: 70, status: 'minting', message: 'Waiting for blockchain confirmation...' });
+        await tx.wait();
+      }
+
+      setMintingProgress({ isOpen: true, progress: 90, status: 'minting', message: skipBlockchain ? 'Performing DB cleanup...' : 'Updating database records...' });
+      
+      // Mark as revoked in DB via server-side API (bypasses RLS)
+      const res = await fetch('/api/registrar/credentials', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: cred.id, revoked: true })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(`Blockchain action succeeded, but database sync failed: ${errorData.error || res.statusText}${errorData.details ? ` (${errorData.details})` : ''}`);
+      }
+
+      // Refresh local state
+      setStudentCredentials(prev => prev.map(c => c.id === cred.id ? { ...c, revoked: true } : c));
+
+      setMintingProgress({
+        isOpen: true,
+        progress: 100,
+        status: 'complete',
+        message: skipBlockchain 
+          ? 'Database record marked as revoked (Blockchain skip).' 
+          : 'Credential successfully revoked and token burned.',
+        txHash: tx?.hash,
+      });
+    } catch (err: any) {
+      console.error('Revocation Error:', err);
+      setMintingProgress({
+        isOpen: true,
+        progress: 100,
+        status: 'error',
+        message: err.reason || err.message || 'Transaction failed or was rejected.',
+      });
     }
   };
 
@@ -583,6 +720,87 @@ export default function RegistrarDashboard() {
                   </div>
                 )}
               </div>
+              
+              {/* Active Credentials Block */}
+              {selectedStudent && (
+                <div className="md:col-span-2 mt-2 pt-4 border-t border-gray-100 dark:border-[#283042]">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      Manage Issued Credentials
+                      {credentialsLoading && <span className="text-[10px] text-[#06B4C9] animate-pulse">Loading...</span>}
+                    </h4>
+                    <button 
+                      onClick={() => fetchCreds()}
+                      type="button"
+                      className="text-[10px] font-bold text-[#06B4C9] hover:underline flex items-center gap-1"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                      Refresh List
+                    </button>
+                  </div>
+                  
+                  {!credentialsLoading && studentCredentials.length === 0 ? (
+                    <div className="text-xs text-center text-gray-400 py-4 bg-gray-50 dark:bg-[#1E2536] rounded-lg">
+                      No credentials issued to this student yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Active Section */}
+                      <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                        {studentCredentials.filter(c => !c.revoked).map(cred => (
+                          <div key={cred.id} className="flex items-center justify-between p-3 rounded-lg border bg-white border-gray-200 dark:bg-[#131825] dark:border-[#283042]">
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-[200px]" title={cred.skill_name}>
+                                {cred.skill_name}
+                              </p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] text-gray-500">{new Date(cred.issued_at).toLocaleDateString()}</span>
+                                <span className="text-[10px] text-gray-400 font-mono bg-gray-100 dark:bg-white/5 px-1 rounded">ID: {cred.token_id || 'N/A'}</span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleRevokeCredential(cred)}
+                              className="text-xs px-3 py-1.5 text-red-600 hover:text-white border border-red-200 hover:bg-red-600 hover:border-red-600 rounded whitespace-nowrap transition-colors"
+                            >
+                              Revoke (Burn)
+                            </button>
+                          </div>
+                        ))}
+                        {studentCredentials.filter(c => !c.revoked).length === 0 && studentCredentials.length > 0 && (
+                          <p className="text-[10px] text-center text-gray-400 py-2">No active credentials.</p>
+                        )}
+                      </div>
+
+                      {/* Revoked / Archive Section */}
+                      {studentCredentials.some(c => c.revoked) && (
+                        <div className="pt-2 border-t border-dashed border-gray-100 dark:border-[#283042]">
+                           <details className="group">
+                             <summary className="text-[10px] font-bold text-gray-400 uppercase cursor-pointer hover:text-gray-500 flex items-center gap-1 list-none">
+                               <svg className="w-3 h-3 group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="9 5l7 7-7 7" /></svg>
+                               Revoked Archive ({studentCredentials.filter(c => c.revoked).length})
+                             </summary>
+                             <div className="space-y-2 mt-2 max-h-32 overflow-y-auto pr-2 opacity-60">
+                               {studentCredentials.filter(c => c.revoked).map(cred => (
+                                 <div key={cred.id} className="flex items-center justify-between p-2 rounded-lg border bg-red-50/30 border-red-100/50 dark:bg-red-500/5 dark:border-red-500/10">
+                                   <div>
+                                     <p className="text-xs font-medium text-red-700/70 dark:text-red-400/70 line-through truncate max-w-[180px]">
+                                       {cred.skill_name}
+                                     </p>
+                                     <div className="flex items-center gap-2">
+                                       <span className="text-[9px] text-gray-400">{new Date(cred.issued_at).toLocaleDateString()}</span>
+                                       <span className="text-[9px] text-gray-400 font-mono">ID: {cred.token_id}</span>
+                                     </div>
+                                   </div>
+                                 </div>
+                               ))}
+                             </div>
+                           </details>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Schema Selection */}
               <div className="md:col-span-2">

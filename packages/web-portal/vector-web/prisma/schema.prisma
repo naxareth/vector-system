@@ -78,6 +78,7 @@ model verified_credentials {
   credential_data    Json?
   schema_url         String?
   skill_tags         String[]         @default([])
+  revoked            Boolean          @default(false)
   batch              minting_batches? @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   student            users            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
