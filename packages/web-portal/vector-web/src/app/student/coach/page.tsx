@@ -57,6 +57,8 @@ export default function CoachPage() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [risingPage, setRisingPage] = useState(1);
   const [decliningPage, setDecliningPage] = useState(1);
+  const [skillSearch, setSkillSearch] = useState('');
+  const [skillDropOpen, setSkillDropOpen] = useState(false);
 
   const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', text: "👋 Hi! I'm connecting to the blockchain to analyze your career data..." }
@@ -121,23 +123,26 @@ export default function CoachPage() {
 
         const processedSkills = aiData.skillHealth.map((s: any) => {
           totalScore += s.healthScore;
-          if (s.trend === 'growing') overallTrendValue += 1;
-          if (s.trend === 'declining') overallTrendValue -= 1;
+          // Use real trendSlope from skill_health_cache (range: -1.0 to +1.0)
+          const realSlope = typeof s.trendSlope === 'number' ? s.trendSlope : 0;
+          overallTrendValue += realSlope;
           return {
             name: s.skillName,
             category: 'Tech',
             score: s.healthScore,
             trend: s.trend,
-            growthRate: s.trend === 'growing' ? 0.15 : s.trend === 'declining' ? -0.10 : 0.02,
+            growthRate: realSlope,
             verified: allVerifiedNames.includes(s.skillName)
           };
         });
 
         const avgScore = Math.round(totalScore / processedSkills.length) || 50;
         const alignment = avgScore > 75 ? 'Very High' : avgScore > 50 ? 'Moderate' : 'Needs Work';
-        const growth = overallTrendValue > 0 ? '+12%' : overallTrendValue < 0 ? '-5%' : '+2%';
+        // Derive projected growth from the average real trend slope across all skills
+        const avgSlope = processedSkills.length > 0 ? overallTrendValue / processedSkills.length : 0;
+        const projectedGrowthPct = Math.round(avgSlope * 100);
 
-        setMetrics({ portfolioScore: avgScore, marketAlignment: alignment, projectedGrowth: parseInt(growth) });
+        setMetrics({ portfolioScore: avgScore, marketAlignment: alignment, projectedGrowth: projectedGrowthPct });
         setSkillsList(processedSkills);
         if (json.data.history) setRealHistory(json.data.history);
         if (aiData.recommendations) setRecommendations(aiData.recommendations);
@@ -477,14 +482,59 @@ export default function CoachPage() {
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-1">Market Demand Trends <HelpTip text="A graph showing how many employers are hiring for each of your skills over time." size={14} /></h2>
               <p className="text-xs text-gray-500">Real-time job postings</p>
             </div>
-            <select
-              value={selectedSkillView}
-              onChange={(e) => setSelectedSkillView(e.target.value)}
-              className="text-xs border border-gray-300 dark:border-[#283042] rounded-lg px-2 py-1 bg-white dark:bg-[#151C2A] text-gray-900 dark:text-[#E2E8F0] outline-none focus:ring-1 focus:ring-[#06B4C9]"
-            >
-              <option value="All">Top 5 Skills</option>
-              {skillsList.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-            </select>
+            {/* Searchable Skill Selector */}
+            {(() => {
+              const filteredSkills = skillsList.filter(s =>
+                s.name.toLowerCase().includes(skillSearch.toLowerCase())
+              );
+              return (
+                <div className="relative">
+                  <div
+                    className="flex items-center gap-1 border border-gray-300 dark:border-[#283042] rounded-lg px-2 py-1 bg-white dark:bg-[#151C2A] cursor-pointer min-w-[140px]"
+                    onClick={() => setSkillDropOpen(!skillDropOpen)}
+                  >
+                    <span className="text-xs text-gray-900 dark:text-[#E2E8F0] truncate flex-1">
+                      {selectedSkillView === 'All' ? 'Top 5 Skills' : selectedSkillView}
+                    </span>
+                    <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                  {skillDropOpen && (
+                    <div className="absolute right-0 z-20 mt-1 w-56 bg-white dark:bg-[#131825] border border-gray-200 dark:border-[#283042] rounded-lg shadow-xl overflow-hidden">
+                      <div className="p-2 border-b border-gray-100 dark:border-[#1E2536]">
+                        <input
+                          type="text"
+                          value={skillSearch}
+                          onChange={e => setSkillSearch(e.target.value)}
+                          placeholder="Search skills..."
+                          className="w-full text-xs px-2 py-1.5 border border-gray-200 dark:border-[#283042] rounded bg-gray-50 dark:bg-[#0E1220] text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-[#06B4C9]"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        <button
+                          onClick={() => { setSelectedSkillView('All'); setSkillDropOpen(false); setSkillSearch(''); }}
+                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-white/5 ${selectedSkillView === 'All' ? 'text-[#06B4C9] font-semibold' : 'text-gray-700 dark:text-[#E2E8F0]'}`}
+                        >
+                          Top 5 Skills
+                        </button>
+                        {filteredSkills.map(s => (
+                          <button
+                            key={s.name}
+                            onClick={() => { setSelectedSkillView(s.name); setSkillDropOpen(false); setSkillSearch(''); }}
+                            className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-white/5 ${selectedSkillView === s.name ? 'text-[#06B4C9] font-semibold' : 'text-gray-700 dark:text-[#E2E8F0]'}`}
+                          >
+                            {s.name}
+                          </button>
+                        ))}
+                        {filteredSkills.length === 0 && (
+                          <p className="px-3 py-3 text-xs text-gray-400 text-center">No matching skills</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="mb-8 px-2">

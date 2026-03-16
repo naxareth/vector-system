@@ -7,7 +7,19 @@ export const VECTOR_TOKEN_ABI = [
   
   // ✅ Reading Data
   "function balanceOf(address account, uint256 id) view returns (uint256)",
+  "function balanceOfBatch(address[] calldata accounts, uint256[] calldata ids) view returns (uint256[])",
   "function uri(uint256 id) view returns (string)",
+  
+  // ✅ Revoking / Burning
+  "function revokeSkill(address student, uint256 tokenId, uint256 amount) public",
+  "function burn(address account, uint256 id, uint256 value) public",
+  
+  // ✅ Transfers (ERC1155 standard)
+  "function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes calldata data) public",
+  "function safeBatchTransferFrom(address from, address to, uint256[] calldata ids, uint256[] calldata amounts, bytes calldata data) public",
+  
+  // ✅ Events
+  "event SkillRevoked(address indexed student, uint256 tokenId, uint256 amount)",
   
   // ✅ Roles & Metadata
   "function isRegistrar(address account) public view returns (bool)",

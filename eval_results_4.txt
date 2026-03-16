@@ -1,0 +1,109 @@
+======================================================================
+VECTOR — AI Skill Extractor F1 Evaluation Results
+Evaluation Run 4 — Final Results
+20 cases · Match mode: SOFT · Model: Gemini 2.5 Flash
+======================================================================
+
+                          AGGREGATE RESULTS                           
+  Precision: 0.99    Recall: 1.00    F1: 0.99
+  20/20 PASS | 0 PARTIAL | 0 FAIL | 0 ERROR
+
+----------------------------------------------------------------------
+#    Credential Input                                       P     R    F1  Status
+----------------------------------------------------------------------
+1    Bachelor of Science in Information Technology       1.00  1.00  1.00    PASS
+2    Bachelor of Science in Accountancy                  0.83  1.00  0.91    PASS
+3    Bachelor of Science in Computer Science             1.00  1.00  1.00    PASS
+4    BS Business Administration major in Financial Mana  1.00  1.00  1.00    PASS
+5    Bachelor of Science in Criminology                  1.00  1.00  1.00    PASS
+6    Full-Stack Web Development Bootcamp                 1.00  1.00  1.00    PASS
+7    AWS Cloud Practitioner Bootcamp                     0.83  1.00  0.91    PASS
+8    UI/UX Design Intensive Bootcamp                     1.00  1.00  1.00    PASS
+9    Cybersecurity Fundamentals Bootcamp                 1.00  1.00  1.00    PASS
+10   Python                                              1.00  1.00  1.00    PASS
+11   Regional Hackathon 2026                             1.00  1.00  1.00    PASS
+12   National Cybersecurity CTF Competition 2025         1.00  1.00  1.00    PASS
+13   University Data Science Summit — Best Presenter Aw  1.00  1.00  1.00    PASS
+14   Fintech Innovation Challenge 2025 — Finalist        1.00  1.00  1.00    PASS
+15   TESDA NC II in Computer Systems Servicing           1.00  1.00  1.00    PASS
+16   TESDA NC III in Bookkeeping                         1.00  1.00  1.00    PASS
+17   TESDA NC II in Bread and Pastry Production          1.00  1.00  1.00    PASS
+18   TESDA NC II in Electrical Installation and Mainten  1.00  1.00  1.00    PASS
+19   DICT Digital Literacy Certificate                   1.00  1.00  1.00    PASS
+20   DICT Cybersecurity Essentials Certification         1.00  1.00  1.00    PASS
+----------------------------------------------------------------------
+
+DETAILED EXTRACTION RESULTS
+======================================================================
+
+--- Academic Degrees ---
+  Case 1: Bachelor of Science in Information Technology
+    F1: 1.00 [PASS]
+    ✓ Matched: Database Management, System Administration, Networking, IT Support, Software Development
+  Case 2: Bachelor of Science in Accountancy
+    F1: 0.91 [PASS]
+    ✓ Matched: Accounting, Auditing, Taxation, Financial Reporting, Financial Analysis
+    ✗ Extra:   Bookkeeping
+  Case 3: Bachelor of Science in Computer Science
+    F1: 1.00 [PASS]
+    ✓ Matched: Programming, Data Structures, Algorithms, Software Development, Computer Architecture
+  Case 4: BS Business Administration major in Financial Management
+    F1: 1.00 [PASS]
+    ✓ Matched: Financial Analysis, Financial Management, Investment Management, Corporate Finance, Business Administration
+  Case 5: Bachelor of Science in Criminology
+    F1: 1.00 [PASS]
+    ✓ Matched: Criminal Justice, Forensic Science, Criminology, Legal Procedures, Investigative Techniques
+
+--- Bootcamp Certificates ---
+  Case 6: Full-Stack Web Development Bootcamp
+    F1: 1.00 [PASS]
+    ✓ Matched: Web Development, Frontend Development, Backend Development, Database Management, API Development, JavaScript
+  Case 7: AWS Cloud Practitioner Bootcamp
+    F1: 0.91 [PASS]
+    ✓ Matched: AWS, Cloud Computing, Cloud Security, Cloud Architecture, Scalability
+    ✗ Extra:   Cost Management
+  Case 8: UI/UX Design Intensive Bootcamp
+    F1: 1.00 [PASS]
+    ✓ Matched: UI/UX Design, Prototyping, User Research, Wireframing, Usability Testing
+  Case 9: Cybersecurity Fundamentals Bootcamp
+    F1: 1.00 [PASS]
+    ✓ Matched: Cybersecurity, Network Security, Information Security, Threat Analysis, Incident Response
+  Case 10: Python
+    F1: 1.00 [PASS]
+    ✓ Matched: Python, Programming, Scripting
+
+--- Event Badges ---
+  Case 11: Regional Hackathon 2026
+    F1: 1.00 [PASS]
+    ✓ Matched: Problem Solving, Programming, Teamwork, Prototyping, Software Development
+  Case 12: National Cybersecurity CTF Competition 2025
+    F1: 1.00 [PASS]
+    ✓ Matched: Cybersecurity, Network Security, Cryptography, Problem Solving, Penetration Testing
+  Case 13: University Data Science Summit — Best Presenter Award
+    F1: 1.00 [PASS]
+    ✓ Matched: Data Science, Public Speaking, Presentation Skills, Data Visualization, Research
+  Case 14: Fintech Innovation Challenge 2025 — Finalist
+    F1: 1.00 [PASS]
+    ✓ Matched: Financial Technology, Innovation, Business Strategy, Problem Solving, Prototyping
+
+--- Government Certifications ---
+  Case 15: TESDA NC II in Computer Systems Servicing
+    F1: 1.00 [PASS]
+    ✓ Matched: Computer Hardware Repair, Network Configuration, Operating System Installation, Troubleshooting, Preventive Maintenance
+  Case 16: TESDA NC III in Bookkeeping
+    F1: 1.00 [PASS]
+    ✓ Matched: Bookkeeping, Accounting, Financial Record Keeping, Financial Reporting, Payroll
+  Case 17: TESDA NC II in Bread and Pastry Production
+    F1: 1.00 [PASS]
+    ✓ Matched: Baking, Food Safety, Pastry Making, Bread Making, Kitchen Operations
+  Case 18: TESDA NC II in Electrical Installation and Maintenance
+    F1: 1.00 [PASS]
+    ✓ Matched: Electrical Installation, Electrical Maintenance, Electrical Wiring, Troubleshooting, Electrical Safety
+  Case 19: DICT Digital Literacy Certificate
+    F1: 1.00 [PASS]
+    ✓ Matched: Digital Literacy, Computer Fundamentals, Online Safety, Internet Navigation, Productivity Software
+  Case 20: DICT Cybersecurity Essentials Certification
+    F1: 1.00 [PASS]
+    ✓ Matched: Cybersecurity, Network Security, Information Security, Risk Management, Incident Response
+
+======================================================================

@@ -96,6 +96,47 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleArchiveUser = async (userId: string, userName: string, currentStatus: string) => {
+    const isSuspended = currentStatus === 'suspended';
+    const action = isSuspended ? 'restore' : 'suspend';
+    if (!confirm(`${isSuspended ? 'Restore' : 'Suspend'} ${userName}? ${isSuspended ? 'They will regain access.' : 'They will lose access until restored.'}`)) return;
+
+    setProcessingId(userId);
+    try {
+      const res = await fetch('/api/admin/manage-users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: userId, action }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || `Failed to ${action}`);
+      await fetchUsers();
+    } catch (error: any) {
+      alert(`Failed: ${error.message}`);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Permanently delete ${userName} and all their credentials? This CANNOT be undone.`)) return;
+    if (!confirm(`Are you absolutely sure? This will delete all certificates, skills, and notifications for ${userName}.`)) return;
+
+    setProcessingId(userId);
+    try {
+      const res = await fetch('/api/admin/manage-users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: userId }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete');
+      await fetchUsers();
+    } catch (error: any) {
+      alert(`Failed: ${error.message}`);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const handleQuickApprove = async (userId: string, newRole: 'registrar' | 'student') => {
     if (!confirm(`Approve this user as a ${ROLE_LABELS[newRole as Role] || newRole}? They will receive access immediately.`)) return;
 
@@ -181,7 +222,8 @@ export default function AdminDashboard() {
                       <th className="px-6 py-3 font-semibold">Status</th>
                       <th className="px-6 py-3 font-semibold">Current Role</th>
                       <th className="px-6 py-3 font-semibold">Joined</th>
-                      <th className="px-6 py-3 font-semibold text-right">Change Role</th>
+                      <th className="px-6 py-3 font-semibold">Change Role</th>
+                      <th className="px-6 py-3 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-[#1E2536]">
@@ -213,7 +255,7 @@ export default function AdminDashboard() {
                         <td className="px-6 py-4 text-sm text-gray-600 dark:text-[#94A3B8] whitespace-nowrap">
                           {new Date(user.created_at).toLocaleDateString()}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4">
                           {processingId === user.id ? (
                             <span className="text-sm text-gray-500 animate-pulse">Saving...</span>
                           ) : (
@@ -226,6 +268,30 @@ export default function AdminDashboard() {
                                 <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                               ))}
                             </select>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {processingId === user.id ? (
+                            <span className="text-sm text-gray-500 animate-pulse">...</span>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleArchiveUser(user.id, user.full_name, user.status)}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                                  user.status === 'suspended'
+                                    ? 'border-green-200 text-green-700 hover:bg-green-50 dark:border-green-500/30 dark:text-green-400 dark:hover:bg-green-500/10'
+                                    : 'border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-500/30 dark:text-amber-400 dark:hover:bg-amber-500/10'
+                                }`}
+                              >
+                                {user.status === 'suspended' ? 'Restore' : 'Suspend'}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user.id, user.full_name)}
+                                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10 transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>

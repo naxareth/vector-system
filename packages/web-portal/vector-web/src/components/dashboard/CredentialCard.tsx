@@ -10,6 +10,7 @@ interface CredentialCardProps {
   marketRelevance: number;
   verified: boolean;
   credentialData?: Record<string, any>; // ✅ New prop for dynamic W3C payload
+  certificateNumber?: string; // differentiates duplicates
 }
 
 export default function CredentialCard({
@@ -20,6 +21,7 @@ export default function CredentialCard({
   marketRelevance,
   verified,
   credentialData,
+  certificateNumber,
 }: CredentialCardProps) {
 
   // Helper to format JSON keys nicely (e.g., "hours_completed" -> "Hours Completed")
@@ -50,8 +52,15 @@ export default function CredentialCard({
           {title}
         </h3>
 
-        {/* Issue Date */}
-        <p className="text-sm text-gray-500 mb-4 relative z-10">Issued: {issueDate}</p>
+        {/* Issue Date & Cert Number */}
+        <div className="flex justify-between items-center mb-4 relative z-10">
+          <p className="text-sm text-gray-500">Issued: {issueDate}</p>
+          {certificateNumber && (
+            <p className="text-[10px] font-mono text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100" title="Certificate Number">
+              #{certificateNumber}
+            </p>
+          )}
+        </div>
 
         {/* ✅ DYNAMIC FIELDS RENDERER */}
         {credentialData && Object.keys(credentialData).length > 0 && (

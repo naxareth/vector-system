@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
@@ -72,7 +72,7 @@ export default function RegistrarDashboard() {
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvResult, setCsvResult] = useState<{
     success?: boolean;
-    rows?: any[];
+    rows?: Record<string, string | number | boolean | null>[];
     warnings?: string[];
     error?: string;
     rowErrors?: { row: number; issues: string[] }[];
@@ -89,8 +89,9 @@ export default function RegistrarDashboard() {
   const [showDropdown, setShowDropdown] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const [dynamicData, setDynamicData] = useState<Record<string, any>>({});
+  const [dynamicData, setDynamicData] = useState<Record<string, string | number | boolean | null>>({});
   const [staticData, setStaticData] = useState({ certificateNumber: '', privateNotes: '' });
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [mintingProgress, setMintingProgress] = useState<MintingProgress>({
     isOpen: false, progress: 0, status: 'minting', message: ''
   });
@@ -134,37 +135,60 @@ export default function RegistrarDashboard() {
     setDynamicData({});
   };
 
-  const handleDynamicInputChange = (key: string, value: any) => {
+  const handleDynamicInputChange = (key: string, value: string | number | boolean | null) => {
     setDynamicData(prev => ({ ...prev, [key]: value }));
   };
 
   const handleIssueCredential = async () => {
-    if (!selectedStudent || !selectedSchema) {
-      return alert("Please select a student and a certificate template.");
+    // 🛡️ Client-side validation with inline errors
+    const errors: Record<string, string> = {};
+
+    if (!selectedStudent) errors['student'] = 'Please select a student.';
+    if (!selectedSchema) errors['schema'] = 'Please select a certificate template.';
+
+    // Validate required dynamic fields
+    if (selectedSchema) {
+      const requiredKeys = selectedSchema.json_schema.required || [];
+      requiredKeys.forEach((key: string) => {
+        const val = dynamicData[key];
+        if (val === undefined || val === null || String(val).trim() === '') {
+          const fieldDef = selectedSchema.json_schema.properties[key];
+          const label = fieldDef?.title || key.replace(/_/g, ' ');
+          errors[key] = `${label} is required.`;
+        }
+      });
     }
 
-    // 🛡️ Validate skill_tags is filled before minting
+    // skill_tags special validation
     const rawTags = dynamicData['skill_tags'];
     if (!rawTags || String(rawTags).trim() === '') {
-      return alert("Suggested skills are required. Enter the skills this certificate represents (comma-separated).");
+      errors['skill_tags'] = 'Skills are required. Enter the skills this certificate represents (comma-separated).';
     }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    setValidationErrors({});
 
     const skillTags = parseSkillTags(String(rawTags));
     if (skillTags.length === 0) {
-      return alert("Please enter at least one skill tag.");
+      setValidationErrors({ skill_tags: 'Please enter at least one skill tag.' });
+      return;
     }
 
     try {
       setMintingProgress({ isOpen: true, progress: 20, status: 'minting', message: 'Opening secure wallet…' });
 
-      const { ethereum } = window as any;
+      const { ethereum } = window as unknown as { ethereum: ethers.Eip1193Provider };
       const provider = new ethers.BrowserProvider(ethereum, "any");
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
 
       setMintingProgress(prev => ({ ...prev, progress: 40, message: 'Recording certificate on the blockchain…' }));
       const numericTokenId = Math.floor(Math.random() * 1000000);
-      const tx = await contract.mintSkill(selectedStudent.wallet_address, numericTokenId, 1);
+      const tx = await contract.mintSkill(selectedStudent!.wallet_address, numericTokenId, 1);
 
       setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Waiting for confirmation…' }));
       await tx.wait();
@@ -172,15 +196,16 @@ export default function RegistrarDashboard() {
       setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Saving certificate to the database…' }));
 
       // Build credential_data without skill_tags (it's promoted to its own column)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { skill_tags: _removed, ...credentialDataWithoutTags } = dynamicData;
 
       const response = await fetch('/api/registrar/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: selectedStudent.id,
-          schema_id: selectedSchema.id,
-          skill_name: selectedSchema.title,       // credential display title — unchanged
+          user_id: selectedStudent!.id,
+          schema_id: selectedSchema!.id,
+          skill_name: selectedSchema!.title,       // credential display title — unchanged
           skill_tags: skillTags,                   // ✅ extracted marketable skills array
           credential_data: credentialDataWithoutTags,
           private_notes: staticData.privateNotes,
@@ -197,8 +222,9 @@ export default function RegistrarDashboard() {
         message: 'Certificate issued and verified successfully!',
         txHash: tx.hash
       });
-    } catch (error: any) {
-      setMintingProgress({ isOpen: true, progress: 0, status: 'error', message: error.message || "Something went wrong. Please try again." });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+      setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
     }
   };
 
@@ -318,8 +344,9 @@ export default function RegistrarDashboard() {
                   } else {
                     setCsvResult({ success: false, error: data.error, rowErrors: data.rowErrors });
                   }
-                } catch (err: any) {
-                  setCsvResult({ success: false, error: err.message });
+                } catch (err: unknown) {
+                  const message = err instanceof Error ? err.message : "An unknown error occurred";
+                  setCsvResult({ success: false, error: message });
                 } finally {
                   setCsvUploading(false);
                 }
@@ -345,7 +372,7 @@ export default function RegistrarDashboard() {
 
                 {csvResult.rowErrors && csvResult.rowErrors.length > 0 && (
                   <div className="space-y-1.5 mb-3">
-                    {csvResult.rowErrors.map((re: any, i: number) => (
+                    {csvResult.rowErrors.map((re: { row: number; issues?: string[]; message?: string; field?: string }, i: number) => (
                       <p key={i} className="bg-red-100 text-red-700 px-3 py-1.5 rounded text-sm">
                         Row {re.row}: {re.issues ? re.issues.join(', ') : re.message ? `${re.field}: ${re.message}` : JSON.stringify(re)}
                       </p>
@@ -383,7 +410,7 @@ export default function RegistrarDashboard() {
                                 <td className="py-2 px-3 text-green-700">{i + 1}</td>
                                 {allKeys.map(k => (
                                   <td key={k} className="py-2 px-3 text-xs">
-                                    {k === 'wallet_address' ? `${(row[k] || '').slice(0, 10)}...` : row[k]}
+                                    {k === 'wallet_address' ? `${String(row[k] || '').slice(0, 10)}...` : row[k]}
                                   </td>
                                 ))}
                               </tr>
@@ -402,7 +429,7 @@ export default function RegistrarDashboard() {
                           try {
                             setMintingProgress({ isOpen: true, progress: 5, status: 'minting', message: 'Connecting wallet...' });
 
-                            const { ethereum } = window as any;
+                            const { ethereum } = window as unknown as { ethereum: ethers.Eip1193Provider };
                             if (!ethereum) throw new Error('MetaMask not found. Please install it.');
                             const provider = new ethers.BrowserProvider(ethereum, 'any');
                             const signer = await provider.getSigner();
@@ -416,7 +443,7 @@ export default function RegistrarDashboard() {
                             const amounts: number[] = [];
 
                             for (const row of rows) {
-                              addresses.push(row.wallet_address);
+                              addresses.push(String(row.wallet_address));
                               tokenIds.push(Math.floor(Math.random() * 1000000));
                               amounts.push(1);
                             }
@@ -448,7 +475,7 @@ export default function RegistrarDashboard() {
                                 message: `Saving record ${idx + 1} of ${total} to database...`,
                               }));
 
-                              const { student_id, wallet_address, skill_tags: rawTags, ...credentialData } = row;
+                              const { student_id, wallet_address: _wallet_address, skill_tags: rawTags, ...credentialData } = row;
                               const skillTags = rawTags ? String(rawTags).split(',').map((t: string) => t.trim()).filter(Boolean) : [];
 
                               const saveRes = await fetch('/api/registrar/credentials', {
@@ -479,8 +506,9 @@ export default function RegistrarDashboard() {
                               isOpen: true, progress: 100, status: 'complete',
                               message: `Successfully issued ${completed} certificate${completed > 1 ? 's' : ''}.`,
                             });
-                          } catch (error: any) {
-                            setMintingProgress({ isOpen: true, progress: 0, status: 'error', message: error.message || 'Batch processing failed' });
+                          } catch (error: unknown) {
+                            const message = error instanceof Error ? error.message : 'Batch processing failed';
+                            setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
                           }
                         }}
                         className="mt-4 w-full py-3 bg-accent text-white font-bold rounded-xl hover:opacity-90 transition-all shadow-lg"
@@ -519,13 +547,24 @@ export default function RegistrarDashboard() {
                   className="w-full px-4 py-3 border border-gray-300 dark:border-[#283042] rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none bg-white dark:bg-[#131825] dark:text-white"
                   placeholder="Search by name or student ID..."
                 />
+                {validationErrors['student'] && (
+                  <p className="text-xs text-red-500 mt-1">{validationErrors['student']}</p>
+                )}
                 {showDropdown && searchQuery && (
                   <div className="absolute z-10 w-full mt-1 bg-white dark:bg-[#131825] border border-gray-200 dark:border-[#283042] rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                    {filteredStudents.map((s) => (
-                      <div key={s.id} onClick={() => { setSelectedStudent(s); setSearchQuery(s.full_name); setShowDropdown(false); }} className="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 border-b border-gray-100 dark:border-[#1E2536] flex justify-between items-center">
+                    {filteredStudents.length === 0 ? (
+                      <div className="px-4 py-6 text-center">
+                        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1E2536] flex items-center justify-center mx-auto mb-2">
+                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                        </div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-[#94A3B8]">No student found</p>
+                        <p className="text-xs text-gray-400 dark:text-[#64748B] mt-0.5">Try a different name or student ID</p>
+                      </div>
+                    ) : filteredStudents.map((s) => (
+                      <div key={s.id} onClick={() => { setSelectedStudent(s); setSearchQuery(`${s.full_name}${s.student_id ? ` (${s.student_id})` : ''}`); setShowDropdown(false); }} className="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 border-b border-gray-100 dark:border-[#1E2536] flex justify-between items-center">
                         <div>
                           <p className="text-sm font-bold text-gray-900 dark:text-white">{s.full_name}</p>
-                          <p className="text-xs text-gray-500 dark:text-[#64748B]">ID: {s.student_id}</p>
+                          <p className="text-xs text-gray-500 dark:text-[#64748B]">ID: {s.student_id || 'Not Assigned'}</p>
                         </div>
                         {s.wallet_address ?
                           <span className="text-[10px] bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 px-2 py-1 rounded font-bold">Wallet Ready ✓</span>
@@ -533,6 +572,14 @@ export default function RegistrarDashboard() {
                         }
                       </div>
                     ))}
+                  </div>
+                )}
+                {selectedStudent && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-[#94A3B8]">
+                    <span className="font-medium">Selected:</span>
+                    <span className="text-gray-900 dark:text-white font-semibold">{selectedStudent.full_name}</span>
+                    <span className="text-gray-400">•</span>
+                    <span className="font-mono">ID: {selectedStudent.student_id || 'Not Assigned'}</span>
                   </div>
                 )}
               </div>
@@ -564,7 +611,7 @@ export default function RegistrarDashboard() {
                         ? fieldDetails.title
                         : key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
                       // Date field constraints: today to 2 years from now
-                      const isDateField = fieldDetails.type === 'date' || key.includes('date') || key.includes('until') || key.includes('expir');
+                      const isDateField = fieldDetails.type === 'date' || key.includes('date') || key.includes('until') || key.includes('expir') || key.includes('graduation');
                       const today = new Date().toISOString().split('T')[0];
                       const maxDate = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
                       return (
@@ -588,7 +635,7 @@ export default function RegistrarDashboard() {
                                 placeholder="e.g. React, Node.js, PostgreSQL, Express"
                               />
                               <p className="text-xs text-[#06B4C9] mt-1">
-                                These become the student's skill tags shown on their profile.
+                                These become the student&apos;s skill tags shown on their profile.
                               </p>
                             </>
                           ) : fieldDetails.type === 'boolean' ? (
@@ -622,6 +669,9 @@ export default function RegistrarDashboard() {
                               className="w-full px-3 py-2 border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#131825] dark:text-white"
                               placeholder={`Enter ${humanLabel.toLowerCase()}...`}
                             />
+                          )}
+                          {validationErrors[key] && (
+                            <p className="text-xs text-red-500 mt-1">{validationErrors[key]}</p>
                           )}
                         </div>
                       );

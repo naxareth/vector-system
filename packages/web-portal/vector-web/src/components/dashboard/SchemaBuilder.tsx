@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, Save, Loader2, AlertCircle, BookOpen, Award, Code, FileText } from 'lucide-react';
+import { Plus, Trash2, Save, Loader2, AlertCircle, BookOpen, Award, Code, FileText, Lock } from 'lucide-react';
 import HelpTip from '@/components/shared/HelpTip';
 
 interface SchemaField {
@@ -70,7 +70,7 @@ const PRESET_TEMPLATES = [
 
 export default function SchemaBuilder() {
   const [title, setTitle] = useState('');
-  const [fields, setFields] = useState<SchemaField[]>([]);
+  const [fields, setFields] = useState<SchemaField[]>([{ id: crypto.randomUUID(), ...SKILL_TAGS_FIELD }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -293,7 +293,9 @@ export default function SchemaBuilder() {
                     </div>
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4">
                       <div className="md:col-span-5">
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Display Name</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
+                          {isSkillTags ? <><Lock className="w-3 h-3 flex-shrink-0" /> Skills Field (Required)</> : 'What should this field be called?'}
+                        </label>
                         <input
                           type="text"
                           value={field.displayName}
@@ -309,8 +311,13 @@ export default function SchemaBuilder() {
                           required
                         />
                         {isSkillTags && (
-                          <p className="text-[10px] text-accent mt-1">
-                            Required for suggested skills — e.g. "React, Node.js, PostgreSQL"
+                          <p className="text-[10px] text-accent mt-1 flex items-start gap-1">
+                            This field is locked and required for specifying the skills earned by the student.
+                          </p>
+                        )}
+                        {!isSkillTags && (
+                          <p className="text-[10px] text-gray-400 mt-1">
+                            This is the label registrars will see when filling in the certificate form.
                           </p>
                         )}
                       </div>
@@ -324,10 +331,10 @@ export default function SchemaBuilder() {
                             isSkillTags ? 'opacity-60 cursor-not-allowed' : 'focus:ring-1 focus:ring-blue-500'
                           }`}
                         >
-                          <option value="string">Text</option>
-                          <option value="number">Number</option>
-                          <option value="boolean">Yes / No</option>
-                          <option value="date">Date</option>
+                          <option value="string">Text (names, descriptions)</option>
+                          <option value="number">Number (grades, hours)</option>
+                          <option value="boolean">Yes / No (distinctions)</option>
+                          <option value="date">Date (with calendar picker)</option>
                         </select>
                       </div>
                       <div className="md:col-span-3 flex items-center pt-6">

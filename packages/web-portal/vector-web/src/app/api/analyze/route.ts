@@ -209,10 +209,17 @@ export async function POST(req: Request) {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
+    // 5. Enrich each skillHealth item with trendSlope for the frontend
+    const enrichedSkillHealth = (analysisResult?.skillHealth || []).map((s: any) => ({
+      ...s,
+      trendSlope: deriveTrendSlope(s.trend, s.healthScore),
+    }));
+
     return NextResponse.json({
       status: 'success',
       data: {
         ...analysisResult,
+        skillHealth: enrichedSkillHealth,
         history: Object.values(chartDataMap),
         credentials: dbCredentials 
       }

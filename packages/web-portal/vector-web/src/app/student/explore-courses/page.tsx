@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
@@ -188,19 +188,74 @@ export default function ExploreCourses() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [courses, setCourses] = useState<CourseItem[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
   const COURSES_PER_PAGE = 30;
 
   const toggleInterest = (id: string) => {
     setSelectedInterests(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
-    setPage(1); // reset to first page on filter change
+    setPage(1);
   };
 
-  const courses = useMemo<CourseItem[]>(() => {
+  // Map interest IDs to skill tag keywords for the API
+  const INTEREST_TAGS: Record<string, string[]> = {
+    'web-dev': ['HTML', 'CSS', 'JavaScript', 'React', 'Node.js', 'Next.js'],
+    'data-science': ['Python', 'Machine Learning', 'SQL', 'TensorFlow', 'Data'],
+    'cybersecurity': ['Security', 'Pen Testing', 'Network Security', 'Cryptography'],
+    'graphic-design': ['Photoshop', 'Illustrator', 'Adobe', 'Design', 'Branding'],
+    'cloud': ['AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Cloud'],
+    'mobile': ['Flutter', 'React Native', 'iOS', 'Android', 'Swift', 'Kotlin'],
+    'finance': ['Finance', 'Accounting', 'Investing', 'Excel'],
+    'marketing': ['SEO', 'Marketing', 'Social Media', 'Ads'],
+    'ux': ['Figma', 'UX', 'UI', 'Prototyping', 'User Research'],
+    'pm': ['Agile', 'Scrum', 'PMP', 'Project Management'],
+    'networking': ['CompTIA', 'Cisco', 'Linux', 'Networking'],
+    'game-dev': ['Unity', 'Unreal', 'C#', 'Game Design'],
+  };
+
+  const fetchCourses = useCallback(async () => {
+    setLoading(true);
+    try {
+      const tags = selectedInterests.flatMap(id => INTEREST_TAGS[id] || []);
+      const params = new URLSearchParams();
+      if (search) params.set('q', search);
+      if (tags.length > 0) params.set('tags', tags.join(','));
+      params.set('page', page.toString());
+      params.set('limit', COURSES_PER_PAGE.toString());
+
+      const res = await fetch(`/api/student/courses?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.courses && data.courses.length > 0) {
+          setCourses(data.courses.map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            provider: c.provider || 'Unknown',
+            link: c.link || '#',
+            match: 85,
+            tags: c.skill_tags || [],
+            level: 'Intermediate' as const,
+          })));
+          setTotalPages(data.totalPages || 1);
+          setLoading(false);
+          return;
+        }
+      }
+      // Fallback to hardcoded data if DB is empty
+      fallbackToHardcoded();
+    } catch {
+      fallbackToHardcoded();
+    }
+    setLoading(false);
+  }, [search, selectedInterests, page]);
+
+  // Fallback: use hardcoded COURSES if DB is empty
+  const fallbackToHardcoded = () => {
     const ids = selectedInterests.length > 0 ? selectedInterests : Object.keys(COURSES);
     const all = ids.flatMap(id => COURSES[id] ?? []);
-    // de-dupe & sort by match
     const seen = new Set<string>();
     const unique = all.filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true; });
     const q = search.toLowerCase().trim();
@@ -211,12 +266,14 @@ export default function ExploreCourses() {
           c.tags.some(t => t.toLowerCase().includes(q))
         )
       : unique;
-    return filtered.sort((a, b) => b.match - a.match);
-  }, [selectedInterests, search]);
+    const sorted = filtered.sort((a, b) => b.match - a.match);
+    setCourses(sorted.slice((page - 1) * COURSES_PER_PAGE, page * COURSES_PER_PAGE));
+    setTotalPages(Math.max(1, Math.ceil(sorted.length / COURSES_PER_PAGE)));
+  };
 
-  // Pagination logic
-  const totalPages = Math.max(1, Math.ceil(courses.length / COURSES_PER_PAGE));
-  const pagedCourses = courses.slice((page - 1) * COURSES_PER_PAGE, page * COURSES_PER_PAGE);
+  useEffect(() => { fetchCourses(); }, [fetchCourses]);
+
+  const pagedCourses = courses;
 
   // Simple pagination control
   function Pagination() {

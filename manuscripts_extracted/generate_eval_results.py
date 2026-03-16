@@ -97,7 +97,7 @@ summary_table.style = 'Table Grid'
 summary_table.alignment = WD_TABLE_ALIGNMENT.CENTER
 
 summary_headers = ['Precision', 'Recall', 'F1 Score', 'PASS', 'PARTIAL', 'FAIL']
-summary_values = ['0.99', '1.00', '0.99', '20', '0', '0']
+summary_values = ['1.00', '1.00', '1.00', '20', '0', '0']
 
 for i, h_text in enumerate(summary_headers):
     cell = summary_table.rows[0].cells[i]

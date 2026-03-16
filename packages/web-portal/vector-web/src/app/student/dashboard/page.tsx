@@ -146,7 +146,10 @@ export default function StudentDashboard() {
         body: JSON.stringify({ 
           studentId: identifier,
           resumeText: "",
-          skillsOverride: Array.from(new Set([...foundSkills, ...dbCreds.map((c:any) => c.skill_name)]))
+          skillsOverride: Array.from(new Set([
+            ...foundSkills, 
+            ...dbCreds.flatMap((c:any) => (Array.isArray(c.skill_tags) && c.skill_tags.length > 0) ? c.skill_tags : [c.skill_name])
+          ]))
         })
       });
       
@@ -158,13 +161,26 @@ export default function StudentDashboard() {
       const mergedCreds: CredentialItem[] = [];
       
       dbCreds.forEach((dbC: any) => {
-        const analysis = json.data?.skillHealth?.find((s:any) => s.skillName === dbC.skill_name);
+        // ✅ Phase 8: Use skill_tags (actual skills) as primary title, skill_name as category
+        const tags: string[] = Array.isArray(dbC.skill_tags) && dbC.skill_tags.length > 0
+          ? dbC.skill_tags
+          : [dbC.skill_name];
+        const displayTitle = tags.join(', ');
+
+        // Match analysis by individual skill tags when available
+        const matchedAnalysis = tags
+          .map((tag: string) => json.data?.skillHealth?.find((s: any) => s.skillName === tag))
+          .filter(Boolean);
+        const avgHealth = matchedAnalysis.length > 0
+          ? Math.round(matchedAnalysis.reduce((sum: number, a: any) => sum + a.healthScore, 0) / matchedAnalysis.length)
+          : (json.data?.skillHealth?.find((s: any) => s.skillName === dbC.skill_name)?.healthScore ?? 70);
+
         mergedCreds.push({
             id: dbC.id, 
-            category: 'University Issued',
-            title: dbC.skill_name,
+            category: `University Issued — ${dbC.skill_name}`,
+            title: displayTitle,
             issueDate: new Date(dbC.issued_at).toLocaleDateString(),
-            marketRelevance: analysis ? analysis.healthScore : 70,
+            marketRelevance: avgHealth,
             verified: true,
             certificateNumber: dbC.certificate_number,
             credentialData: dbC.credential_data

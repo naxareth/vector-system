@@ -138,14 +138,27 @@ export type CsvValidationResult = CsvValidationSuccess | CsvValidationError;
  * 4. Truncate to MAX_CELL_LENGTH
  */
 export function sanitizeCell(value: string): string {
-  let sanitized = value.trim();
-
   // Strip null bytes (could bypass downstream parsing)
-  sanitized = sanitized.replace(/\0/g, '');
+  let sanitized = value.replace(/\0/g, '');
 
-  // Neutralize formula injection — prefix with single-quote
-  if (sanitized.length > 0 && FORMULA_INJECTION_CHARS.includes(sanitized[0])) {
-    sanitized = `'${sanitized}`;
+  // Capture the raw first character before trimming to detect 
+  // hidden injection characters like tabs or carriage returns.
+  const rawFirstChar = sanitized.length > 0 ? sanitized[0] : '';
+
+  // Trim whitespace
+  sanitized = sanitized.trim();
+
+  // Neutralize formula injection — prefix with single-quote if:
+  // 1. The trimmed value starts with a formula character
+  // 2. The raw value started with a formula character (like \t)
+  if (
+    (sanitized.length > 0 && FORMULA_INJECTION_CHARS.includes(sanitized[0])) ||
+    (rawFirstChar && FORMULA_INJECTION_CHARS.includes(rawFirstChar))
+  ) {
+    // Avoid double prefixing
+    if (sanitized[0] !== "'") {
+      sanitized = `'${sanitized}`;
+    }
   }
 
   // Enforce max length
