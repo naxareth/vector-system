@@ -140,22 +140,61 @@ export default function StudentDashboard() {
         }
       }
 
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          studentId: identifier,
-          resumeText: "",
-          skillsOverride: Array.from(new Set([
-            ...foundSkills, 
-            ...dbCreds.flatMap((c:any) => (Array.isArray(c.skill_tags) && c.skill_tags.length > 0) ? c.skill_tags : [c.skill_name])
-          ]))
-        })
-      });
-      
-      const json = await res.json();
-      if (json.status === 'success') {
-        setAiData(json.data);
+      // --- PERFORMANCE Caching Layer ---
+      // Instead of hitting the Gemini API endpoint on every dashboard render,
+      // we cache the huge JSON response in localStorage. We bust the cache if
+      // either 24 hours have passed OR the student has earned a new credential.
+      const CACHE_KEY = `vector_ai_analysis_${identifier}`;
+      const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+      let cachedData = null;
+
+      try {
+        const rawCache = localStorage.getItem(CACHE_KEY);
+        if (rawCache) {
+          const parsed = JSON.parse(rawCache);
+          // Check expiration and credential count stamp
+          if (Date.now() - parsed.timestamp < CACHE_TTL && parsed.credentialCount === dbCreds.length) {
+            cachedData = parsed.data;
+          }
+        }
+      } catch (e) {
+        /* ignore parsing errors */
+      }
+
+      let analysisJson;
+
+      if (cachedData) {
+        analysisJson = cachedData;
+      } else {
+        const res = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            studentId: identifier,
+            resumeText: "",
+            skillsOverride: Array.from(new Set([
+              ...foundSkills, 
+              ...dbCreds.flatMap((c:any) => (Array.isArray(c.skill_tags) && c.skill_tags.length > 0) ? c.skill_tags : [c.skill_name])
+            ]))
+          })
+        });
+        
+        analysisJson = await res.json();
+        
+        if (analysisJson.status === 'success') {
+          // Store it in the cache holding the count of current credentials
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({
+              timestamp: Date.now(),
+              credentialCount: dbCreds.length,
+              data: analysisJson
+            }));
+          } catch (e) { /* ignore quota errors */ }
+        }
+      }
+
+      if (analysisJson?.status === 'success') {
+        setAiData(analysisJson.data);
       }
 
       const mergedCreds: CredentialItem[] = [];
@@ -169,11 +208,11 @@ export default function StudentDashboard() {
 
         // Match analysis by individual skill tags when available
         const matchedAnalysis = tags
-          .map((tag: string) => json.data?.skillHealth?.find((s: any) => s.skillName === tag))
+          .map((tag: string) => analysisJson?.data?.skillHealth?.find((s: any) => s.skillName === tag))
           .filter(Boolean);
         const avgHealth = matchedAnalysis.length > 0
           ? Math.round(matchedAnalysis.reduce((sum: number, a: any) => sum + a.healthScore, 0) / matchedAnalysis.length)
-          : (json.data?.skillHealth?.find((s: any) => s.skillName === dbC.skill_name)?.healthScore ?? 70);
+          : (analysisJson?.data?.skillHealth?.find((s: any) => s.skillName === dbC.skill_name)?.healthScore ?? 70);
 
         mergedCreds.push({
             id: dbC.id, 

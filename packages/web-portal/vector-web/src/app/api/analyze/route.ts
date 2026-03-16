@@ -77,11 +77,13 @@ export async function POST(req: Request) {
     const dbCredentials = student?.verified_credentials || [];
 
     // --- PHASE 5: AI Dynamic Schema Extraction ---
+    // Only extract via AI if the credential lacks explicit skill_tags
     const dynamicSkillsPromises = dbCredentials
       .filter(cred => 
         cred.schema_url && 
         cred.credential_data && 
-        !cred.schema_url.includes('undefined')
+        !cred.schema_url.includes('undefined') &&
+        (!Array.isArray(cred.skill_tags) || cred.skill_tags.length === 0)
       )
       .map(cred => {
         let absoluteSchemaUrl = cred.schema_url!;
