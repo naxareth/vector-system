@@ -11,6 +11,7 @@ import CVRSuccessModal from '@/components/dashboard/CVRSuccessModal';
 import CVRAnalysisPanel from '@/components/cvr/CVRAnalysisPanel'; // Phase 12
 import CVRPreviewModal from '@/components/cvr/CVRPreviewModal';
 import HelpTip from '@/components/shared/HelpTip';
+import Pagination from '@/components/shared/Pagination';
 import {
   PersonalDetailsSection,
   EducationSection,
@@ -124,6 +125,8 @@ export default function CVRPage() {
   // CVR History
   const [cvrHistory, setCvrHistory] = useState<CVRHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const HISTORY_ITEMS_PER_PAGE = 4;
 
   // Generated state
   const [isGenerated, setIsGenerated] = useState(false);
@@ -230,14 +233,40 @@ export default function CVRPage() {
         dbFormDataRef.current = dbData as typeof formData;
         setFormData((prev) => ({ ...prev, ...dbData }));
 
-        if (userRecord?.wallet_address) await fetchVerifiedSkills(userRecord.wallet_address);
+        // Wallet balance check for skills is now handled dynamically via credentials db
 
         const { data: certs } = await supabase
           .from('verified_credentials')
           .select('*')
           .eq('user_id', session.user.id);
 
-        if (certs) setAvailableCertifications(certs);
+        if (certs) {
+          setAvailableCertifications(certs);
+          
+          // Extract verified skills dynamically from the skill_tags of verified credentials
+          const foundSkills: SkillItem[] = [];
+          const seenSkills = new Set<string>();
+
+          certs.forEach((cert: any) => {
+            if (cert.skill_tags && Array.isArray(cert.skill_tags)) {
+              cert.skill_tags.forEach((skillName: string) => {
+                const normalized = skillName.trim();
+                // Avoid duplicates
+                if (normalized && !seenSkills.has(normalized.toLowerCase())) {
+                  seenSkills.add(normalized.toLowerCase());
+                  foundSkills.push({
+                    id: `verified-${normalized.toLowerCase().replace(/\s+/g, '-')}`,
+                    name: normalized,
+                    verified: true
+                  });
+                }
+              });
+            }
+          });
+          
+          setAvailableSkills(foundSkills);
+          setSelectedSkillIds(foundSkills.map((s) => s.id));
+        }
 
         // Load CVR history
         await fetchCVRHistory(session.user.id);
@@ -275,7 +304,10 @@ export default function CVRPage() {
         .eq('user_id', userId)
         .order('generated_at', { ascending: false });
 
-      if (data) setCvrHistory(data);
+      if (data) {
+        setCvrHistory(data);
+        setHistoryPage(1); // Reset page on new fetch
+      }
     } catch (err) {
       console.error('CVR history fetch error:', err);
     } finally {
@@ -284,32 +316,6 @@ export default function CVRPage() {
   };
 
   // ---------------------------------------------------------------------------
-  // Blockchain skill fetch
-  // ---------------------------------------------------------------------------
-  const fetchVerifiedSkills = async (walletAddress: string) => {
-    try {
-      const provider =
-        typeof window !== 'undefined' && (window as any).ethereum
-          ? new ethers.BrowserProvider((window as any).ethereum, 'any')
-          : new ethers.JsonRpcProvider('https://rpc-amoy.polygon.technology/');
-
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
-      const foundSkills: SkillItem[] = [];
-
-      for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
-        if (typeof skillId !== 'number') continue;
-        try {
-          const balance = await contract.balanceOf(walletAddress, skillId);
-          if (balance > 0) foundSkills.push({ id: `chain-${skillId}`, name: skillName, verified: true });
-        } catch { /* ignore read errors */ }
-      }
-
-      setAvailableSkills(foundSkills);
-      setSelectedSkillIds(foundSkills.map((s) => s.id));
-    } catch (error) {
-      console.error('Blockchain Scan Failed:', error);
-    }
-  };
 
   // ---------------------------------------------------------------------------
   // Skills handlers
@@ -536,8 +542,11 @@ export default function CVRPage() {
               </div>
 
               <div className="divide-y divide-gray-50">
-                {cvrHistory.map((cvr, index) => {
-                  const isLatest = index === 0;
+                {cvrHistory
+                  .slice((historyPage - 1) * HISTORY_ITEMS_PER_PAGE, historyPage * HISTORY_ITEMS_PER_PAGE)
+                  .map((cvr, idx) => {
+                  const globalIndex = (historyPage - 1) * HISTORY_ITEMS_PER_PAGE + idx;
+                  const isLatest = globalIndex === 0;
                   const snapshot = typeof cvr.snapshot === 'string'
                     ? JSON.parse(cvr.snapshot)
                     : cvr.snapshot;
@@ -605,6 +614,17 @@ export default function CVRPage() {
                   );
                 })}
               </div>
+              
+              {Math.ceil(cvrHistory.length / HISTORY_ITEMS_PER_PAGE) > 1 && (
+                <div className="border-t border-gray-100 bg-gray-50/50">
+                  <Pagination
+                    currentPage={historyPage}
+                    totalItems={cvrHistory.length}
+                    itemsPerPage={HISTORY_ITEMS_PER_PAGE}
+                    onPageChange={setHistoryPage}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -648,8 +668,8 @@ export default function CVRPage() {
                 onRemove={(i) => removeItem('education', i)}
                 onUpdate={(i, f, v) => updateItem('education', i, f, v)}
               />
-              <EducationSection
-                items={formData.experience as any}
+              <ExperienceSection
+                items={formData.experience}
                 onAdd={() => addItem('experience', { title: '', company: '', dates: '', description: '' })}
                 onRemove={(i) => removeItem('experience', i)}
                 onUpdate={(i, f, v) => updateItem('experience', i, f, v)}

@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Pagination from '@/components/shared/Pagination';
 
 export interface SkillItem {
   id: string;
@@ -21,6 +22,8 @@ export default function SkillsSection({
   onAddCustom,
 }: SkillsSectionProps) {
   const [customSkill, setCustomSkill] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   const handleAdd = () => {
     if (!customSkill.trim()) return;
@@ -30,6 +33,12 @@ export default function SkillsSection({
 
   const verifiedSkills = availableSkills.filter((s) => s.verified);
   const customSkills = availableSkills.filter((s) => !s.verified);
+
+  const totalPages = Math.ceil(verifiedSkills.length / ITEMS_PER_PAGE);
+  const paginatedVerifiedSkills = verifiedSkills.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="pt-6 border-t border-gray-200">
@@ -44,9 +53,10 @@ export default function SkillsSection({
           </span>
         </p>
         {verifiedSkills.length > 0 ? (
-          <div className="space-y-2">
-            {verifiedSkills.map((skill) => (
-              <label
+          <>
+            <div className="space-y-2">
+              {paginatedVerifiedSkills.map((skill) => (
+                <label
                 key={skill.id}
                 className="flex items-center p-3 border border-green-200 bg-green-50/30 rounded-lg hover:bg-green-50 cursor-pointer transition-colors"
               >
@@ -69,6 +79,17 @@ export default function SkillsSection({
               </label>
             ))}
           </div>
+          {totalPages > 1 && (
+            <div className="mt-4 border-t border-gray-100 pt-2">
+              <Pagination
+                currentPage={currentPage}
+                totalItems={verifiedSkills.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+          </>
         ) : (
           <div className="text-sm text-gray-500 italic p-3 border border-dashed border-gray-200 rounded-lg">
             No verified skills yet. Complete your first skill verification to see them here!
