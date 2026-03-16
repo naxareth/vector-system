@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useState, useEffect } from 'react';
@@ -123,9 +124,7 @@ export default function Sidebar({ isCollapsed = false }: SidebarProps) {
         {/* Logo */}
         <div className="p-6 border-b border-gray-200 dark:border-[#1E2536]">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gray-900 dark:bg-[#06B4C9]/15 rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-[#06B4C9] font-bold text-sm">V</span>
-            </div>
+            <Image src="/logo/VectorLogo.png" alt="Vector Logo" width={32} height={32} className="rounded-lg flex-shrink-0" style={{ width: 'auto', height: 'auto' }} />
             {isExpanded && (
               <span className="text-xl font-bold text-[#011018] dark:text-white whitespace-nowrap overflow-hidden transition-opacity duration-200">
                 VECTOR

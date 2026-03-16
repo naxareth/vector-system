@@ -13,9 +13,7 @@ export default function RegistrarRegisterPage() {
         <div className="px-10 py-12 md:px-14 lg:px-16 flex flex-col justify-center">
           {/* Logo + branding */}
           <Link href="/" className="inline-flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 bg-[#011018] rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">V</span>
-            </div>
+            <Image src="/logo/VectorLogo.png" alt="Vector Logo" width={40} height={40} className="rounded-full" />
             <span className="text-xl font-bold text-gray-900">Vector</span>
           </Link>
 

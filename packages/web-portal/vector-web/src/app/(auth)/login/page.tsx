@@ -41,6 +41,8 @@ export default function LoginPage() {
   const [mfaFactorId, setMfaFactorId] = useState('');
   const [pendingRole, setPendingRole] = useState<string | null>(null);
 
+  // Dynamic login button color
+  const loginBtnColor = isRegistrarFlow ? '#011018' : '#06B4C9';
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -226,9 +228,7 @@ export default function LoginPage() {
         <div className="px-10 py-12 md:px-14 lg:px-16 flex flex-col justify-center">
           {/* Logo + branding */}
           <Link href="/" className="inline-flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-[#011018] rounded-full flex items-center justify-center">
-              <span className="text-[#06B4C9] font-bold text-sm">V</span>
-            </div>
+            <Image src="/logo/VectorLogo.png" alt="Vector Logo" width={40} height={40} className="rounded-full" />
             <span className="text-xl font-bold text-gray-900">Vector</span>
           </Link>
 
@@ -325,7 +325,7 @@ export default function LoginPage() {
             <button 
               type="submit" 
               disabled={loading || !turnstileToken} 
-              className="w-full bg-[#06B4C9] hover:bg-[#06B4C9]/80 text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center active:scale-[0.98]"
+              className={`w-full bg-[${loginBtnColor}] hover:bg-[${loginBtnColor}]/80 text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center active:scale-[0.98]`}
             >
               {loading ? (
                 <>

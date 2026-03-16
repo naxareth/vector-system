@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
@@ -29,6 +30,7 @@ function RegistrarShell({ children }: { children: React.ReactNode }) {
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [dateStr, setDateStr] = useState('');
 
   const pathname = usePathname();
   const router = useRouter();
@@ -70,6 +72,7 @@ function RegistrarShell({ children }: { children: React.ReactNode }) {
       }
     };
     fetchUser();
+    setDateStr(new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
   }, [router]);
 
   const confirmLogout = async () => {
@@ -147,12 +150,9 @@ function RegistrarShell({ children }: { children: React.ReactNode }) {
           {/* Logo */}
           <div className="p-6 border-b border-gray-200 dark:border-[#1E2536]">
             <Link href="/registrar/dashboard" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-900 dark:bg-[#06B4C9]/15 rounded-lg flex items-center justify-center">
-                <span className="text-[#06B4C9] font-bold text-lg">V</span>
-              </div>
-              <div>
-                <span className="text-xl font-bold text-gray-900 dark:text-white">VECTOR</span>
-                <p className="text-xs text-gray-500 dark:text-[#64748B]">Registrar Portal</p>
+              <div className="flex items-center gap-2">
+                <Image src="/logo/VectorLogo.png" alt="Vector Logo" width={32} height={32} className="rounded-lg flex-shrink-0" style={{ width: 'auto', height: 'auto' }} />
+                <span className="text-xl font-bold text-[#011018] dark:text-white whitespace-nowrap overflow-hidden transition-opacity duration-200">VECTOR</span>
               </div>
             </Link>
           </div>
@@ -240,9 +240,7 @@ function RegistrarShell({ children }: { children: React.ReactNode }) {
               {/* Date — hidden on small */}
               <div className="hidden md:flex items-center gap-1.5 mr-2">
                 <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                <span className="text-xs text-gray-500 dark:text-slate-500 whitespace-nowrap">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                </span>
+                <span className="text-xs text-gray-500 dark:text-slate-500 whitespace-nowrap">{dateStr}</span>
               </div>
 
               <div className="h-5 w-px bg-gray-200 dark:bg-[#1E2536] hidden md:block mx-1" />

@@ -12,6 +12,7 @@ import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import chatbotSticker from './sticker_chatbot.png';
 import chatbotProfile from './profile_chatbot.png';
 
@@ -210,195 +211,105 @@ export default function CoachPage() {
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // renderTrendGraph
-  //
-  // Fixed pixel viewBox (600×160) with preserveAspectRatio="xMidYMid meet" —
-  // avoids the distortion that came from preserveAspectRatio="none" which was
-  // stretching circle radii and stroke widths non-uniformly.
-  //
-  // Smooth cubic bezier curves replace polyline for clean, professional lines.
-  //
-  // Per-skill normalization: each skill maps its own min/max to the Y range
-  // so all lines fill the vertical space regardless of absolute job count.
-  // A legend with actual job counts preserves the real-world context.
-  // ---------------------------------------------------------------------------
   const renderTrendGraph = () => {
     if (realHistory.length === 0) return null;
 
-    // Cap "All Skills" to top 5 by score to avoid spaghetti chart
     const activeSkills = selectedSkillView === 'All'
       ? [...skillsList].sort((a, b) => b.score - a.score).slice(0, 5).map(s => s.name)
       : [selectedSkillView];
 
     const colors = ['#06B4C9', '#22c55e', '#ef4444', '#3b82f6', '#f59e0b'];
-
-    // Fixed pixel coordinate space — ~35% wider/taller than original
-    const VW = 820;
-    const VH = 220;
-    const PAD_LEFT = 8;
-    const PAD_RIGHT = 8;
-    const PAD_TOP = 10;
-    const PAD_BOTTOM = 20; // room for date labels
-    const chartW = VW - PAD_LEFT - PAD_RIGHT;
-    const chartH = VH - PAD_TOP - PAD_BOTTOM;
-
     const hasEnoughData = realHistory.length >= 4;
 
-    // Per-skill ranges
-    const skillRanges: Record<string, { min: number; max: number; latest: number }> = {};
-    activeSkills.forEach(skill => {
-      const values = realHistory.map(d => Number(d[skill] || 0)).filter(v => v > 0);
-      if (values.length === 0) return;
-      skillRanges[skill] = {
-        min: Math.min(...values),
-        max: Math.max(...values),
-        latest: values[values.length - 1],
-      };
+    const visibleSkills = activeSkills.filter((skill) =>
+      realHistory.some((row) => Number(row[skill] || 0) > 0)
+    );
+
+    const chartData = realHistory.map((row) => {
+      const parsedRow: Record<string, string | number | null> = { date: row.date };
+      visibleSkills.forEach((skill) => {
+        const value = Number(row[skill] || 0);
+        parsedRow[skill] = Number.isFinite(value) && value > 0 ? value : null;
+      });
+      return parsedRow;
     });
 
-    const visibleSkills = activeSkills.filter(s => skillRanges[s]);
-
-    // Smooth cubic bezier path builder
-    const smoothPath = (pts: { x: number; y: number }[]): string => {
-      if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
-      if (pts.length === 2) return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
-      let d = `M ${pts[0].x} ${pts[0].y}`;
-      for (let i = 0; i < pts.length - 1; i++) {
-        const p0 = pts[i];
-        const p1 = pts[i + 1];
-        const tension = 0.4;
-        const cp1x = p0.x + (p1.x - p0.x) * tension;
-        const cp1y = p0.y;
-        const cp2x = p1.x - (p1.x - p0.x) * tension;
-        const cp2y = p1.y;
-        d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x} ${p1.y}`;
-      }
-      return d;
-    };
+    const latestBySkill: Record<string, number> = {};
+    visibleSkills.forEach((skill) => {
+      const values = realHistory
+        .map((row) => Number(row[skill] || 0))
+        .filter((value) => Number.isFinite(value) && value > 0);
+      latestBySkill[skill] = values.length ? values[values.length - 1] : 0;
+    });
 
     return (
-      <div className="space-y-3">
-        {/* Low data notice */}
+      <div className="space-y-4">
         {!hasEnoughData && (
           <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Only {realHistory.length} resume{realHistory.length !== 1 ? 's' : ''} version is available so far.
-            More insights and trends will appear after you’ve created a few more over the next several days. Check back soon!          </div>
+            More insights and trends will appear after you’ve created a few more over the next several days. Check back soon!
+          </div>
         )}
 
-        {/* Chart */}
-        <div className="relative w-full" style={{ height: '240px' }}>
-          <svg
-            viewBox={`0 0 ${VW} ${VH}`}
-            preserveAspectRatio="xMidYMid meet"
-            className="w-full h-full"
-          >
-            {/* Gradient defs */}
-            <defs>
-              {visibleSkills.map((skill, index) => (
-                <linearGradient key={skill} id={`grad-${index}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={colors[index % colors.length]} stopOpacity="0.15" />
-                  <stop offset="100%" stopColor={colors[index % colors.length]} stopOpacity="0" />
-                </linearGradient>
-              ))}
-            </defs>
+        <div className="relative h-[280px] w-full -mx-1 sm:mx-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 8, right: 6, left: 0, bottom: 2 }}>
+              <defs>
+                {visibleSkills.map((skill, index) => (
+                  <linearGradient key={skill} id={`trend-grad-${index}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={colors[index % colors.length]} stopOpacity={0.24} />
+                    <stop offset="100%" stopColor={colors[index % colors.length]} stopOpacity={0.03} />
+                  </linearGradient>
+                ))}
+              </defs>
 
-            {/* Subtle horizontal grid lines */}
-            {[0, 0.25, 0.5, 0.75, 1].map(frac => {
-              const y = PAD_TOP + frac * chartH;
-              return (
-                <line
-                  key={frac}
-                  x1={PAD_LEFT} y1={y}
-                  x2={PAD_LEFT + chartW} y2={y}
-                  stroke="#f3f4f6"
-                  strokeWidth="1"
-                />
-              );
-            })}
+              <CartesianGrid stroke="#eef2f7" strokeDasharray="4 4" vertical={false} />
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                minTickGap={26}
+                tickMargin={8}
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
+              />
+              <YAxis hide />
+              <Tooltip
+                contentStyle={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 20px rgba(2, 8, 23, 0.08)',
+                  backgroundColor: '#ffffff',
+                }}
+                labelStyle={{ color: '#334155', fontWeight: 600 }}
+                formatter={(value, name) => [`${Number(value ?? 0).toLocaleString()} jobs`, String(name)]}
+              />
 
-            {visibleSkills.map((skill, index) => {
-              const { min, max } = skillRanges[skill];
-              const range = max - min || 1;
-              const color = colors[index % colors.length];
-
-              const dataPoints = realHistory
-                .map((point) => ({ val: Number(point[skill] || 0), date: point.date }))
-                .filter(p => p.val > 0);
-
-              if (dataPoints.length < 1) return null;
-
-              const pts = dataPoints.map((p, j) => ({
-                x: PAD_LEFT + (dataPoints.length === 1
-                  ? chartW / 2
-                  : (j / (dataPoints.length - 1)) * chartW),
-                y: PAD_TOP + chartH - ((p.val - min) / range) * chartH,
-                val: p.val,
-                date: p.date,
-              }));
-
-              const pathD = smoothPath(pts);
-              const areaD = `${pathD} L ${pts[pts.length - 1].x} ${PAD_TOP + chartH} L ${pts[0].x} ${PAD_TOP + chartH} Z`;
-
-              return (
-                <g key={skill}>
-                  {/* Area fill */}
-                  <path d={areaD} fill={`url(#grad-${index})`} />
-
-                  {/* Smooth line */}
-                  <path
-                    d={pathD}
-                    fill="none"
+              {visibleSkills.map((skill, index) => {
+                const color = colors[index % colors.length];
+                return (
+                  <Area
+                    key={skill}
+                    type="monotone"
+                    dataKey={skill}
+                    connectNulls
                     stroke={color}
-                    strokeWidth="2.5"
-                    vectorEffect="non-scaling-stroke"
-                    className="drop-shadow-sm"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill={`url(#trend-grad-${index})`}
+                    dot={{ r: 3, strokeWidth: 2, fill: '#ffffff', stroke: color }}
+                    activeDot={{ r: 5, strokeWidth: 2, fill: '#ffffff', stroke: color }}
                   />
-
-                  {/* Data point dots — crisp fixed-size circles */}
-                  {pts.map((p, j) => (
-                    <g key={j}>
-                      <circle cx={p.x} cy={p.y} r="3.5" fill="white" stroke={color} strokeWidth="2" />
-                      <title>{`${skill}: ${p.val.toLocaleString()} jobs (${p.date})`}</title>
-                    </g>
-                  ))}
-                </g>
-              );
-            })}
-
-            {/* X-axis date labels inside the SVG — consistent sizing */}
-            {(() => {
-              const step = Math.max(1, Math.ceil(realHistory.length / 5));
-              return realHistory
-                .map((d, i) => ({ d, i }))
-                .filter(({ i }) => i === 0 || i === realHistory.length - 1 || i % step === 0)
-                .map(({ d, i }) => {
-                  const x = PAD_LEFT + (realHistory.length === 1
-                    ? chartW / 2
-                    : (i / (realHistory.length - 1)) * chartW);
-                  return (
-                    <text
-                      key={i}
-                      x={x}
-                      y={VH - 4}
-                      textAnchor={i === 0 ? 'start' : i === realHistory.length - 1 ? 'end' : 'middle'}
-                      fontSize="9"
-                      fill="#9ca3af"
-                    >
-                      {d.date}
-                    </text>
-                  );
-                });
-            })()}
-          </svg>
+                );
+              })}
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* Legend with actual job counts */}
         {visibleSkills.length > 0 && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+          <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
             {visibleSkills.map((skill, index) => (
               <div key={skill} className="flex items-center gap-1.5">
                 <span
@@ -412,7 +323,7 @@ export default function CoachPage() {
                 <span className="text-xs text-gray-500">
                   {skill}
                   <span className="text-gray-400 ml-1">
-                    ({skillRanges[skill]?.latest.toLocaleString()} jobs)
+                    ({latestBySkill[skill]?.toLocaleString()} jobs)
                   </span>
                 </span>
               </div>
@@ -539,7 +450,7 @@ export default function CoachPage() {
             })()}
           </div>
 
-          <div className="mb-8 px-2">
+          <div className="mb-5 px-0">
             {realHistory.length > 0 ? renderTrendGraph() : (
               <div className="flex flex-col items-center justify-center h-56 gap-3 rounded-lg">
                 <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
