@@ -24,6 +24,7 @@ import HelpTip from '@/components/shared/HelpTip';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 import studentIllustration from './student.png';
+import { generateStudentId } from '@/lib/utils/id';
 
 interface AIAnalysisData {
   skillHealth: {
@@ -290,6 +291,15 @@ export default function StudentDashboard() {
           .maybeSingle();
 
         if (profile) {
+          // 🛡️ LAZY INITIALIZATION: Ensure every student has an ID
+          // This catches historical records and Google signups
+          if (!profile.student_id) {
+            const newId = generateStudentId();
+            console.log(`[LazyInit] Generating student ID for ${session.user.email}: ${newId}`);
+            await supabase.from('users').update({ student_id: newId }).eq('id', session.user.id);
+            profile.student_id = newId;
+          }
+
           const capitalizedProfile = {
             ...profile,
             full_name: profile.full_name ? capitalizeWords(profile.full_name) : 'Student'
