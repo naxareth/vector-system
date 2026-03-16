@@ -8,8 +8,7 @@ import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import MarketInsightsPanel from '@/components/student/MarketInsightsPanel';
 import RecommendationsPanel, { CourseRecommendation } from '@/components/student/RecommendationsPanel';
 import Pagination from '@/components/shared/Pagination';
-import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
+import { fetchWalletSkillNames } from '@/lib/blockchain';
 import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -92,16 +91,7 @@ export default function CoachPage() {
       const foundSkills: string[] = [];
       if (profile.wallet_address) {
         try {
-          const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
-          const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
-          const processedIds = new Set<number>();
-          for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
-            if (typeof skillId !== 'number' || processedIds.has(skillId)) continue;
-            try {
-              const balance = await contract.balanceOf(profile.wallet_address, skillId);
-              if (balance > BigInt(0)) { processedIds.add(skillId); foundSkills.push(skillName); }
-            } catch (e) { console.error(e); }
-          }
+          foundSkills.push(...await fetchWalletSkillNames(profile.wallet_address));
         } catch { console.warn("Wallet read failed."); }
       }
 
@@ -254,8 +244,8 @@ export default function CoachPage() {
           </div>
         )}
 
-        <div className="relative h-[280px] w-full -mx-1 sm:mx-0">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="relative w-full min-w-0 -mx-1 sm:mx-0" style={{ height: 280 }}>
+          <ResponsiveContainer width="100%" height={280} minWidth={0}>
             <AreaChart data={chartData} margin={{ top: 8, right: 6, left: 0, bottom: 2 }}>
               <defs>
                 {visibleSkills.map((skill, index) => (

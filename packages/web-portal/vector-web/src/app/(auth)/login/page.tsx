@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { ChallengeMFA } from '@/components/auth/ChallengeMFA'; 
 import { Eye, EyeOff } from 'lucide-react';
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
+import { authConfig, setBrandingMetadata } from '@/lib/authConfig';
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -40,6 +41,11 @@ export default function LoginPage() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState('');
   const [pendingRole, setPendingRole] = useState<string | null>(null);
+
+  // Set branding metadata on mount
+  useEffect(() => {
+    setBrandingMetadata();
+  }, []);
 
   // Dynamic login button color
   const loginBtnColor = isRegistrarFlow ? '#011018' : '#06B4C9';
@@ -188,11 +194,11 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
+        redirectTo: authConfig.oauth.google.redirectTo,
       },
     });
     if (error) {
-      setError('OAuth sign-in failed. Please try again.');
+      setError('Sign in with Google failed. Please try again.');
     }
   };
 

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
+import { fetchWalletSkillNames } from '@/lib/blockchain';
 import { resumeSchema, SkillItem } from '@/lib/schemas/cvr';
 
 export function useCVR() {
@@ -90,19 +89,11 @@ export function useCVR() {
 
   const fetchVerifiedSkills = async (walletAddress: string) => {
     try {
-      const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
-      const foundSkills: SkillItem[] = [];
-
-      for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
-        if (typeof skillId !== 'number') continue;
-        try {
-          const balance = await contract.balanceOf(walletAddress, skillId);
-          if (balance > 0) {
-            foundSkills.push({ id: `chain-${skillId}`, name: skillName, verified: true });
-          }
-        } catch (e) { /* Ignore */ }
-      }
+      const foundSkills: SkillItem[] = (await fetchWalletSkillNames(walletAddress)).map((skillName, index) => ({
+        id: `chain-${skillName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`,
+        name: skillName,
+        verified: true,
+      }));
       setAvailableSkills(foundSkills);
       setSelectedSkillIds(foundSkills.map(s => s.id));
     } catch (error) {

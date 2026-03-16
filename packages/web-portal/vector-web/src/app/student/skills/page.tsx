@@ -1,8 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
+import { fetchWalletSkillNames } from '@/lib/blockchain';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Pagination from '@/components/shared/Pagination';
 import HelpTip from '@/components/shared/HelpTip';
@@ -163,27 +162,20 @@ export default function SkillsPage() {
           });
         }
 
-        if (profile?.wallet_address && ethers.isAddress(profile.wallet_address)) {
+        if (profile?.wallet_address) {
           try {
-            const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
-            const code = await provider.getCode(CONTRACT_ADDRESS);
-            if (code !== "0x") {
-              const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
-              const processedIds = new Set<number>();
-              const dbNames = found.map(c => c.skill_name);
-              for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
-                if (typeof skillId !== 'number' || processedIds.has(skillId)) continue;
-                try {
-                  const balance = await contract.balanceOf(profile.wallet_address, skillId);
-                  if (balance > 0) {
-                    processedIds.add(skillId);
-                    if (!dbNames.includes(skillName)) {
-                      found.push({ id: `bc-${skillId}`, skill_name: skillName, skill_tags: [skillName], source: 'blockchain' });
-                    }
-                  }
-                } catch (e) { console.warn(`Error scanning skill ${skillName}:`, e); }
+            const dbNames = found.map(c => c.skill_name.toLowerCase());
+            const walletSkills = await fetchWalletSkillNames(profile.wallet_address);
+            walletSkills.forEach((skillName, index) => {
+              if (!dbNames.includes(skillName.toLowerCase())) {
+                found.push({
+                  id: `bc-${skillName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`,
+                  skill_name: skillName,
+                  skill_tags: [skillName],
+                  source: 'blockchain'
+                });
               }
-            }
+            });
           } catch (err) { console.warn('Blockchain scan failed:', err); }
         }
 

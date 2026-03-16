@@ -2,13 +2,15 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/dashboard/AdminLayout';
 import { supabase } from '@/lib/supabaseClient';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface PlatformStats {
   totalUsers: number;
   students: number;
   registrars: number;
   admins: number;
-  pendingVerification: number;
+  activeUsers: number;
+  inactiveUsers: number;
   totalCredentials: number;
   recentCredentials: number;
   recentSignups: number;
@@ -25,10 +27,12 @@ interface RecentActivity {
 export default function AdminAnalyticsPage() {
   const [stats, setStats] = useState<PlatformStats>({
     totalUsers: 0, students: 0, registrars: 0, admins: 0,
-    pendingVerification: 0, totalCredentials: 0, recentCredentials: 0, recentSignups: 0,
+    activeUsers: 0, inactiveUsers: 0,
+    totalCredentials: 0, recentCredentials: 0, recentSignups: 0,
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'students' | 'issuers'>('all');
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -40,7 +44,7 @@ export default function AdminAnalyticsPage() {
 
         if (users) {
           const now = new Date();
-          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
 
           setStats(prev => ({
             ...prev,
@@ -48,8 +52,9 @@ export default function AdminAnalyticsPage() {
             students: users.filter(u => u.role === 'student').length,
             registrars: users.filter(u => u.role === 'registrar').length,
             admins: users.filter(u => u.role === 'super_admin').length,
-            pendingVerification: users.filter(u => u.status === 'pending_verification').length,
-            recentSignups: users.filter(u => new Date(u.created_at) >= thirtyDaysAgo).length,
+            activeUsers: users.filter(u => u.status === 'active').length,
+            inactiveUsers: users.filter(u => u.status !== 'active').length,
+            recentSignups: users.filter(u => new Date(u.created_at) >= threeDaysAgo).length,
           }));
         }
 
@@ -105,6 +110,41 @@ export default function AdminAnalyticsPage() {
     }
   };
 
+  const normalizeStatus = (user: { status: string, created_at: string }) => {
+    if (user.status === 'active' && new Date(user.created_at) >= threeDaysAgo) {
+      return 'active';
+    }
+    return 'inactive';
+  };
+
+  const pieData = [
+    { name: 'Active', value: stats.activeUsers },
+    { name: 'Inactive', value: stats.inactiveUsers },
+  ];
+  const pieColors = ['#34D399', '#A1A1AA'];
+
+  const filteredPieData = (() => {
+    if (statusFilter === 'students') {
+      return [
+        { name: 'Active', value: stats.students },
+        { name: 'Inactive', value: stats.inactiveUsers - stats.students },
+      ];
+    } else if (statusFilter === 'issuers') {
+      return [
+        { name: 'Active', value: stats.registrars },
+        { name: 'Inactive', value: stats.inactiveUsers - stats.registrars },
+      ];
+    }
+    return pieData;
+  })();
+
+  // Example user growth data (replace with real aggregation)
+  const userGrowthData = [
+    { period: 'Day', students: 5, issuers: 2 },
+    { period: 'Month', students: 15, issuers: 5 },
+    { period: 'Year', students: 23, issuers: 7 },
+  ];
+
   if (loading) {
     return (
       <AdminLayout>
@@ -141,23 +181,21 @@ export default function AdminAnalyticsPage() {
               <div className="w-9 h-9 bg-green-100 dark:bg-green-500/10 rounded-lg flex items-center justify-center">
                 <svg className="w-4.5 h-4.5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
               </div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Certificates</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Active Users</p>
             </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalCredentials}</p>
-            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">+{stats.recentCredentials} this month</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.activeUsers}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Active status</p>
           </div>
 
           <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-5">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 bg-amber-100 dark:bg-amber-500/10 rounded-lg flex items-center justify-center">
-                <svg className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <div className="w-9 h-9 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                <svg className="w-4.5 h-4.5 text-gray-500 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Pending</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Inactive Users</p>
             </div>
-            <p className={`text-3xl font-bold ${stats.pendingVerification > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-white'}`}>
-              {stats.pendingVerification}
-            </p>
-            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">awaiting verification</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.inactiveUsers}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Inactive status</p>
           </div>
 
           <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-5">
@@ -165,65 +203,53 @@ export default function AdminAnalyticsPage() {
               <div className="w-9 h-9 bg-[#06B4C9]/10 rounded-lg flex items-center justify-center">
                 <svg className="w-4.5 h-4.5 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
               </div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Registrars</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Credential Issuers</p>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.registrars}</p>
-            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{stats.students} students, {stats.admins} admins</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Issuer accounts</p>
           </div>
         </div>
 
-        {/* User Distribution + Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-          {/* Role Distribution */}
-          <div className="lg:col-span-2 bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-6">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-5">User Breakdown</h2>
-            <div className="space-y-4">
-              {[
-                { label: 'Students', count: stats.students, color: 'bg-blue-500', pct: stats.totalUsers ? Math.round((stats.students / stats.totalUsers) * 100) : 0 },
-                { label: 'Registrars', count: stats.registrars, color: 'bg-[#06B4C9]', pct: stats.totalUsers ? Math.round((stats.registrars / stats.totalUsers) * 100) : 0 },
-                { label: 'Admins', count: stats.admins, color: 'bg-amber-500', pct: stats.totalUsers ? Math.round((stats.admins / stats.totalUsers) * 100) : 0 },
-                { label: 'Pending', count: stats.pendingVerification, color: 'bg-gray-400', pct: stats.totalUsers ? Math.round((stats.pendingVerification / stats.totalUsers) * 100) : 0 },
-              ].map(item => (
-                <div key={item.label}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-gray-700 dark:text-slate-300">{item.label}</span>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{item.count} <span className="text-xs text-gray-400 font-normal">({item.pct}%)</span></span>
-                  </div>
-                  <div className="w-full h-2 bg-gray-100 dark:bg-[#1E2536] rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all duration-500 ${item.color}`} style={{ width: `${item.pct}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Pie Chart: Active vs Inactive */}
+        <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-6 mt-6">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white">User Status Distribution</h2>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value as 'all' | 'students' | 'issuers')}
+              className="px-3 py-1 border border-gray-300 dark:border-[#283042] rounded-lg bg-white dark:bg-[#131825] text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-[#06B4C9] outline-none"
+            >
+              <option value="all" className="bg-white dark:bg-[#131825] text-gray-900 dark:text-white">All Users</option>
+              <option value="students" className="bg-white dark:bg-[#131825] text-gray-900 dark:text-white">Students</option>
+              <option value="issuers" className="bg-white dark:bg-[#131825] text-gray-900 dark:text-white">Credential Issuers</option>
+            </select>
           </div>
-
-          {/* Recent Activity Feed */}
-          <div className="lg:col-span-3 bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-6">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-5">Recent Activity</h2>
-            {recentActivity.length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-8">No recent activity recorded.</p>
-            ) : (
-              <div className="space-y-4 max-h-[340px] overflow-y-auto pr-1">
-                {recentActivity.map(item => (
-                  <div key={item.id} className="flex items-start gap-3">
-                    {getActivityIcon(item.type)}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-800 dark:text-slate-200 leading-snug">{item.description}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[11px] text-gray-400 dark:text-slate-500">{item.actor}</span>
-                        <span className="text-gray-300 dark:text-[#283042]">·</span>
-                        <span className="text-[11px] text-gray-400 dark:text-slate-500">
-                          {new Date(item.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{' '}
-                          {new Date(item.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={filteredPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
+                {filteredPieData.map((entry, idx) => (
+                  <Cell key={`cell-${idx}`} fill={pieColors[idx]} />
                 ))}
-              </div>
-            )}
-          </div>
+              </Pie>
+              <RechartsTooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        {/* Line Chart: User Growth */}
+        <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-6 mt-6">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-5">User Growth (Students vs Issuers)</h2>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={userGrowthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="period" />
+              <YAxis />
+              <RechartsTooltip />
+              <Legend />
+              <Line type="monotone" dataKey="students" stroke="#3B82F6" name="Students" />
+              <Line type="monotone" dataKey="issuers" stroke="#06B4C9" name="Credential Issuers" />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </AdminLayout>

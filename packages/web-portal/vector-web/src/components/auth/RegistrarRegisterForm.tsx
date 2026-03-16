@@ -255,7 +255,7 @@ export default function RegistrarRegisterForm() {
         disabled={isSubmitting || !turnstileToken}
         className="w-full bg-[#011018] hover:bg-[#02202f] text-white font-semibold py-3 rounded-lg transition-all active:scale-[0.98] shadow-sm disabled:opacity-50"
       >
-        {isSubmitting ? 'Verifying...' : 'Create Registrar Account'}
+        {isSubmitting ? 'Verifying...' : 'Create Account'}
       </button>
     </form>
   );

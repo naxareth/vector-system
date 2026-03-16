@@ -1,4 +1,11 @@
+import { ethers } from 'ethers';
+
 export const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // Your deployed address
+export const POLYGON_AMOY_CHAIN_ID = 80002;
+export const POLYGON_AMOY_RPC_URLS = [
+  'https://rpc-amoy.polygon.technology/',
+  'https://polygon-amoy-bor-rpc.publicnode.com',
+];
 
 export const VECTOR_TOKEN_ABI = [
   // ✅ Minting
@@ -36,3 +43,48 @@ export const SKILL_MAP: Record<string, number> = {
   "Node.js Backend Development": 4,
   "AI/ML Fundamentals": 5
 };
+
+let readOnlyProvider: ethers.AbstractProvider | null = null;
+
+export function getReadOnlyProvider(): ethers.AbstractProvider {
+  if (readOnlyProvider) return readOnlyProvider;
+
+  const network = ethers.Network.from(POLYGON_AMOY_CHAIN_ID);
+  const providers = POLYGON_AMOY_RPC_URLS.map((url, index) => ({
+    provider: new ethers.JsonRpcProvider(url, network, { staticNetwork: network }),
+    priority: index + 1,
+    stallTimeout: 1200,
+    weight: 1,
+  }));
+
+  readOnlyProvider = providers.length === 1
+    ? providers[0].provider
+    : new ethers.FallbackProvider(providers);
+
+  return readOnlyProvider;
+}
+
+export async function fetchWalletSkillNames(walletAddress: string): Promise<string[]> {
+  if (!ethers.isAddress(walletAddress)) return [];
+
+  try {
+    const provider = getReadOnlyProvider();
+    const code = await provider.getCode(CONTRACT_ADDRESS);
+    if (!code || code === '0x') return [];
+
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
+    const skillEntries = Object.entries(SKILL_MAP).filter(([, skillId]) => typeof skillId === 'number');
+    if (skillEntries.length === 0) return [];
+
+    const skillIds = skillEntries.map(([, skillId]) => skillId);
+    const accounts = skillIds.map(() => walletAddress);
+    const balances = await contract.balanceOfBatch(accounts, skillIds);
+
+    return skillEntries
+      .filter(([,], index) => BigInt(balances[index] ?? 0) > 0n)
+      .map(([skillName]) => skillName);
+  } catch (error) {
+    console.warn('Read-only blockchain scan failed:', error);
+    return [];
+  }
+}

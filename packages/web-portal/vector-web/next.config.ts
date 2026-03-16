@@ -4,7 +4,17 @@ const nextConfig: NextConfig = {
   // 🛡️ Remove X-Powered-By header
   poweredByHeader: false,
 
-  // 🛡️ SECURITY HEADERS
+  // �️ EXTERNAL IMAGE HOSTS
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'logo.clearbit.com',
+      },
+    ],
+  },
+
+  // �🛡️ SECURITY HEADERS
   async headers() {
     return [
       {
@@ -40,7 +50,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://generativelanguage.googleapis.com https://*.pinata.cloud https://rpc-amoy.polygon.technology https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none';"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://generativelanguage.googleapis.com https://*.pinata.cloud https://rpc-amoy.polygon.technology https://polygon-amoy-bor-rpc.publicnode.com https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none';"
           }
         ],
       },

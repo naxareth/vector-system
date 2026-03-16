@@ -18,7 +18,7 @@ type Role = typeof ROLES[number];
 
 const ROLE_LABELS: Record<Role, string> = {
   student: 'Student',
-  registrar: 'Registrar',
+  registrar: 'Issuer',
   super_admin: 'Super Admin',
 };
 
@@ -29,15 +29,30 @@ const ROLE_COLORS: Record<string, string> = {
   pending_verification: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-400',
 };
 
+interface ConfirmModalState {
+  isOpen: boolean;
+  action: 'suspend' | 'restore' | 'delete' | 'role-change' | null;
+  userId: string | null;
+  userName: string | null;
+  newRole?: string;
+  message: string;
+}
+
 export default function AdminDashboard() {
   const [allUsers, setAllUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<'directory'>('directory');
   const [dirPage, setDirPage] = useState(1);
-  const ROWS_PER_PAGE = 10;
+  const [modal, setModal] = useState<ConfirmModalState>({
+    isOpen: false,
+    action: null,
+    userId: null,
+    userName: null,
+    message: '',
+  });
+  const ROWS_PER_PAGE = 8;
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -68,13 +83,26 @@ export default function AdminDashboard() {
   // Reset pages on filter/search changes
   useEffect(() => { setDirPage(1); }, [searchQuery, filterRole]);
 
-  const handleRoleChange = async (userId: string, newRole: string, userName: string) => {
+  const handleRoleChange = (userId: string, newRole: string, userName: string) => {
     const currentUser = allUsers.find((u) => u.id === userId);
     if (currentUser?.role === newRole) return;
 
-    if (!confirm(`Change ${userName}'s role to ${ROLE_LABELS[newRole as Role] || newRole}? This change will take effect immediately and will be recorded in the activity log.`)) return;
+    setModal({
+      isOpen: true,
+      action: 'role-change',
+      userId,
+      userName,
+      newRole,
+      message: `Change ${userName}'s role to ${ROLE_LABELS[newRole as Role] || newRole}? This change will take effect immediately and will be recorded in the activity log.`,
+    });
+  };
+
+  const handleRoleChangeConfirm = async () => {
+    const { userId, newRole } = modal;
+    if (!userId || !newRole) return;
 
     setProcessingId(userId);
+    setModal({ isOpen: false, action: null, userId: null, userName: null, message: '' });
     try {
       const res = await fetch('/api/admin', {
         method: 'POST',
@@ -96,12 +124,26 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleArchiveUser = async (userId: string, userName: string, currentStatus: string) => {
+  const handleArchiveUser = (userId: string, userName: string, currentStatus: string) => {
     const isSuspended = currentStatus === 'suspended';
-    const action = isSuspended ? 'restore' : 'suspend';
-    if (!confirm(`${isSuspended ? 'Restore' : 'Suspend'} ${userName}? ${isSuspended ? 'They will regain access.' : 'They will lose access until restored.'}`)) return;
+    const actionType = isSuspended ? 'restore' : 'suspend';
+    const message = `${isSuspended ? 'Restore' : 'Suspend'} ${userName}? ${isSuspended ? 'They will regain access.' : 'They will lose access until restored.'}`;
+
+    setModal({
+      isOpen: true,
+      action: actionType as 'suspend' | 'restore',
+      userId,
+      userName,
+      message,
+    });
+  };
+
+  const handleArchiveUserConfirm = async () => {
+    const { userId, action } = modal;
+    if (!userId || (action !== 'suspend' && action !== 'restore')) return;
 
     setProcessingId(userId);
+    setModal({ isOpen: false, action: null, userId: null, userName: null, message: '' });
     try {
       const res = await fetch('/api/admin/manage-users', {
         method: 'PATCH',
@@ -117,11 +159,22 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!confirm(`Permanently delete ${userName} and all their credentials? This CANNOT be undone.`)) return;
-    if (!confirm(`Are you absolutely sure? This will delete all certificates, skills, and notifications for ${userName}.`)) return;
+  const handleDeleteUser = (userId: string, userName: string) => {
+    setModal({
+      isOpen: true,
+      action: 'delete',
+      userId,
+      userName,
+      message: `Permanently delete ${userName} and all their credentials? This CANNOT be undone. All certificates, skills, and notifications will be deleted.`,
+    });
+  };
+
+  const handleDeleteUserConfirm = async () => {
+    const { userId } = modal;
+    if (!userId) return;
 
     setProcessingId(userId);
+    setModal({ isOpen: false, action: null, userId: null, userName: null, message: '' });
     try {
       const res = await fetch('/api/admin/manage-users', {
         method: 'DELETE',
@@ -158,33 +211,74 @@ export default function AdminDashboard() {
     }
   };
 
+  // Calculate stats
+  const totalUsers = allUsers.length;
+  const activeUsers = allUsers.filter(u => u.status === 'active').length;
+  const inactiveUsers = allUsers.filter(u => u.status !== 'active').length;
+  const registrars = allUsers.filter(u => u.role === 'registrar').length;
+  const activePercentage = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0;
+
   return (
     <AdminLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="mb-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">User Management</h1>
-          <p className="text-gray-500 dark:text-[#94A3B8]">Approve new accounts and manage existing user roles.</p>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">User Management</h1>
+          <p className="text-gray-500 dark:text-[#94A3B8] mt-1">Approve new accounts and manage existing user roles.</p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex gap-1 bg-gray-100 dark:bg-[#1E2536] p-1 rounded-lg w-fit">
-          <button
-            onClick={() => setActiveTab('directory')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'directory'
-              ? 'bg-white dark:bg-[#131825] text-[#06B4C9]'
-              : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'
-              }`}
-          >
-            All Users ({allUsers.length})
-          </button>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Total Users */}
+          <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 bg-blue-100 dark:bg-blue-500/10 rounded-lg flex items-center justify-center">
+                <svg className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Total Users</p>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalUsers}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">+3 this week</p>
+          </div>
+
+          {/* Active Users */}
+          <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 bg-green-100 dark:bg-green-500/10 rounded-lg flex items-center justify-center">
+                <svg className="w-4.5 h-4.5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Active</p>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{activeUsers}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{activePercentage}% of total</p>
+          </div>
+
+          {/* Inactive Users */}
+          <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                <svg className="w-4.5 h-4.5 text-gray-500 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Inactive</p>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{inactiveUsers}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Users not active</p>
+          </div>
+
+          {/* Registrars */}
+          <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 bg-[#06B4C9]/10 rounded-lg flex items-center justify-center">
+                <svg className="w-4.5 h-4.5 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Credential Issuers</p>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{registrars}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Issuers Accounts</p>
+          </div>
         </div>
 
-        {/* ── Pending Tab ── */}
-        {/* Pending tab removed — directly showing Directory */}
-
-        {/* ── Directory Tab ── */}
-        {activeTab === 'directory' && (
-          <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] overflow-hidden">
+        {/* Users Table */}
+        <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] overflow-hidden">
             {/* Search & Filter Bar */}
             <div className="px-6 py-4 border-b border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220] flex flex-col sm:flex-row gap-3">
               <input
@@ -197,11 +291,11 @@ export default function AdminDashboard() {
               <select
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-[#283042] rounded-lg bg-white dark:bg-[#131825] text-gray-700 dark:text-[#E2E8F0] text-sm focus:ring-2 focus:ring-[#06B4C9] outline-none"
+                className="px-3 py-2 border border-gray-300 dark:border-[#283042] rounded-lg bg-white dark:bg-[#131825] text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-[#06B4C9] outline-none"
               >
-                <option value="all">All Roles</option>
+                <option value="all" className="bg-white dark:bg-[#131825] text-gray-900 dark:text-white">All Roles</option>
                 {ROLES.map((r) => (
-                  <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                  <option key={r} value={r} className="bg-white dark:bg-[#131825] text-gray-900 dark:text-white">{ROLE_LABELS[r]}</option>
                 ))}
               </select>
               <button onClick={fetchUsers} className="px-4 py-2 text-sm text-[#06B4C9] hover:text-[#06B4C9]/70 font-medium border border-gray-300 dark:border-[#283042] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1E2536]">
@@ -262,10 +356,12 @@ export default function AdminDashboard() {
                             <select
                               value={user.role}
                               onChange={(e) => handleRoleChange(user.id, e.target.value, user.full_name)}
-                              className="px-2 py-1.5 border border-gray-300 dark:border-[#283042] rounded-lg bg-white dark:bg-[#1E2536] text-gray-700 dark:text-[#E2E8F0] text-sm focus:ring-2 focus:ring-[#06B4C9] outline-none cursor-pointer"
+                              className="px-2 py-1.5 border border-gray-300 dark:border-[#283042] rounded-lg bg-white dark:bg-[#131825] text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-[#06B4C9] outline-none cursor-pointer"
                             >
                               {ROLES.map((r) => (
-                                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                                <option key={r} value={r} className="bg-white dark:bg-[#131825] text-gray-900 dark:text-white">
+                                  {ROLE_LABELS[r]}
+                                </option>
                               ))}
                             </select>
                           )}
@@ -301,11 +397,56 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            <div className="px-6 py-2 border-t border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220] flex items-center justify-between">
-              <p className="text-xs text-gray-400 dark:text-[#64748B]">
-                Showing {directoryUsers.length} of {allUsers.length} users
-              </p>
-              <Pagination currentPage={dirPage} totalItems={directoryUsers.length} itemsPerPage={ROWS_PER_PAGE} onPageChange={setDirPage} />
+          <div className="px-6 py-2 border-t border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220] flex items-center justify-between">
+            <p className="text-xs text-gray-400 dark:text-[#64748B]">
+              Showing {directoryUsers.length} of {allUsers.length} users
+            </p>
+            <Pagination currentPage={dirPage} totalItems={directoryUsers.length} itemsPerPage={ROWS_PER_PAGE} onPageChange={setDirPage} />
+          </div>
+        </div>
+
+        {/* Confirmation Modal */}
+        {modal.isOpen && (
+          <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] max-w-sm w-full shadow-lg">
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-[#1E2536]">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {modal.action === 'role-change' && 'Change User Role'}
+                  {modal.action === 'suspend' && 'Suspend User'}
+                  {modal.action === 'restore' && 'Restore User'}
+                  {modal.action === 'delete' && 'Delete User'}
+                </h3>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-4">
+                <p className="text-sm text-gray-700 dark:text-slate-300">{modal.message}</p>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-100 dark:border-[#1E2536] flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setModal({ isOpen: false, action: null, userId: null, userName: null, message: '' })}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 border border-gray-300 dark:border-[#283042] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1E2536] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (modal.action === 'role-change') handleRoleChangeConfirm();
+                    else if (modal.action === 'suspend' || modal.action === 'restore') handleArchiveUserConfirm();
+                    else if (modal.action === 'delete') handleDeleteUserConfirm();
+                  }}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+                    modal.action === 'delete'
+                      ? 'bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700'
+                      : 'bg-[#06B4C9] hover:bg-[#04A0B5] dark:bg-[#06B4C9] dark:hover:bg-[#04A0B5]'
+                  }`}
+                >
+                  {modal.action === 'delete' ? 'Delete' : 'Confirm'}
+                </button>
+              </div>
             </div>
           </div>
         )}
