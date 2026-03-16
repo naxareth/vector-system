@@ -118,7 +118,9 @@ export default function CoachPage() {
         let totalScore = 0;
         let overallTrendValue = 0;
 
-        const dbVerifiedSkills = aiData.credentials?.map((c: any) => c.skill_name) || [];
+        const dbVerifiedSkills = aiData.credentials?.flatMap((c: any) => 
+          (Array.isArray(c.skill_tags) && c.skill_tags.length > 0) ? c.skill_tags : [c.skill_name]
+        ) || [];
         const allVerifiedNames = Array.from(new Set([...foundSkills, ...dbVerifiedSkills]));
 
         const processedSkills = aiData.skillHealth.map((s: any) => {

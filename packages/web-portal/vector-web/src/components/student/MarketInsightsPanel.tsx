@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import HelpTip from '@/components/shared/HelpTip';
+import Pagination from '@/components/shared/Pagination';
 
 // --- Types (mirrors market-insights/route.ts) ---
 
@@ -216,6 +217,8 @@ export default function MarketInsightsPanel({ userId }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   useEffect(() => {
     if (!userId) return;
@@ -269,6 +272,9 @@ export default function MarketInsightsPanel({ userId }: Props) {
 
   const withData = insights.filter(s => s.latest_job_count > 0);
   const noData = insights.filter(s => s.latest_job_count === 0);
+  
+  const totalPages = Math.ceil(withData.length / ITEMS_PER_PAGE);
+  const paginatedData = withData.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -298,8 +304,8 @@ export default function MarketInsightsPanel({ userId }: Props) {
           </div>
         )}
 
-        {withData.map((skill, i) => {
-          const color = colors[i % colors.length];
+        {paginatedData.map((skill, i) => {
+          const color = colors[(i + (page - 1) * ITEMS_PER_PAGE) % colors.length];
           const isOpen = expanded === skill.skill_name;
 
           return (
@@ -371,6 +377,17 @@ export default function MarketInsightsPanel({ userId }: Props) {
             </div>
           );
         })}
+
+        {withData.length > ITEMS_PER_PAGE && (
+          <div className="p-4 border-t border-gray-100">
+            <Pagination 
+              currentPage={page} 
+              totalItems={withData.length} 
+              itemsPerPage={ITEMS_PER_PAGE} 
+              onPageChange={setPage} 
+            />
+          </div>
+        )}
 
         {noData.length > 0 && (
           <div className="px-6 py-3">

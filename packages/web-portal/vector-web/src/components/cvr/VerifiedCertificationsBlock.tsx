@@ -11,6 +11,7 @@ interface CertificationFormItem {
   issuer: string;
   date: string;
   verified: boolean;
+  id?: string;
 }
 
 interface VerifiedCertificationsBlockProps {
@@ -37,7 +38,7 @@ export default function VerifiedCertificationsBlock({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {availableCertifications.map((cert) => {
           const isAdded = addedCertifications.some(
-            (c) => c.name === cert.skill_name && c.verified
+            (c) => c.id === cert.id
           );
           return (
             <div
@@ -49,7 +50,12 @@ export default function VerifiedCertificationsBlock({
               }`}
             >
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">{cert.skill_name}</h3>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {cert.skill_name}
+                  <span className="text-gray-400 font-normal ml-1">
+                    (#{cert.id.split('-')[0]})
+                  </span>
+                </h3>
                 <p className="text-xs text-gray-500">
                   Issued: {new Date(cert.issued_at).toLocaleDateString()}
                 </p>

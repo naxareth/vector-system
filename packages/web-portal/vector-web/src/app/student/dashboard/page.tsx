@@ -144,7 +144,7 @@ export default function StudentDashboard() {
       // Instead of hitting the Gemini API endpoint on every dashboard render,
       // we cache the huge JSON response in localStorage. We bust the cache if
       // either 24 hours have passed OR the student has earned a new credential.
-      const CACHE_KEY = `vector_ai_analysis_${identifier}`;
+      const CACHE_KEY = `vector_ai_analysis_v2_${identifier}`;
       const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
       let cachedData = null;
 
@@ -477,7 +477,7 @@ export default function StudentDashboard() {
                           ></div>
                         </div>
                         <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Demand: {skill.currentDemand.toFixed(1)}%</span>
+                          <span>Demand: {skill.currentDemand.toLocaleString()} Jobs</span>
                           <span>Decay Rate: {skill.decayRate.toFixed(2)}% <HelpTip size={12} text="How quickly this skill loses relevance if not updated. A lower number means the skill stays valuable longer." /></span>
                         </div>
                       </div>

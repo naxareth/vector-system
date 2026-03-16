@@ -71,7 +71,7 @@ type FormData = {
   education: { degree: string; school: string; location: string; year: string; honors: string }[];
   experience: { title: string; company: string; dates: string; description: string }[];
   projects: { title: string; description: string; technologies: string; role: string }[];
-  certifications: { name: string; issuer: string; date: string; verified: boolean }[];
+  certifications: { name: string; issuer: string; date: string; verified: boolean; id?: string }[];
   awards: { title: string; description: string }[];
 };
 
@@ -328,17 +328,18 @@ export default function CVRPage() {
   // Verified cert → CVR certifications
   // ---------------------------------------------------------------------------
   const handleAddVerifiedCertification = (cert: any) => {
-    const exists = formData.certifications.some((c) => c.name === cert.skill_name && c.verified);
+    const exists = formData.certifications.some((c) => c.id === cert.id);
     if (exists) return;
     setFormData((prev) => ({
       ...prev,
       certifications: [
         ...prev.certifications,
         {
-          name: cert.skill_name,
+          name: `${cert.skill_name} (#${cert.id.split('-')[0]})`,
           issuer: 'Vector University (Blockchain Verified)',
           date: new Date(cert.issued_at).toLocaleDateString(),
           verified: true,
+          id: cert.id,
         },
       ],
     }));

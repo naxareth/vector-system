@@ -212,10 +212,30 @@ export async function POST(req: Request) {
     // ─────────────────────────────────────────────────────────────────────────
 
     // 5. Enrich each skillHealth item with trendSlope for the frontend
-    const enrichedSkillHealth = (analysisResult?.skillHealth || []).map((s: any) => ({
-      ...s,
-      trendSlope: deriveTrendSlope(s.trend, s.healthScore),
-    }));
+    // We enforce a realistic market distribution by comparing skills relatively.
+    // The Gemini AI tends to be overly optimistic and label everything "growing".
+    const sortedScoreObjects = [...(analysisResult?.skillHealth || [])].sort((a: any, b: any) => a.healthScore - b.healthScore);
+    const p25Index = Math.max(0, Math.floor(sortedScoreObjects.length * 0.25) - 1);
+    const p66Index = Math.min(sortedScoreObjects.length - 1, Math.floor(sortedScoreObjects.length * 0.66));
+    const p25Score = sortedScoreObjects[p25Index]?.healthScore ?? 40;
+    const p66Score = sortedScoreObjects[p66Index]?.healthScore ?? 70;
+
+    const enrichedSkillHealth = (analysisResult?.skillHealth || []).map((s: any) => {
+      let actualTrend = 'stable';
+      if (sortedScoreObjects.length > 3) {
+        if (s.healthScore <= p25Score) actualTrend = 'declining';
+        else if (s.healthScore >= p66Score) actualTrend = 'growing';
+      } else {
+        if (s.healthScore < 50) actualTrend = 'declining';
+        else if (s.healthScore > 70) actualTrend = 'growing';
+      }
+
+      return {
+        ...s,
+        trend: actualTrend,
+        trendSlope: deriveTrendSlope(actualTrend, s.healthScore),
+      };
+    });
 
     return NextResponse.json({
       status: 'success',
