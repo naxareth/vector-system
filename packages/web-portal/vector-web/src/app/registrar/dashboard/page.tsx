@@ -134,16 +134,17 @@ export default function RegistrarDashboard() {
       return;
     }
     setCredentialsLoading(true);
-    const { data, error } = await supabase
-      .from('verified_credentials')
-      .select('*')
-      .eq('user_id', selectedStudent.id)
-      .order('issued_at', { ascending: false });
-    
-    if (error) {
+    try {
+      // Use the server-side API to bypass RLS and get decrypted notes
+      const res = await fetch('/api/registrar/credentials');
+      if (!res.ok) throw new Error('Failed to fetch credentials');
+      const allCreds: any[] = await res.json();
+      
+      // Filter for the selected student
+      const studentCreds = allCreds.filter(c => c.user_id === selectedStudent.id);
+      setStudentCredentials(studentCreds);
+    } catch (error) {
       console.error('Error loading credentials:', error);
-    } else if (data) {
-      setStudentCredentials(data);
     }
     setCredentialsLoading(false);
   };
@@ -781,17 +782,30 @@ export default function RegistrarDashboard() {
                              </summary>
                              <div className="space-y-2 mt-2 max-h-32 overflow-y-auto pr-2 opacity-60">
                                {studentCredentials.filter(c => c.revoked).map(cred => (
-                                 <div key={cred.id} className="flex items-center justify-between p-2 rounded-lg border bg-red-50/30 border-red-100/50 dark:bg-red-500/5 dark:border-red-500/10">
-                                   <div>
-                                     <p className="text-xs font-medium text-red-700/70 dark:text-red-400/70 line-through truncate max-w-[180px]">
-                                       {cred.skill_name}
-                                     </p>
-                                     <div className="flex items-center gap-2">
-                                       <span className="text-[9px] text-gray-400">{new Date(cred.issued_at).toLocaleDateString()}</span>
-                                       <span className="text-[9px] text-gray-400 font-mono">ID: {cred.token_id}</span>
+                                   <div key={cred.id} className="flex items-center justify-between p-2 rounded-lg border bg-red-50/30 border-red-100/50 dark:bg-red-500/5 dark:border-red-500/10">
+                                     <div className="flex-1 min-w-0">
+                                       <p className="text-xs font-medium text-red-700/70 dark:text-red-400/70 line-through truncate max-w-[180px]">
+                                         {cred.skill_name}
+                                       </p>
+                                       <div className="flex items-center gap-2">
+                                         <span className="text-[9px] text-gray-400">{new Date(cred.issued_at).toLocaleDateString()}</span>
+                                         <span className="text-[9px] text-gray-400 font-mono">ID: {cred.token_id}</span>
+                                       </div>
+                                     </div>
+                                     <div className="text-right">
+                                       {cred.transaction_hash ? (
+                                         <div className="text-[9px] text-gray-400 font-mono flex flex-col items-end">
+                                           <span className="text-[8px] uppercase tracking-tighter opacity-50">Revoke TX:</span>
+                                           <span>{cred.transaction_hash.slice(0, 8)}...</span>
+                                         </div>
+                                       ) : (
+                                         <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded italic">
+                                            DB Cleanup (No TX)
+                                         </span>
+                                       )}
+                                       <span className="block text-[8px] font-bold text-red-600 uppercase mt-1">Revoked</span>
                                      </div>
                                    </div>
-                                 </div>
                                ))}
                              </div>
                            </details>

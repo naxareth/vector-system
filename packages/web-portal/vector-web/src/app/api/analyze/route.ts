@@ -69,7 +69,9 @@ export async function POST(req: Request) {
         ]
       },
       include: {
-        verified_credentials: true,
+        verified_credentials: {
+          where: { revoked: false }
+        },
         self_reported_skills: true
       }
     });

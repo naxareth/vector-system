@@ -44,7 +44,8 @@ export async function GET(req: Request) {
     const { data: credentials, error } = await supabase
       .from('verified_credentials')
       .select('*')
-      .eq('user_id', user.id) 
+      .eq('user_id', user.id)
+      .eq('revoked', false) 
       .order('issued_at', { ascending: false });
 
     if (error) throw error;

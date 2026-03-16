@@ -238,7 +238,8 @@ export default function CVRPage() {
         const { data: certs } = await supabase
           .from('verified_credentials')
           .select('*')
-          .eq('user_id', session.user.id);
+          .eq('user_id', session.user.id)
+          .eq('revoked', false);
 
         if (certs) {
           setAvailableCertifications(certs);

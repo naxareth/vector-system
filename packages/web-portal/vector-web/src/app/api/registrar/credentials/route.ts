@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { decryptData, encryptData } from '@/lib/encryption';
@@ -82,19 +83,36 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   const cookieStore = await cookies();
 
-  // 1. Initialize Supabase with the MASTER KEY (Service Role)
+  // 1. Auth Client (Anon) to get current session
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) { return cookieStore.get(name)?.value },
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
       },
     }
   );
 
+  // 2. Admin Client (Service Role) - absolute RLS bypass for data fetch
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   try {
-    // 2. 🛡️ VERIFY AUTHENTICATION
+    // 2. 🛡️ VERIFY AUTHENTICATION (Using Auth Client)
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -102,14 +120,15 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized: Session invalid' }, { status: 401 });
     }
 
-    // 3. 🛡️ VERIFY AUTHORIZATION (RBAC)
-    const { data: userRecord, error: roleError } = await supabase
+    // 3. 🛡️ VERIFY AUTHORIZATION (RBAC) (Using Admin Client for reliable role check)
+    const { data: userRecord, error: roleError } = await supabaseAdmin
       .from('users')
       .select('role')
       .eq('id', user.id)
       .single();
 
     if (roleError || !userRecord) {
+      console.error("Role Check Error:", roleError);
       return NextResponse.json({ error: 'Forbidden: User record not found' }, { status: 403 });
     }
 
@@ -119,8 +138,8 @@ export async function GET(req: Request) {
       }, { status: 403 });
     }
 
-    // 4. FETCH CREDENTIAL DATA (Updated to include W3C fields)
-    const { data: credentials, error: fetchError } = await supabase
+    // 4. FETCH CREDENTIAL DATA (Using Admin Client)
+    const { data: credentials, error: fetchError } = await supabaseAdmin
       .from('verified_credentials')
       .select(`
         id,
@@ -130,7 +149,9 @@ export async function GET(req: Request) {
         certificate_number,
         private_notes,
         schema_url,
-        credential_data,
+        token_id,
+        revoked,
+        user_id,
         user:users!user_id (
           full_name,
           wallet_address
@@ -196,17 +217,10 @@ export async function POST(req: Request) {
     }
   );
 
-  // Service role client — used only for the notification insert so it can
-  // bypass RLS and write to any user's notifications row without needing
-  // the student to be the authenticated actor.
-  const supabaseAdmin = createServerClient(
+  // Service role client - use base createClient for absolute RLS bypass
+  const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        get(name: string) { return cookieStore.get(name)?.value },
-      },
-    }
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
   try {
@@ -474,20 +488,26 @@ export async function PATCH(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) { return cookieStore.get(name)?.value },
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
       },
     }
   );
 
-  // 2. Admin Client (Service Role) to bypass RLS and perform update
-  const supabaseAdmin = createServerClient(
+  // 2. Admin Client (Service Role) - use base createClient for absolute RLS bypass
+  const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        get(name: string) { return cookieStore.get(name)?.value },
-      },
-    }
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
   try {
@@ -511,18 +531,19 @@ export async function PATCH(req: Request) {
     const isRevoked = revoked ?? true;
 
     // Perform update via supabaseAdmin (HTTPS port 443 - stable)
-    const { error: updateError } = await supabaseAdmin
+    const { data: updateData, error: updateError } = await supabaseAdmin
       .from('verified_credentials')
-      .update({ revoked: isRevoked })
-      .eq('id', id);
+      .update({ revoked: isRevoked }, { count: 'exact' })
+      .eq('id', id)
+      .select();
 
     if (updateError) {
       console.error('[API] Update failed:', updateError.message);
       throw new Error(updateError.message);
     }
 
-    console.log(`[API] Credential ${id} marked revoked=${isRevoked} via Supabase Admin`);
-    return NextResponse.json({ success: true });
+    const rowsAffected = updateData?.length || 0;
+    return NextResponse.json({ success: true, rowsAffected });
 
   } catch (error: any) {
     console.error('PATCH /api/registrar/credentials error:', error);
