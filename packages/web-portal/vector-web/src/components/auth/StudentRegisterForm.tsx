@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { studentSchema, type StudentRegisterData } from '@/lib/schemas/auth';
 import { Eye, EyeOff } from 'lucide-react';
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
+import { generateStudentId } from '@/lib/utils/id';
 
 export default function StudentRegisterForm() {
   const router = useRouter();
@@ -86,7 +87,7 @@ export default function StudentRegisterForm() {
 
       // 4. Create Public Profile
       if (authData.user) {
-        const generatedStudentId = `03-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+        const generatedStudentId = generateStudentId();
 
         const { error: dbError } = await supabase
           .from('users')
