@@ -405,11 +405,16 @@ export default function StudentDashboard() {
                       <button
                         onClick={connectWallet}
                         disabled={isWalletConnecting}
-                        className="flex items-center gap-2 text-sm bg-[#06B4C9] text-white px-4 py-2.5 rounded-lg hover:bg-[#06B4C9]/90"
+                        className="flex items-center gap-2 text-sm font-semibold bg-white text-[#048898] px-5 py-2.5 rounded-lg shadow-md hover:bg-gray-100 hover:shadow-lg transition-all border border-white/80 disabled:opacity-60"
                       >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12V7H5a2 2 0 010-4h14v4" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v14a2 2 0 002 2h16v-5" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M18 12a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" />
+                        </svg>
                         {isWalletConnecting ? 'Connecting...' : 'Connect Wallet'}
                       </button>
-                      <a href="/student/help" className="text-xs text-white/70 hover:text-white underline underline-offset-2">
+                      <a href="/student/help" className="flex items-center gap-1 text-xs font-medium text-white/90 bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg transition-colors">
                         Need help?
                       </a>
                     </div>

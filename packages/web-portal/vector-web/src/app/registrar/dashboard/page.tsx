@@ -269,7 +269,11 @@ export default function RegistrarDashboard() {
       setStaticData({ certificateNumber: '', privateNotes: '' });
       setValidationErrors({});
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+      const err = error as { code?: string; info?: { error?: { code?: number } } };
+      const isUserRejected = err?.code === 'ACTION_REJECTED' || err?.info?.error?.code === 4001;
+      const message = isUserRejected
+        ? 'Transaction cancelled — you declined the request in MetaMask. No certificate was issued.'
+        : error instanceof Error ? error.message : 'Something went wrong. Please try again.';
       setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
     }
   };
@@ -357,11 +361,14 @@ export default function RegistrarDashboard() {
       });
     } catch (err: any) {
       console.error('Revocation Error:', err);
+      const isUserRejected = err?.code === 'ACTION_REJECTED' || err?.info?.error?.code === 4001;
       setMintingProgress({
         isOpen: true,
         progress: 100,
         status: 'error',
-        message: err.reason || err.message || 'Transaction failed or was rejected.',
+        message: isUserRejected
+          ? 'Revocation cancelled — you declined the request in MetaMask. No changes were made.'
+          : err.reason || err.message || 'Transaction failed or was rejected.',
       });
     }
   };
@@ -645,7 +652,11 @@ export default function RegistrarDashboard() {
                               message: `Successfully issued ${completed} certificate${completed > 1 ? 's' : ''}.`,
                             });
                           } catch (error: unknown) {
-                            const message = error instanceof Error ? error.message : 'Batch processing failed';
+                            const err = error as { code?: string; info?: { error?: { code?: number } } };
+                            const isUserRejected = err?.code === 'ACTION_REJECTED' || err?.info?.error?.code === 4001;
+                            const message = isUserRejected
+                              ? 'Batch transaction cancelled — you declined the request in MetaMask. No certificates were issued.'
+                              : error instanceof Error ? error.message : 'Batch processing failed';
                             setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
                           }
                         }}
