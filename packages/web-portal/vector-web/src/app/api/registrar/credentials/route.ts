@@ -294,10 +294,38 @@ export async function POST(req: Request) {
       ? encryptData(validatedData.private_notes)
       : null;
 
+    // 6.5. Create or get a default batch for this registrar
+    // This ensures all credentials are tied to a batch with the registrar_id
+    let batchId: string;
+    try {
+      const existingBatch = await prisma.minting_batches.findFirst({
+        where: { registrar_id: user.id, batch_name: 'Individual Issuances' },
+        select: { id: true }
+      });
+
+      if (existingBatch) {
+        batchId = existingBatch.id;
+      } else {
+        const newBatch = await prisma.minting_batches.create({
+          data: {
+            registrar_id: user.id,
+            batch_name: 'Individual Issuances',
+            total_students: 0 // Will be updated dynamically
+          }
+        });
+        batchId = newBatch.id;
+      }
+    } catch (batchError) {
+      console.warn('[credentials] Batch creation warning:', batchError);
+      // Continue without batch if it fails - non-fatal
+      batchId = '';
+    }
+
     // 7. Save credential to database
     const newCredential = await prisma.verified_credentials.create({
       data: {
         user_id: validatedData.user_id,
+        batch_id: batchId || null,
         skill_name: validatedData.skill_name,
         skill_tags: validatedData.skill_tags,          // ✅ Phase 8: persist marketable skill tags
         token_id: validatedData.token_id,

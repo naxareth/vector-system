@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -31,7 +32,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={openSans.variable}>
-      <body>
+      <head>
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          async
+          defer
+        />
+      </head>
+      <body suppressHydrationWarning>
         <ThemeProvider>
           {children}
         </ThemeProvider>
