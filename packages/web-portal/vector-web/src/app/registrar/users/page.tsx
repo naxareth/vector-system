@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
 import HelpTip from '@/components/shared/HelpTip';
+import { ethers } from 'ethers';
+import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
 
 interface UserCredential {
   id: string;
@@ -110,9 +112,36 @@ export default function ManageUsers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-  const [revoking, setRevoking] = useState(false);
   const [revokeError, setRevokeError] = useState('');
   const [fetchError, setFetchError] = useState('');
+  const [mintingProgress, setMintingProgress] = useState<{
+    isOpen: boolean;
+    progress: number;
+    status: 'minting' | 'complete' | 'error' | 'confirm';
+    message: string;
+    txHash?: string;
+    confirmAction?: () => void;
+    cancelAction?: () => void;
+    confirmLabel?: string;
+    cancelLabel?: string;
+  }>({
+    isOpen: false,
+    progress: 0,
+    status: 'minting',
+    message: ''
+  });
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -153,40 +182,134 @@ export default function ManageUsers() {
 
   const handleRevokeCredential = async (credential: UserCredential) => {
     if (!selectedUser) return;
-
-    if (!confirm(`Revoke credential "${credential.skill_name}"? This action cannot be undone.`)) {
+    
+    if (!selectedUser.wallet_address) {
+      setMintingProgress({
+        isOpen: true,
+        progress: 0,
+        status: 'error',
+        message: 'This student does not have a connected wallet. Cannot perform blockchain revocation.'
+      });
       return;
     }
 
-    setRevoking(true);
-    setRevokeError('');
+    // Replace native confirm() with custom modal confirmation
+    setMintingProgress({
+      isOpen: true,
+      progress: 0,
+      status: 'confirm',
+      message: `Revoke credential "${credential.skill_name}"? This action will permanently burn the blockchain token and mark it as revoked in the database.`,
+      confirmAction: () => startRevocationProcess(credential),
+      cancelAction: () => setMintingProgress({ isOpen: false, progress: 0, status: 'complete', message: '' }),
+      confirmLabel: 'Confirm Revoke',
+      cancelLabel: 'Cancel'
+    });
+  };
+
+  const startRevocationProcess = async (credential: UserCredential) => {
+    setMintingProgress({ 
+      isOpen: true, 
+      progress: 10, 
+      status: 'minting', 
+      message: 'Requesting MetaMask signature...' 
+    });
 
     try {
-      const response = await fetch('/api/registrar/revoke-credential', {
-        method: 'POST',
+      const { ethereum } = window as unknown as { ethereum: ethers.Eip1193Provider };
+      if (!ethereum) throw new Error('MetaMask not found. Please install MetaMask to revoke credentials.');
+
+      const provider = new ethers.BrowserProvider(ethereum, 'any');
+      const network = await provider.getNetwork();
+      const chainId = Number(network.chainId);
+      let tx: any = null;
+
+      // 🛡️ Verify Network (Polygon Amoy: 80002 or Localhost: 31337)
+      if (chainId !== 80002 && chainId !== 31337 && chainId !== 1337) {
+        throw new Error(`Wrong Network: Your MetaMask is on Chain ID ${chainId}. Please switch to Polygon Amoy (80002) to revoke credentials.`);
+      }
+
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
+      
+      console.log(`[Revoke] Target: ${selectedUser?.wallet_address}, Token ID: ${credential.token_id}, Contract: ${CONTRACT_ADDRESS}`);
+
+      // 🛡️ Verify balance before burning
+      setMintingProgress(prev => ({ ...prev, progress: 20, message: 'Verifying token ownership...' }));
+      
+      let balance;
+      try {
+        balance = await contract.balanceOf(selectedUser?.wallet_address, credential.token_id);
+      } catch (callError: any) {
+        if (callError.message?.includes("could not decode result data") || callError.data === '0x' || callError.value === '0x') {
+          throw new Error(`Contract Not Found: No code detected at ${CONTRACT_ADDRESS} on this network (Chain ID ${chainId}). Please check if the contract address is correct for this network.`);
+        }
+        throw callError;
+      }
+      if (BigInt(balance) <= BigInt(0)) {
+        setMintingProgress({
+          isOpen: true,
+          progress: 20,
+          status: 'confirm',
+          message: `GHOST TOKEN DETECTED: Token ID ${credential.token_id} not found in student's wallet. Mark as REVOKED anyway (Soft Cleanup)?`,
+          confirmAction: async () => {
+            setMintingProgress({ isOpen: true, progress: 90, status: 'minting', message: 'Performing database-only cleanup...' });
+            await finishDatabaseRevocation(credential);
+          },
+          cancelAction: () => {
+            setMintingProgress({ isOpen: false, progress: 0, status: 'complete', message: '' });
+          },
+          confirmLabel: 'Yes, Soft Cleanup',
+          cancelLabel: 'Cancel'
+        });
+        return;
+      }
+
+      setMintingProgress(prev => ({ ...prev, progress: 40, status: 'minting', message: 'Executing burn on Polygon Amoy...' }));
+      
+      // Execute Burn (Revoke)
+      tx = await contract.revokeSkill(selectedUser?.wallet_address, credential.token_id, 1);
+      
+      setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Waiting for blockchain confirmation...' }));
+      await tx.wait();
+
+      setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Updating database records...' }));
+      await finishDatabaseRevocation(credential, tx?.hash);
+
+    } catch (error: any) {
+      console.error('Revocation Error:', error);
+      const message = error.reason || error.message || 'Transaction failed.';
+      setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
+    }
+  };
+
+  const finishDatabaseRevocation = async (credential: UserCredential, txHash?: string) => {
+    try {
+      // Update DB via the standardized PATCH API
+      const response = await fetch('/api/registrar/credentials', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credentialId: credential.id }),
+        body: JSON.stringify({ id: credential.id, revoked: true }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to revoke credential');
+        throw new Error(data.error || 'Blockchain burn succeeded, but database sync failed');
       }
 
       // Refresh the selected user's data
       const updatedUser = {
-        ...selectedUser,
-        credentials: selectedUser.credentials.map((c) =>
+        ...selectedUser!,
+        credentials: (selectedUser?.credentials || []).map((c) =>
           c.id === credential.id ? { ...c, revoked: true } : c
         ),
-        activeCredentials: selectedUser.activeCredentials - 1,
+        activeCredentials: (selectedUser?.activeCredentials || 0) - 1,
       };
       setSelectedUser(updatedUser);
 
       // Update users list
-      setUsers(
-        users.map((u) =>
-          u.id === selectedUser.id
+      setUsers(prev =>
+        prev.map((u) =>
+          u.id === selectedUser?.id
             ? {
                 ...u,
                 credentials: u.credentials.map((c) =>
@@ -197,11 +320,16 @@ export default function ManageUsers() {
             : u
         )
       );
+
+      setMintingProgress({
+        isOpen: true,
+        progress: 100,
+        status: 'complete',
+        message: txHash ? 'Credential successfully revoked!' : 'Database record marked as revoked (Soft Cleanup).',
+        txHash: txHash,
+      });
     } catch (error: any) {
-      setRevokeError(error.message || 'Failed to revoke credential');
-      console.error('Error revoking credential:', error);
-    } finally {
-      setRevoking(false);
+      setMintingProgress({ isOpen: true, progress: 0, status: 'error', message: error.message });
     }
   };
 
@@ -465,10 +593,10 @@ export default function ManageUsers() {
                         </div>
                         <button
                           onClick={() => handleRevokeCredential(cred)}
-                          disabled={revoking}
+                          disabled={mintingProgress.isOpen && mintingProgress.status === 'minting'}
                           className="ml-4 px-4 py-2 text-sm font-medium text-red-600 hover:text-white border border-red-200 hover:bg-red-600 hover:border-red-600 dark:text-red-400 dark:border-red-500/30 dark:hover:bg-red-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
-                          {revoking ? 'Revoking...' : 'Revoke (Burn)'}
+                          {mintingProgress.isOpen && mintingProgress.status === 'minting' ? 'Revoking...' : 'Revoke (Burn)'}
                         </button>
                       </div>
                     ))}
@@ -515,6 +643,110 @@ export default function ManageUsers() {
           </>
         )}
       </div>
+
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {/* PROGRESS MODAL (Fixed Overlay)                                            */}
+      {/* ───────────────────────────────────────────────────────────────────────── */}
+      {mintingProgress.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0E1220] w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 dark:border-[#1E2536] overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 text-center">
+              <div className="flex justify-center mb-6">
+                {mintingProgress.status === 'minting' && (
+                  <div className="relative">
+                    <div className="w-20 h-20 border-4 border-[#06B4C9]/20 border-t-[#06B4C9] rounded-full animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg className="w-8 h-8 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+                {mintingProgress.status === 'complete' && (
+                  <div className="w-20 h-20 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center animate-in zoom-in-50 duration-500">
+                    <svg className="w-10 h-10 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+                {mintingProgress.status === 'error' && (
+                  <div className="w-20 h-20 bg-red-100 dark:bg-red-500/20 rounded-full flex items-center justify-center">
+                    <svg className="w-10 h-10 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                )}
+                {mintingProgress.status === 'confirm' && (
+                  <div className="w-20 h-20 bg-blue-100 dark:bg-blue-500/20 rounded-full flex items-center justify-center">
+                    <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                {mintingProgress.status === 'minting' ? 'Revoking Credential' : 
+                 mintingProgress.status === 'complete' ? 'Revocation Successful' : 
+                 mintingProgress.status === 'confirm' ? 'Action Required' : 'Revocation Failed'}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-[#94A3B8] mb-8 leading-relaxed">
+                {mintingProgress.message}
+              </p>
+
+              {mintingProgress.status === 'minting' && (
+                <div className="w-full bg-gray-100 dark:bg-[#1E2536] h-2 rounded-full mb-8 overflow-hidden">
+                  <div 
+                    className="h-full bg-[#06B4C9] transition-all duration-500 ease-out"
+                    style={{ width: `${mintingProgress.progress}%` }}
+                  />
+                </div>
+              )}
+
+              {mintingProgress.txHash && (
+                <div className="mb-8 p-3 rounded-lg bg-gray-50 dark:bg-[#131825] border border-gray-100 dark:border-[#1E2536]">
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">On-Chain Transaction</p>
+                  <a 
+                    href={`https://amoy.polygonscan.com/tx/${mintingProgress.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-[#06B4C9] font-mono hover:underline break-all"
+                  >
+                    {mintingProgress.txHash}
+                  </a>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              {mintingProgress.status === 'confirm' && (
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={mintingProgress.confirmAction}
+                    className="w-full py-3 px-4 bg-gray-900 dark:bg-[#06B4C9] text-white font-bold rounded-xl transition-all shadow-md active:scale-95"
+                  >
+                    {mintingProgress.confirmLabel || 'Yes, Proceed'}
+                  </button>
+                  <button
+                    onClick={mintingProgress.cancelAction}
+                    className="w-full py-3 px-4 bg-gray-100 dark:bg-[#1E2536] text-gray-700 dark:text-white font-bold rounded-xl transition-all active:scale-95"
+                  >
+                    {mintingProgress.cancelLabel || 'Cancel'}
+                  </button>
+                </div>
+              )}
+
+              {(mintingProgress.status === 'complete' || mintingProgress.status === 'error') && (
+                <button
+                  onClick={() => setMintingProgress(prev => ({ ...prev, isOpen: false }))}
+                  className="w-full py-3 px-4 bg-gray-900 dark:bg-[#06B4C9] hover:opacity-90 text-white font-bold rounded-xl transition-all shadow-lg active:scale-95"
+                >
+                  Close Workspace
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </RegistrarLayout>
   );
 }

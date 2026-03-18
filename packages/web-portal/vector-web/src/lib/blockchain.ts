@@ -1,6 +1,10 @@
 import { ethers } from 'ethers';
 
-export const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // Your deployed address
+// ⚠️ For Local Testing (localhost:8545 / Chain 31337)
+export const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
+// ⚠️ For Polygon Amoy (Testnet)
+// export const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 export const POLYGON_AMOY_CHAIN_ID = 80002;
 export const POLYGON_AMOY_RPC_URLS = [
   'https://rpc-amoy.polygon.technology/',
@@ -81,7 +85,7 @@ export async function fetchWalletSkillNames(walletAddress: string): Promise<stri
     const balances = await contract.balanceOfBatch(accounts, skillIds);
 
     return skillEntries
-      .filter(([,], index) => BigInt(balances[index] ?? 0) > 0n)
+      .filter(([,], index) => BigInt(balances[index] ?? 0) > BigInt(0))
       .map(([skillName]) => skillName);
   } catch (error) {
     console.warn('Read-only blockchain scan failed:', error);

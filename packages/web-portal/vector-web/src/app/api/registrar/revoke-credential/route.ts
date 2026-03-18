@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     // 3. Fetch the credential to be revoked
     const credential = await prisma.verified_credentials.findUnique({
       where: { id: credentialId },
-      include: { user: { select: { wallet_address: true } } },
+      include: { student: { select: { wallet_address: true } } },
     });
 
     if (!credential) {
@@ -69,32 +69,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Credential is already revoked' }, { status: 400 });
     }
 
-    // 4. Burn the token on blockchain (similar to existing burn logic)
+    // 4. Burn the token on blockchain (Administrative Revocation)
     let transactionHash = null;
 
     if (credential.token_id) {
-      try {
-        const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:8545';
-        const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const deployerKey = process.env.DEPLOYER_PRIVATE_KEY;
+      if (!deployerKey) {
+        console.warn('[revoke] DEPLOYER_PRIVATE_KEY not configured. Performing database-only revocation (Soft Revoke).');
+      } else {
+        try {
+          const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc-amoy.polygon.technology/';
+          const provider = new ethers.JsonRpcProvider(rpcUrl);
+          const signer = new ethers.Wallet(deployerKey, provider);
+          const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
 
-        // Note: This assumes you have a private key for burning. Adjust as needed.
-        const deployerKey = process.env.DEPLOYER_PRIVATE_KEY;
-        if (!deployerKey) {
-          throw new Error('DEPLOYER_PRIVATE_KEY not configured');
+          // Administrative Revoke: Registrar burns the token on behalf of the student
+          const studentWallet = credential.student?.wallet_address;
+          if (!studentWallet) throw new Error('Student has no wallet address');
+
+          const tx = await contract.revokeSkill(studentWallet, credential.token_id, 1);
+          const receipt = await tx.wait();
+          transactionHash = tx.hash;
+
+          console.log(`[revoke] Successfully burned token ${credential.token_id}: ${transactionHash}`);
+        } catch (blockchainError: any) {
+          console.error('[revoke] Blockchain burn failed:', blockchainError);
         }
-
-        const signer = new ethers.Wallet(deployerKey, provider);
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
-
-        // Burn the token
-        const tx = await contract.burn(credential.token_id);
-        const receipt = await tx.wait();
-        transactionHash = tx.hash;
-
-        console.log(`[revoke] Successfully burned token ${credential.token_id}: ${transactionHash}`);
-      } catch (blockchainError: any) {
-        console.error('[revoke] Blockchain burn failed:', blockchainError);
-        // Continue with marking as revoked even if burn fails (graceful degradation)
       }
     }
 
@@ -103,8 +103,7 @@ export async function POST(req: Request) {
       where: { id: credentialId },
       data: {
         revoked: true,
-        transaction_hash: transactionHash,
-        updated_at: new Date(),
+        transaction_hash: transactionHash || credential.transaction_hash,
       },
     });
 
