@@ -1,3 +1,4 @@
+/*
 import { http, createConfig } from 'wagmi'
 import { polygonAmoy } from 'wagmi/chains'
 import { getDefaultConfig } from '@rainbow-me/rainbowkit'
@@ -11,3 +12,5 @@ export const config = getDefaultConfig({
   },
   ssr: true, // Server Side Rendering enabled
 })
+*/
+export {};

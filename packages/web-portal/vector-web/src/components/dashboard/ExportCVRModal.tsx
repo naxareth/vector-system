@@ -33,7 +33,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
           `${Date.now()}-${parsed.fullName?.substring(0, 3).toUpperCase()}`;
 
         // Use /verify/cvr/[id] for full CVR exports, /verify/[id] for legacy single-credential
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
         const verifyUrl = parsed.isCvrExport
           ? `${baseUrl}/verify/cvr/${credentialId}`
           : `${baseUrl}/verify/${credentialId}`;

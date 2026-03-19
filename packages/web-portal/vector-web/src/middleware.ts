@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   // --- LOGGING HELPER ---
   const logAndReturn = (res: NextResponse) => {
     const duration = Date.now() - startTime;
-    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
+    const ip = (request as any).ip || request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     event.waitUntil(
@@ -62,8 +62,8 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   // --- RULE: UNAUTHENTICATED USERS ---
   // 2. Added `&& !AUTH_PATHS.includes(pathname)` to prevent prefix collisions
   if (!user && PROTECTED_PATHS.some(p => pathname.startsWith(p)) && !AUTH_PATHS.includes(pathname)) {
-    url.pathname = '/login';
-    return logAndReturn(NextResponse.redirect(url));
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+    return logAndReturn(NextResponse.redirect(`${baseUrl}/login${url.search}`));
   }
 
   // --- LOGIC FOR AUTHENTICATED USERS ---
@@ -80,23 +80,25 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     // --- RULE 1: PENDING VERIFICATION LOCKOUT ---
     if (status === 'pending_verification') {
       if (pathname !== '/verify-email') {
-        url.pathname = '/verify-email';
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
         url.searchParams.set('email', user.email || '');
-        return logAndReturn(NextResponse.redirect(url));
+        return logAndReturn(NextResponse.redirect(`${baseUrl}/verify-email${url.search}`));
       }
       return logAndReturn(response);
     }
 
     // --- RULE 2: VERIFIED USERS ON VERIFICATION PAGE ---
     if (status === 'active' && pathname === '/verify-email') {
-      url.pathname = role === 'super_admin' ? '/admin/dashboard' : role === 'registrar' ? '/registrar/dashboard' : '/student/dashboard';
-      return logAndReturn(NextResponse.redirect(url));
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+      const targetPath = role === 'super_admin' ? '/admin/dashboard' : role === 'registrar' ? '/registrar/dashboard' : '/student/dashboard';
+      return logAndReturn(NextResponse.redirect(`${baseUrl}${targetPath}${url.search}`));
     }
 
     // --- RULE 3: AUTH PATHS ---
     if (AUTH_PATHS.some(p => pathname.startsWith(p)) && status === 'active') {
-      url.pathname = role === 'super_admin' ? '/admin/dashboard' : role === 'registrar' ? '/registrar/dashboard' : '/student/dashboard';
-      return logAndReturn(NextResponse.redirect(url));
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+      const targetPath = role === 'super_admin' ? '/admin/dashboard' : role === 'registrar' ? '/registrar/dashboard' : '/student/dashboard';
+      return logAndReturn(NextResponse.redirect(`${baseUrl}${targetPath}${url.search}`));
     }
 
     // --- RULE 4: RBAC ENFORCEMENT ---
@@ -104,22 +106,22 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
       if (role === 'super_admin') {
         return logAndReturn(response);
       } else {
-        url.pathname = '/student/dashboard';
-        return logAndReturn(NextResponse.redirect(url));
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+        return logAndReturn(NextResponse.redirect(`${baseUrl}/student/dashboard${url.search}`));
       }
     }
 
     if (pathname.startsWith('/student') && role === 'super_admin') {
-      url.pathname = '/admin/dashboard';
-      return logAndReturn(NextResponse.redirect(url));
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+      return logAndReturn(NextResponse.redirect(`${baseUrl}/admin/dashboard${url.search}`));
     }
 
     if (pathname.startsWith('/registrar')) {
       if (role === 'registrar' || role === 'super_admin') {
         return logAndReturn(response);
       } else {
-        url.pathname = '/student/dashboard';
-        return logAndReturn(NextResponse.redirect(url));
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+        return logAndReturn(NextResponse.redirect(`${baseUrl}/student/dashboard${url.search}`));
       }
     }
   }

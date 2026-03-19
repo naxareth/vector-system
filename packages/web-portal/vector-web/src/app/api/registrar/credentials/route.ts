@@ -273,7 +273,10 @@ export async function POST(req: Request) {
     const issuerDid = dbUser.wallet_address
       ? `did:polygon:amoy:${dbUser.wallet_address}`
       : `did:web:yourdomain.com:registrar:${user.id}`;
-    const schemaUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/schemas/${schemaTemplate.id}`;
+    const host = req.headers.get('host');
+    const protocol = req.headers.get('x-forwarded-proto') || 'http';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : 'http://localhost:3000');
+    const schemaUrl = `${baseUrl}/api/schemas/${schemaTemplate.id}`;
 
     const w3cPayload = {
       "@context": [

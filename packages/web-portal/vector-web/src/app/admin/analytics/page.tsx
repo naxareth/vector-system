@@ -34,6 +34,9 @@ export default function AdminAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'students' | 'issuers'>('all');
 
+  const now = new Date();
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
@@ -43,9 +46,6 @@ export default function AdminAnalyticsPage() {
           .select('id, role, status, created_at');
 
         if (users) {
-          const now = new Date();
-          const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-
           setStats(prev => ({
             ...prev,
             totalUsers: users.length,

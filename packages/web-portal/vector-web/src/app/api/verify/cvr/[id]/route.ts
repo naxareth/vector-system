@@ -151,7 +151,7 @@ export async function GET(
           const provider = new ethers.JsonRpcProvider(POLYGON_AMOY_RPC);
           const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
           const balance: bigint = await contract.balanceOf(walletAddress, BigInt(cred.token_id));
-          onChain = { verified: balance > 0n, balance: Number(balance), error: null };
+          onChain = { verified: balance > BigInt(0), balance: Number(balance), error: null };
         } catch {
           onChain = { verified: false, balance: null, error: 'Could not reach Polygon Amoy RPC.' };
         }

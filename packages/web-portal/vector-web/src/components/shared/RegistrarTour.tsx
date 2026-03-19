@@ -21,7 +21,6 @@ export default function RegistrarTour() {
           popover: { 
             title: 'Registrar Portal', 
             description: 'Welcome, Admin. This is your command center for issuing verified credentials.', 
-            side: 'center', 
             align: 'center'
           } 
         },

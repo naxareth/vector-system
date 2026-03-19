@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { randomUUID } from 'crypto';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
@@ -54,6 +55,7 @@ export async function POST(req: Request) {
         where: { wallet_address: student.wallet_address },
         update: {},
         create: {
+          id: randomUUID(),
           full_name: student.full_name,
           student_id: student.student_id,
           wallet_address: student.wallet_address,

@@ -91,7 +91,9 @@ export async function POST(req: Request) {
         let absoluteSchemaUrl = cred.schema_url!;
         
         if (absoluteSchemaUrl.startsWith('/')) {
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          const host = req.headers.get('host');
+          const protocol = req.headers.get('x-forwarded-proto') || 'http';
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : 'http://localhost:3000');
           absoluteSchemaUrl = `${baseUrl}${absoluteSchemaUrl}`;
         }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -18,7 +18,7 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -400,3 +400,15 @@ export default function LoginPage() {
     </main>
   );
 }
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen w-full bg-gray-100 flex items-center justify-center p-4">
+        <div className="w-8 h-8 border-2 border-[#06B4C9] border-t-transparent rounded-full animate-spin" />
+      </main>
+    }>
+      <LoginForm />
+    </Suspense>
+  );
+}

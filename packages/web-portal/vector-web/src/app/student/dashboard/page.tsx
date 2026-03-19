@@ -53,6 +53,14 @@ interface UserProfile {
   student_id: string;
   role: string;
   wallet_address?: string;
+  location?: string;
+  profiles?: {
+    phone?: string;
+    bio?: string;
+    university?: string;
+    major?: string;
+    graduation_year?: string;
+  }
 }
 
 interface CredentialItem {
@@ -92,6 +100,7 @@ export default function StudentDashboard() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [aiData, setAiData] = useState<AIAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileComplete, setProfileComplete] = useState(false);
 
   const [allCredentials, setAllCredentials] = useState<CredentialItem[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
@@ -279,7 +288,7 @@ export default function StudentDashboard() {
 
         const { data: profile } = await supabase
           .from('users')
-          .select('*')
+          .select('*, profiles(phone, bio, university, major, graduation_year)')
           .eq('id', session.user.id)
           .maybeSingle();
 
@@ -293,9 +302,22 @@ export default function StudentDashboard() {
 
           const capitalizedProfile = {
             ...profile,
-            full_name: profile.full_name ? capitalizeWords(profile.full_name) : 'Student'
+            full_name: profile.full_name ? capitalizeWords(profile.full_name) : 'Student',
+            profiles: Array.isArray(profile.profiles) ? profile.profiles[0] : profile.profiles
           };
           setUser(capitalizedProfile);
+
+          // Calculate profile completion status
+          const isComplete = !!(
+            capitalizedProfile.full_name &&
+            capitalizedProfile.location &&
+            capitalizedProfile.profiles?.phone &&
+            capitalizedProfile.profiles?.bio &&
+            capitalizedProfile.profiles?.university &&
+            capitalizedProfile.profiles?.major &&
+            capitalizedProfile.profiles?.graduation_year
+          );
+          setProfileComplete(isComplete);
 
           const { data: cvrExports } = await supabase
             .from('cvr_exports')
@@ -599,15 +621,29 @@ export default function StudentDashboard() {
             <div className="relative pt-1 mb-4">
               <div className="flex mb-2 items-center justify-between">
                 <span className="text-xs font-semibold py-1 px-2 uppercase rounded-full text-[#06B4C9] bg-[#06B4C9]/10">
-                  {user?.wallet_address && allCredentials.length > 0 ? 'In Progress' : 'Almost Done'}
+                  {user?.wallet_address && (hasPendingCVR || hasCVRExport) && profileComplete ? 'Complete' : 'In Progress'}
                 </span>
                 <span className="text-xs font-semibold text-[#06B4C9]">
-                  {user?.wallet_address ? ((hasPendingCVR || hasCVRExport) ? '75%' : '50%') : '25%'}
+                  {(() => {
+                    let score = 0;
+                    if (user?.wallet_address) score += 33;
+                    if (hasPendingCVR || hasCVRExport) score += 33;
+                    if (profileComplete) score += 34;
+                    return `${score}%`;
+                  })()}
                 </span>
               </div>
               <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-[#06B4C9]/10">
                 <div
-                  style={{ width: user?.wallet_address ? ((hasPendingCVR || hasCVRExport) ? '75%' : '50%') : '25%' }}
+                  style={{ 
+                    width: (() => {
+                      let score = 0;
+                      if (user?.wallet_address) score += 33;
+                      if (hasPendingCVR || hasCVRExport) score += 33;
+                      if (profileComplete) score += 34;
+                      return `${score}%`;
+                    })() 
+                  }}
                   className="bg-[#06B4C9] transition-all duration-500"
                 />
               </div>
@@ -626,7 +662,9 @@ export default function StudentDashboard() {
                 Upload Resume (CVR) <HelpTip size={13} text="CVR stands for Credential-Verified Resume — a resume that links to your verified certificates for proof." />
               </li>
               <li className="flex items-center text-sm text-gray-600">
-                <span className="text-gray-300 mr-2">○</span>
+                {profileComplete
+                  ? <span className="text-green-500 font-bold mr-2">✓</span>
+                  : <span className="text-gray-300 mr-2">○</span>}
                 Complete Profile
               </li>
             </ul>

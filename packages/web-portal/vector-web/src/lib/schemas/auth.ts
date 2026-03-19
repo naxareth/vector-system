@@ -9,29 +9,29 @@ const passwordValidation = new RegExp(
 const noScriptRegex = /[<>"'`]/;
 const nameSafeRegex = /^[a-zA-Z\s\-\.]+$/;
 const baseRegisterSchema = z.object({
-  firstName: z.string({ required_error: "Please fill out this field" })
+  firstName: z.string()
     .min(1, "Please fill out this field")
     .min(2, "Must be at least 2 characters")
     .max(50, "Must be 50 characters or fewer")
     .regex(nameSafeRegex, "First name must only contain letters, spaces, hyphens, or periods.")
     .refine(val => !noScriptRegex.test(val), { message: "First name contains invalid characters." }),
-  lastName: z.string({ required_error: "Please fill out this field" })
+  lastName: z.string()
     .min(1, "Please fill out this field")
     .min(2, "Must be at least 2 characters")
     .max(50, "Must be 50 characters or fewer")
     .regex(nameSafeRegex, "Last name must only contain letters, spaces, hyphens, or periods.")
     .refine(val => !noScriptRegex.test(val), { message: "Last name contains invalid characters." }),
-  email: z.string({ required_error: "Please fill out this field" })
+  email: z.string()
     .min(1, "Please fill out this field")
     .email("Please enter a valid email address")
     .refine(val => !noScriptRegex.test(val), { message: "Email contains invalid characters." }),
-  password: z.string({ required_error: "Please fill out this field" })
+  password: z.string()
     .min(1, "Please fill out this field")
     .regex(passwordValidation, {
       message: "Must be 12+ chars with uppercase, lowercase, number & special char",
     })
     .refine(val => !noScriptRegex.test(val), { message: "Password contains invalid characters." }),
-  confirmPassword: z.string({ required_error: "Please fill out this field" })
+  confirmPassword: z.string()
     .min(1, "Please fill out this field")
     .refine(val => !noScriptRegex.test(val), { message: "Confirm password contains invalid characters." }),
 });

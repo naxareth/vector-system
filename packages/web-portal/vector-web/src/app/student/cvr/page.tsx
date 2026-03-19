@@ -356,7 +356,7 @@ export default function CVRPage() {
   // Copy verify link
   // ---------------------------------------------------------------------------
   const handleCopyLink = (id: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
     navigator.clipboard.writeText(`${baseUrl}/verify/cvr/${id}`);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
@@ -588,7 +588,7 @@ export default function CVRPage() {
                       {/* Actions */}
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <a
-                          href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify/cvr/${cvr.id}`}
+                          href={`${process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')}/verify/cvr/${cvr.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-[#06B4C9] hover:text-[#06B4C9] hover:underline flex items-center gap-1"

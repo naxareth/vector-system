@@ -20,6 +20,19 @@ import { z } from 'zod';
 // 🛡️ SECURITY (Checkpoint #2): Uses centralized Gemini client from @/lib/gemini
 // ---------------------------------------------------------------------------
 
+type SkillInfo = {
+  id: string;
+  name: string;
+  verified: boolean;
+  tags?: string[];
+};
+
+type SkillStrength = {
+  strong: string[];
+  moderate: string[];
+  weak: string[];
+};
+
 const analyzeRequestSchema = z.object({
   snapshot: z.record(z.string(), z.any()),
 });
@@ -72,10 +85,12 @@ export async function POST(req: NextRequest) {
   // 3. Enrich with skill_health_cache market data
   //    skill_tags are the canonical market keywords; fall back to skill names
   // -------------------------------------------------------------------------
-  const skills: { id: string; name: string; verified: boolean }[] =
-    snapshot.skills || [];
+  const skills: SkillInfo[] = snapshot.skills || [];
 
-  const skillNames = skills.map((s) => s.name).filter(Boolean);
+  // Flatten all unique skill names and tags for health lookups
+  const skillNames = Array.from(new Set(
+    skills.flatMap((s) => [s.name, ...(s.tags || [])])
+  )).filter(Boolean);
 
   let healthData: {
     skill_name: string;
@@ -110,19 +125,32 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   const skillsContext = skills
     .map((s) => {
-      const health = healthData.find((h) => h.skill_name === s.name);
-      let line = `- ${s.name} (${s.verified ? 'Blockchain Verified' : 'Self-reported'})`;
-      if (health) {
-        line += ` → Health: ${health.health_score ?? 'N/A'}/100`;
-        line += `, Trend: ${health.trend_label ?? 'unknown'}`;
-        line += `, Open Jobs: ${health.job_count ?? 'N/A'}`;
-        if (health.avg_salary) {
-          const salary = Math.round(Number(health.avg_salary)).toLocaleString();
-          line += `, Avg Salary: $${salary}`;
+      const tags = s.tags || [];
+      const tagLine = tags.length > 0 ? ` [Technical Skills: ${tags.join(', ')}]` : '';
+      
+      let line = `- CREDENTIAL: "${s.name}"${tagLine} | Status: ${s.verified ? 'Blockchain Verified' : 'Self-reported'}`;
+      
+      // Look up health for the main name or its tags
+      const healthMatches = healthData.filter(h => 
+        h.skill_name === s.name || tags.includes(h.skill_name)
+      );
+
+      if (healthMatches.length > 0) {
+        // Use the best health score available in the match set
+        const bestHealth = healthMatches.reduce((prev, curr) => 
+          (curr.health_score || 0) > (prev.health_score || 0) ? curr : prev
+        );
+        
+        line += ` | Market Health: ${bestHealth.health_score ?? 'N/A'}/100`;
+        line += ` | Trend: ${bestHealth.trend_label ?? 'unknown'}`;
+        line += ` | Open Jobs: ${bestHealth.job_count ?? 'N/A'}`;
+        
+        if (bestHealth.avg_salary) {
+          const salary = Math.round(Number(bestHealth.avg_salary)).toLocaleString();
+          line += ` | Avg Salary: $${salary}`;
         }
-        line += ` (data confidence: ${health.confidence ?? 'low'})`;
       } else {
-        line += ' → No market data available';
+        line += ' | No live market data found';
       }
       return line;
     })
@@ -184,9 +212,9 @@ Return a single raw JSON object with EXACTLY this structure. No markdown, no cod
   "overallScore": <integer 0–100, holistic CVR strength based on skills, market alignment, and profile completeness>,
   "summary": "<2–3 sentence assessment of this student's profile strengths and primary opportunity area>",
   "skillStrength": {
-    "strong": ["<skill name>"],
-    "moderate": ["<skill name>"],
-    "weak": ["<skill name>"]
+    "strong": ["<technical skill name>"],
+    "moderate": ["<technical skill name>"],
+    "weak": ["<technical skill name>"]
   },
   "marketAlignment": {
     "score": <integer 0–100, how well their verified skills match current market demand>,
@@ -201,7 +229,7 @@ Return a single raw JSON object with EXACTLY this structure. No markdown, no cod
 }
 
 Rules:
-- skillStrength: classify each skill from the student's list into exactly one bucket. Base this on health_score (>= 70 = strong, 40–69 = moderate, < 40 = weak). If no market data, default to moderate.
+- skillStrength: Categorize ONLY the individual technical skills (e.g., "React", "Python", "SQL", "Frontend Development") found in the parentheses or tags. DO NOT use the credential names (like "College Degree" or "Bootcamp") as skills. Base the bucket on health_score (>= 70 = strong, 40–69 = moderate, < 40 = weak). If no market data, default to moderate.
 - missingKeywords: 3–6 high-demand skills/technologies that are ABSENT from their profile and would strengthen their market position given their existing skill set and career title.
 - recommendations: exactly 3, concrete and specific. Reference their actual skills and market data where relevant.
 - overallScore: penalise heavily for self-reported-only skills vs blockchain-verified, and for skills with declining trends.

@@ -69,11 +69,13 @@ export async function GET(request: Request) {
       }
 
       console.log(`🚀 Redirecting to: ${redirectUrl}`);
-      return NextResponse.redirect(`${origin}${redirectUrl}`);
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
+      return NextResponse.redirect(`${baseUrl}${redirectUrl}`);
     }
     
     console.error('❌ OAuth Exchange Error:', error?.message);
   }
 
-  return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
+  return NextResponse.redirect(`${baseUrl}/login?error=oauth_failed`);
 }

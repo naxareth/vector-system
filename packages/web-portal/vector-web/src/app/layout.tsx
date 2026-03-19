@@ -21,8 +21,28 @@ const openSans = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Vector",
-  description: "Vector",
+  title: "Vector System",
+  description: "Premium Blockchain-Powered Credential Management",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Vector",
+  },
+  icons: {
+    apple: [
+      { url: "/icons/icon-192x192.png", sizes: "192x192" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512" },
+    ],
+  },
+};
+
+export const viewport = {
+  themeColor: "#06B4C9",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

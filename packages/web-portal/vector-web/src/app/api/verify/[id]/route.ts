@@ -130,7 +130,7 @@ export async function GET(
       const balance: bigint = await contract.balanceOf(wallet_address, BigInt(tokenId));
 
       onChain = {
-        verified: balance > 0n,
+        verified: balance > BigInt(0),
         balance: Number(balance),
         tokenId,
         error: null,
