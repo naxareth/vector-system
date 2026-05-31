@@ -10,3 +10,6 @@ packages/blockchain-core/typechain-types/
 # Node
 node_modules/
 npm-debug.log*
+
+# Next.js
+.next/
