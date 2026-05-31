@@ -76,7 +76,7 @@ export function useTheme() {
     // so components can render until the real provider is available.
     // Log a warning once to aid debugging.
     if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
+       
       console.warn('useTheme called without a ThemeProvider — falling back to light theme');
     }
     return { theme: 'light' as Theme, toggleTheme: () => {} };

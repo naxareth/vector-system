@@ -11,7 +11,7 @@ interface AuditLogEntry {
   description: string;
   actor: { full_name: string; email: string } | null;
   target: { full_name: string; email: string } | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 export default function AuditLogsPage() {
@@ -32,7 +32,7 @@ export default function AuditLogsPage() {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (data) setLogs(data as any);
+    if (data) setLogs(data as unknown as AuditLogEntry[]);
     if (error) console.error("Error fetching logs:", error);
     setLoading(false);
   };

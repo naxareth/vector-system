@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   let body: {
     template: string;
     credential_ids: string[];
-    snapshot: Record<string, any>;
+    snapshot: Record<string, unknown>;
   };
 
   try {

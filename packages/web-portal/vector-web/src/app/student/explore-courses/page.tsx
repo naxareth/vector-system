@@ -230,7 +230,7 @@ export default function ExploreCourses() {
       if (res.ok) {
         const data = await res.json();
         if (data.courses && data.courses.length > 0) {
-          setCourses(data.courses.map((c: any) => ({
+          setCourses(data.courses.map((c: { id: string; title: string; provider?: string; link?: string; skill_tags?: string[] }) => ({
             id: c.id,
             title: c.title,
             provider: c.provider || 'Unknown',

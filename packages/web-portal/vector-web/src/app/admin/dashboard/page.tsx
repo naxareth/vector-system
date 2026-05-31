@@ -124,9 +124,9 @@ export default function AdminDashboard() {
       }
 
       await fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      alert(`Failed to update role: ${error.message}`);
+      alert(`Failed to update role: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setProcessingId(null);
     }
@@ -168,8 +168,8 @@ export default function AdminDashboard() {
       });
       if (!res.ok) throw new Error((await res.json()).error || `Failed to ${action}`);
       await fetchUsers();
-    } catch (error: any) {
-      alert(`Failed: ${error.message}`);
+    } catch (error: unknown) {
+      alert(`Failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setProcessingId(null);
     }
@@ -207,8 +207,8 @@ export default function AdminDashboard() {
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete');
       await fetchUsers();
-    } catch (error: any) {
-      alert(`Failed: ${error.message}`);
+    } catch (error: unknown) {
+      alert(`Failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setProcessingId(null);
     }

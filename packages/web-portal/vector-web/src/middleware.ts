@@ -51,7 +51,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   // --- LOGGING HELPER ---
   const logAndReturn = (res: NextResponse) => {
     const duration = Date.now() - startTime;
-    const ip = (request as any).ip || request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     event.waitUntil(

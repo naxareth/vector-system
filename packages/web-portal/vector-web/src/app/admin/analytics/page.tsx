@@ -81,7 +81,7 @@ export default function AdminAnalyticsPage() {
           .limit(10);
 
         if (logs) {
-          setRecentActivity(logs.map((log: any) => ({
+          setRecentActivity(logs.map((log: { id: string; action_type: string; description: string; created_at: string; actor?: { full_name: string } | null }) => ({
             id: log.id,
             type: log.action_type === 'CREDENTIAL_ISSUED' ? 'credential' : log.action_type === 'ROLE_CHANGE' ? 'role_change' : 'signup',
             description: log.description,

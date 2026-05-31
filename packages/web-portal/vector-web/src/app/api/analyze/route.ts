@@ -115,7 +115,7 @@ export async function POST(req: Request) {
     );
     const selfReportedNames = student?.self_reported_skills.map(s => s.skill_name) || [];
     
-    let allSkills = Array.from(new Set([
+    const allSkills = Array.from(new Set([
       ...skillsOverride,
       ...verifiedNames,
       ...selfReportedNames,

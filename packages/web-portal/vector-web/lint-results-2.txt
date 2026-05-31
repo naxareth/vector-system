@@ -1,0 +1,815 @@
+
+> vector-web@0.1.0 lint
+> eslint
+
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/(auth)/verify-email/page.tsx
+  149:15  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/admin/analytics/page.tsx
+   33:10  warning  'recentActivity' is assigned a value but never used                                                              @typescript-eslint/no-unused-vars
+   84:44  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  100:6   warning  React Hook useEffect has a missing dependency: 'threeDaysAgo'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  102:9   warning  'getActivityIcon' is assigned a value but never used                                                             @typescript-eslint/no-unused-vars
+  113:9   warning  'normalizeStatus' is assigned a value but never used                                                             @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/admin/audit-logs/page.tsx
+  14:13  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  35:31  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  40:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/admin/audit-logs/page.tsx:40:21
+  38 |   };
+  39 |
+> 40 |   useEffect(() => { fetchLogs(); }, []);
+     |                     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  41 |
+  42 |   const getActionColor = (action: string) => {
+  43 |     switch (action) {  react-hooks/set-state-in-effect
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/admin/dashboard/page.tsx
+   69:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/admin/dashboard/page.tsx:69:5
+  67 |
+  68 |   useEffect(() => {
+> 69 |     fetchUsers();
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  70 |   }, []);
+  71 |
+  72 |   const directoryUsers = allUsers.filter((u) => {                                                                                                                                                                                react-hooks/set-state-in-effect
+   84:21  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/admin/dashboard/page.tsx:84:21
+  82 |
+  83 |   // Reset pages on filter/search changes
+> 84 |   useEffect(() => { setDirPage(1); }, [searchQuery, filterRole]);
+     |                     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  85 |
+  86 |   const handleRoleChange = (userId: string, newRole: string, userName: string) => {
+  87 |     const currentUser = allUsers.find((u) => u.id === userId);  react-hooks/set-state-in-effect
+  127:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-explicit-any
+  171:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-explicit-any
+  210:21  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-explicit-any
+  217:9   warning  'handleQuickApprove' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/admin/system-metrics/page.tsx
+  39:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  47:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/admin/system-metrics/page.tsx:47:5
+  45 |
+  46 |   useEffect(() => {
+> 47 |     fetchLogs();
+     |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  48 |     // Auto-refresh every 30 seconds to monitor live traffic
+  49 |     const interval = setInterval(fetchLogs, 30000);
+  50 |     return () => clearInterval(interval);  react-hooks/set-state-in-effect
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/api/auth/login-check/route.ts
+  16:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/api/cvr/analyze/route.ts
+    5:17  warning  'GEMINI_MODEL' is defined but never used   @typescript-eslint/no-unused-vars
+   30:6   warning  'SkillStrength' is defined but never used  @typescript-eslint/no-unused-vars
+  252:14  warning  'parseErr' is defined but never used       @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/api/cvr/export/route.ts
+  42:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/api/mint/route.ts
+  29:22  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/api/registrar/credentials/route.ts
+   83:27  warning  'req' is defined but never used                         @typescript-eslint/no-unused-vars
+  170:18  warning  'e' is defined but never used                           @typescript-eslint/no-unused-vars
+  252:11  warning  'definedProperties' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/api/registrar/revoke-credential/route.ts
+  32:20  warning  'error' is defined but never used             @typescript-eslint/no-unused-vars
+  91:17  warning  'receipt' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/api/registrar/users/route.ts
+   8:27  warning  'req' is defined but never used    @typescript-eslint/no-unused-vars
+  25:20  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/api/student/credentials/route.ts
+   8:27  warning  'req' is defined but never used    @typescript-eslint/no-unused-vars
+  26:20  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  59:22  warning  'e' is defined but never used      @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/api/student/market-insights/route.ts
+  3:10  warning  'createClient' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/registrar/dashboard/page.tsx
+   97:10  warning  'studentCredentials' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   98:10  warning  'credentialsLoading' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+  116:28  error    Error: Cannot access variable before it is declared
+
+`fetchSchemas` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/registrar/dashboard/page.tsx:116:28
+  114 |         const { data: { session } } = await supabase.auth.getSession();
+  115 |         if (!session) return router.replace('/login');
+> 116 |         await Promise.all([fetchSchemas(), fetchStudents()]);
+      |                            ^^^^^^^^^^^^ `fetchSchemas` accessed before it is declared
+  117 |         setLoading(false);
+  118 |       } catch (error) {
+  119 |         console.error(error);
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/registrar/dashboard/page.tsx:157:3
+  155 |   }, [selectedStudent]);
+  156 |
+> 157 |   const fetchSchemas = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 158 |     const { data } = await supabase.from('credential_schemas').select('*').order('created_at', { ascending: false });
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 159 |     if (data) {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 160 |       setSchemas(data);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 161 |       if (data.length > 0) setSelectedSchema(data[0]);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 162 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 163 |   };
+      | ^^^^^ `fetchSchemas` is declared here
+  164 |
+  165 |   const fetchStudents = async () => {
+  166 |     const { data } = await supabase.from('users').select('id, full_name, student_id, wallet_address').eq('role', 'student').order('full_name');  react-hooks/immutability
+  116:44  error    Error: Cannot access variable before it is declared
+
+`fetchStudents` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/registrar/dashboard/page.tsx:116:44
+  114 |         const { data: { session } } = await supabase.auth.getSession();
+  115 |         if (!session) return router.replace('/login');
+> 116 |         await Promise.all([fetchSchemas(), fetchStudents()]);
+      |                                            ^^^^^^^^^^^^^ `fetchStudents` accessed before it is declared
+  117 |         setLoading(false);
+  118 |       } catch (error) {
+  119 |         console.error(error);
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/registrar/dashboard/page.tsx:165:3
+  163 |   };
+  164 |
+> 165 |   const fetchStudents = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 166 |     const { data } = await supabase.from('users').select('id, full_name, student_id, wallet_address').eq('role', 'student').order('full_name');
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 167 |     if (data) setStudents(data);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 168 |   };
+      | ^^^^^ `fetchStudents` is declared here
+  169 |
+  170 |   const handleSchemaChange = (schemaId: string) => {
+  171 |     const schema = schemas.find(s => s.id === schemaId) || null;                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/immutability
+  154:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/registrar/dashboard/page.tsx:154:5
+  152 |
+  153 |   useEffect(() => {
+> 154 |     fetchCreds();
+      |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  155 |   }, [selectedStudent]);
+  156 |
+  157 |   const fetchSchemas = async () => {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/set-state-in-effect
+  155:6   warning  React Hook useEffect has a missing dependency: 'fetchCreds'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
+  290:9   warning  'handleRevokeCredential' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  650:67  warning  '_wallet_address' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+  800:48  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/registrar/dashboard/page.tsx:800:48
+  798 |                       const isDateField = fieldDetails.type === 'date' || key.includes('date') || key.includes('until') || key.includes('expir') || key.includes('graduation');
+  799 |                       const today = new Date().toISOString().split('T')[0];
+> 800 |                       const maxDate = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      |                                                ^^^^^^^^^^ Cannot call impure function
+  801 |                       return (
+  802 |                         <div key={key} className={isSkillTags ? 'md:col-span-2' : ''}>
+  803 |                           <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-1">                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/purity
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/registrar/students/page.tsx
+  95:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/registrar/students/page.tsx:95:21
+  93 |   }, []);
+  94 |
+> 95 |   useEffect(() => { setCredPage(1); }, [searchQuery, selectedStatus, selectedSkills]);
+     |                     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  96 |
+  97 |   const allSkills = Array.from(new Set(credentials.map(c => c.skill_name))).sort();
+  98 |  react-hooks/set-state-in-effect
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/registrar/users/page.tsx
+    2:31   warning  'useRef' is defined but never used                               @typescript-eslint/no-unused-vars
+   63:10   warning  'formatDateTime' is defined but never used                       @typescript-eslint/no-unused-vars
+  115:23   warning  'setRevokeError' is assigned a value but never used              @typescript-eslint/no-unused-vars
+  134:10   warning  'confirmModal' is assigned a value but never used                @typescript-eslint/no-unused-vars
+  134:24   warning  'setConfirmModal' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  383:102  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/coach/page.tsx
+   41:10  warning  'studentId' is assigned a value but never used            @typescript-eslint/no-unused-vars
+  556:21  warning  'totalRisingPages' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  600:21  warning  'totalDecliningPages' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/cvr/page.tsx
+    5:10  warning  'ethers' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+    7:10  warning  'CONTRACT_ADDRESS' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+    7:28  warning  'VECTOR_TOKEN_ABI' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+    7:46  warning  'SKILL_MAP' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   26:19  warning  'CVREducation' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   26:33  warning  'CVRExperience' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   26:48  warning  'CVRProject' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   26:60  warning  'CVRCertification' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   26:78  warning  'CVRAward' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  128:10  warning  'historyLoading' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  134:10  warning  'generatedData' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  274:15  error    Error: Cannot access variable before it is declared
+
+`fetchCVRHistory` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/cvr/page.tsx:274:15
+  272 |
+  273 |         // Load CVR history
+> 274 |         await fetchCVRHistory(session.user.id);
+      |               ^^^^^^^^^^^^^^^ `fetchCVRHistory` accessed before it is declared
+  275 |
+  276 |         // Restore draft if user had unsaved work and not discarded
+  277 |         const draftDiscarded = localStorage.getItem('cvr_form_draft_discarded');
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/cvr/page.tsx:300:3
+  298 |   // CVR History fetch
+  299 |   // ---------------------------------------------------------------------------
+> 300 |   const fetchCVRHistory = async (userId: string) => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 301 |     setHistoryLoading(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 302 |     try {
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 317 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 318 |   };
+      | ^^^^^ `fetchCVRHistory` is declared here
+  319 |
+  320 |   // ---------------------------------------------------------------------------
+  321 |  react-hooks/immutability
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/dashboard/page.tsx
+  168:16  warning  'e' is defined but never used                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  205:20  warning  'e' is defined but never used                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  403:22  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                          react/no-unescaped-entities
+  707:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/explore-courses/page.tsx
+  193:10  warning  'loading' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  233:43  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+  248:7   error    Error: Cannot access variable before it is declared
+
+`fallbackToHardcoded` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/explore-courses/page.tsx:248:7
+  246 |       }
+  247 |       // Fallback to hardcoded data if DB is empty
+> 248 |       fallbackToHardcoded();
+      |       ^^^^^^^^^^^^^^^^^^^ `fallbackToHardcoded` accessed before it is declared
+  249 |     } catch {
+  250 |       fallbackToHardcoded();
+  251 |     }
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/explore-courses/page.tsx:256:3
+  254 |
+  255 |   // Fallback: use hardcoded COURSES if DB is empty
+> 256 |   const fallbackToHardcoded = () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 257 |     const ids = selectedInterests.length > 0 ? selectedInterests : Object.keys(COURSES);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 258 |     const all = ids.flatMap(id => COURSES[id] ?? []);
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 271 |     setTotalPages(Math.max(1, Math.ceil(sorted.length / COURSES_PER_PAGE)));
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 272 |   };
+      | ^^^^^ `fallbackToHardcoded` is declared here
+  273 |
+  274 |   useEffect(() => { fetchCourses(); }, [fetchCourses]);
+  275 |  react-hooks/immutability
+  253:6   warning  React Hook useCallback has missing dependencies: 'INTEREST_TAGS' and 'fallbackToHardcoded'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+  274:21  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/explore-courses/page.tsx:274:21
+  272 |   };
+  273 |
+> 274 |   useEffect(() => { fetchCourses(); }, [fetchCourses]);
+      |                     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  275 |
+  276 |   const pagedCourses = courses;
+  277 |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/set-state-in-effect
+  456:12  error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/explore-courses/page.tsx:456:12
+  454 |             ))}
+  455 |           </div>
+> 456 |           <Pagination />
+      |            ^^^^^^^^^^ This component is created during render
+  457 |         </>
+  458 |       )}
+  459 |     </DashboardLayout>
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/explore-courses/page.tsx:279:3
+  277 |
+  278 |   // Simple pagination control
+> 279 |   function Pagination() {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^
+> 280 |     if (totalPages <= 1) return null;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 281 |     return (
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 301 |     );
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 302 |   }
+      | ^^^^ The component is created during render here
+  303 |
+  304 |   return (
+  305 |     <DashboardLayout>                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-hooks/static-components
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/help/page.tsx
+  4:8  warning  'HelpTip' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/profile/page.tsx
+   58:10  warning  'mfa2faFactorId' is assigned a value but never used              @typescript-eslint/no-unused-vars
+  590:85  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/profile/security/page.tsx
+  30:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/profile/security/page.tsx:30:21
+  28 |   };
+  29 |
+> 30 |   useEffect(() => { checkMfaStatus(); }, []);
+     |                     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  31 |
+  32 |   const handleRemove = async () => {
+  33 |     if (!factorId) return;  react-hooks/set-state-in-effect
+  88:26  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react/no-unescaped-entities
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/skills/[id]/page.tsx
+  4:10  warning  'supabase' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/skills/page.tsx
+  134:10  warning  'userWallet' is assigned a value but never used                  @typescript-eslint/no-unused-vars
+  250:84  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/verify/[id]/page.tsx
+   62:9   warning  'qrRef' is assigned a value but never used                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  125:11  error    Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages                                                                                                                                    @next/next/no-html-link-for-pages
+  304:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/verify/cvr/[id]/page.tsx
+   39:13  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  130:11  error    Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages                                                                                                                                    @next/next/no-html-link-for-pages
+  141:25  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  319:53  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  374:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/auth/ChallengeMFA.tsx
+  16:13  warning  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/auth/EnrollMFA.tsx
+  50:19  warning  'verifyData' is assigned a value but never used                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+  72:23  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/auth/RegistrarRegisterForm.tsx
+  139:34  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/auth/RegistrarRegisterForm.tsx:139:34
+  137 |
+  138 |   return (
+> 139 |     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      |                                  ^^^^^^^^ Passing a ref to a function may read its value during render
+  140 |       {serverError && (
+  141 |         <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200 flex items-center gap-2">
+  142 |           <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0:0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>  react-hooks/refs
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/auth/StudentRegisterForm.tsx
+  128:34  error  Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/auth/StudentRegisterForm.tsx:128:34
+  126 |
+  127 |   return (
+> 128 |     <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+      |                                  ^^^^^^^^ Passing a ref to a function may read its value during render
+  129 |       {serverError && (
+  130 |         <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg 
+  131 |         border border-red-200 flex items-center gap-2">  react-hooks/refs
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/CredentialCard.tsx
+  12:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx
+   29:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:29:9
+  27 |       if (stored) {
+  28 |         const parsed = JSON.parse(stored);
+> 29 |         setCvrData(parsed);
+     |         ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  30 |
+  31 |         // Generate a stable credential ID
+  32 |         const credentialId =                                                                                                                                                                                                                                      react-hooks/set-state-in-effect
+  123:9   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @next/next/no-img-element
+  216:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @next/next/no-img-element
+  449:38  error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:449:38
+  447 |                         </div>
+  448 |                       </div>
+> 449 |                       {qrDataUrl && <QRBlock />}
+      |                                      ^^^^^^^ This component is created during render
+  450 |                     </div>
+  451 |                   )}
+  452 |                 </div>
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:120:19
+  118 |
+  119 |   // Shared QR block used in all three ghost templates
+> 120 |   const QRBlock = () =>
+      |                   ^^^^^
+> 121 |     qrDataUrl ? (
+      | ^^^^^^^^^^^^^^^^^
+> 122 |       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      …
+      | ^^^^^^^^^^^^^^^^^
+> 136 |       </div>
+      | ^^^^^^^^^^^^^^^^^
+> 137 |     ) : null;
+      | ^^^^^^^^^^^^^ The component is created during render here
+  138 |
+  139 |   return (
+  140 |     <>                                                                                                           react-hooks/static-components
+  607:36  error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:607:36
+  605 |                       <p style={{ fontFamily: 'monospace', fontSize: '8px', color: '#9ca3af', margin: '2px 0:0 0' }}>ID: {cvrData.credentialId}</p>
+  606 |                     </div>
+> 607 |                     {qrDataUrl && <QRBlock />}
+      |                                    ^^^^^^^ This component is created during render
+  608 |                   </div>
+  609 |                 )}
+  610 |               </div>
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:120:19
+  118 |
+  119 |   // Shared QR block used in all three ghost templates
+> 120 |   const QRBlock = () =>
+      |                   ^^^^^
+> 121 |     qrDataUrl ? (
+      | ^^^^^^^^^^^^^^^^^
+> 122 |       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      …
+      | ^^^^^^^^^^^^^^^^^
+> 136 |       </div>
+      | ^^^^^^^^^^^^^^^^^
+> 137 |     ) : null;
+      | ^^^^^^^^^^^^^ The component is created during render here
+  138 |
+  139 |   return (
+  140 |     <>  react-hooks/static-components
+  784:36  error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:784:36
+  782 |                       </div>
+  783 |                     </div>
+> 784 |                     {qrDataUrl && <QRBlock />}
+      |                                    ^^^^^^^ This component is created during render
+  785 |                   </div>
+  786 |                 )}
+  787 |               </div>
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:120:19
+  118 |
+  119 |   // Shared QR block used in all three ghost templates
+> 120 |   const QRBlock = () =>
+      |                   ^^^^^
+> 121 |     qrDataUrl ? (
+      | ^^^^^^^^^^^^^^^^^
+> 122 |       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      …
+      | ^^^^^^^^^^^^^^^^^
+> 136 |       </div>
+      | ^^^^^^^^^^^^^^^^^
+> 137 |     ) : null;
+      | ^^^^^^^^^^^^^ The component is created during render here
+  138 |
+  139 |   return (
+  140 |     <>                                                                                                                         react-hooks/static-components
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/MetricCards.tsx
+  13:10  warning  'MetricCard' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/RegistrarLayout.tsx
+   76:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/RegistrarLayout.tsx:76:5
+  74 |     };
+  75 |     fetchUser();
+> 76 |     setDateStr(new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  77 |   }, [router]);
+  78 |
+  79 |   const confirmLogout = async () => {  react-hooks/set-state-in-effect
+  131:9   warning  'pageInfo' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  296:84  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react/no-unescaped-entities
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/SchemaBuilder.tsx
+  192:72   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  245:106  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  276:49   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  276:59   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/Sidebar.tsx
+  23:5   warning  'theme' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  24:5   warning  'toggleTheme' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  25:12  warning  'error' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+  28:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/Sidebar.tsx:28:5
+  26 |
+  27 |   useEffect(() => {
+> 28 |     setMounted(true);
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  29 |   }, []);
+  30 |
+  31 |   useEffect(() => {                                                                                 react-hooks/set-state-in-effect
+  32:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/Sidebar.tsx:32:5
+  30 |
+  31 |   useEffect(() => {
+> 32 |     setIsMobileMenuOpen(false);
+     |     ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  33 |   }, [pathname]);
+  34 |
+  35 |   // Determine if sidebar should be expanded (not collapsed OR hovered)  react-hooks/set-state-in-effect
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/TopBar.tsx
+   39:10  warning  'currentDate' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   51:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/TopBar.tsx:51:5
+  49 |
+  50 |   useEffect(() => {
+> 51 |     setCurrentDate(
+     |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  52 |       new Date().toLocaleDateString('en-US', {
+  53 |         weekday: 'long',
+  54 |         month: 'long',  react-hooks/set-state-in-effect
+  234:33  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/TopBar.tsx:234:33
+  232 |
+  233 |   const timeAgo = (dateString: string) => {
+> 234 |     const seconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
+      |                                 ^^^^^^^^^^ Cannot call impure function
+  235 |     if (seconds < 60) return 'Just now';
+  236 |     const minutes = Math.floor(seconds / 60);
+  237 |     if (minutes < 60) return `${minutes}m ago`;                                                                                                                                                                                                                                          react-hooks/purity
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/features/HeroSection.tsx
+  15:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/features/HeroSection.tsx:15:5
+  13 |
+  14 |   useEffect(() => {
+> 15 |     setLoaded(true);
+     |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  16 |     // Animate counters
+  17 |     const duration = 1800;
+  18 |     const steps = 40;  react-hooks/set-state-in-effect
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/shared/DashboardTour.tsx
+  57:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/shared/DashboardTour.tsx:57:5
+  55 |
+  56 |   useEffect(() => {
+> 57 |     setMounted(true);
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  58 |     const hasSeenTour = localStorage.getItem('vector_tour_v2');
+  59 |     if (hasSeenTour) return;
+  60 |                                                                                react-hooks/set-state-in-effect
+  80:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/shared/DashboardTour.tsx:80:5
+  78 |
+  79 |   useEffect(() => {
+> 80 |     updateTargetRect();
+     |     ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  81 |     const handleResize = () => updateTargetRect();
+  82 |     window.addEventListener('resize', handleResize);
+  83 |     window.addEventListener('scroll', handleResize, true);  react-hooks/set-state-in-effect
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/shared/RegistrarLoginModal.tsx
+  144:14  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/shared/SessionTimeout.tsx
+  13:52  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/shared/SessionTimeout.tsx:13:52
+  11 | export default function SessionTimeout() {
+  12 |   const router = useRouter();
+> 13 |   const [lastActivity, setLastActivity] = useState(Date.now());
+     |                                                    ^^^^^^^^^^ Cannot call impure function
+  14 |   const [showWarning, setShowWarning] = useState(false);
+  15 |   const [isExpired, setIsExpired] = useState(false); // 🆕 New State for "Logged Out" view
+  16 |   const [timeLeft, setTimeLeft] = useState(60);  react-hooks/purity
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/student/MarketInsightsPanel.tsx
+  276:9  warning  'totalPages' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/contexts/ThemeContext.tsx
+  18:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/contexts/ThemeContext.tsx:18:5
+  16 |
+  17 |   useEffect(() => {
+> 18 |     setMounted(true);
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  19 |     // If we're on pages that should never show dark mode, force light for this page
+  20 |     const excludedPaths = ['/', '/login', '/register'];
+  21 |     const path = window.location.pathname;  react-hooks/set-state-in-effect
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/hooks/useCVR.ts
+   74:17  error  Error: Cannot access variable before it is declared
+
+`fetchVerifiedSkills` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/hooks/useCVR.ts:74:17
+  72 |
+  73 |         if (userRecord?.wallet_address) {
+> 74 |           await fetchVerifiedSkills(userRecord.wallet_address);
+     |                 ^^^^^^^^^^^^^^^^^^^ `fetchVerifiedSkills` accessed before it is declared
+  75 |         }
+  76 |
+  77 |         const { data: certs } = await supabase
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/hooks/useCVR.ts:93:3
+   91 |   }, [router]);
+   92 |
+>  93 |   const fetchVerifiedSkills = async (walletAddress: string) => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  94 |     try {
+      | ^^^^^^^^^
+>  95 |       const foundSkills: SkillItem[] = (await fetchWalletSkillNames(walletAddress)).map((skillName, index) => ({
+      …
+      | ^^^^^^^^^
+> 104 |     }
+      | ^^^^^^^^^
+> 105 |   };
+      | ^^^^^ `fetchVerifiedSkills` is declared here
+  106 |
+  107 |   // --- Handlers ---
+  108 |   const handleChange = (field: string, value: string) => {  react-hooks/immutability
+  117:46  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/lib/audit.ts
+  10:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/lib/encryption.ts
+  22:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/middleware.ts
+   4:10  warning  'validateCsrfToken' is defined but never used  @typescript-eslint/no-unused-vars
+  54:28  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+
+✖ 132 problems (61 errors, 71 warnings)
+
+npm error Lifecycle script `lint` failed with error:
+npm error code 1
+npm error path /home/naxareth/Documents/vector-system/packages/web-portal/vector-web
+npm error workspace vector-web@0.1.0
+npm error location /home/naxareth/Documents/vector-system/packages/web-portal/vector-web
+npm error command failed
+npm error command sh -c eslint
