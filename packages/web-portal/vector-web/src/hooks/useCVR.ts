@@ -114,7 +114,7 @@ export function useCVR() {
 
   const updateItem = (section: keyof typeof formData, index: number, field: string, value: string) => {
     setFormData((prev: typeof formData) => {
-      const newItems = [...prev[section]] as any[]; // Safe cast to array for mutation
+      const newItems = [...prev[section]] as Record<string, unknown>[]; // Safe cast to array for mutation
       newItems[index] = { ...newItems[index], [field]: value };
       return { ...prev, [section]: newItems };
     });

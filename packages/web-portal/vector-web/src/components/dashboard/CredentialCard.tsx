@@ -9,7 +9,7 @@ interface CredentialCardProps {
   issueDate: string;
   marketRelevance: number;
   verified: boolean;
-  credentialData?: Record<string, any>; // ✅ New prop for dynamic W3C payload
+  credentialData?: Record<string, unknown>; // ✅ New prop for dynamic W3C payload
   certificateNumber?: string; // differentiates duplicates
 }
 

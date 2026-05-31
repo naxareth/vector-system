@@ -36,7 +36,7 @@ interface CVRVerificationResult {
     walletAddress: string | null;
   };
   credentials: VerifiedCredential[];
-  snapshot: any;
+  snapshot: { title?: string; skills?: { name: string; verified?: boolean }[]; [key: string]: unknown };
   isLatest: boolean;
   newerExportDate: string | null;
 }
@@ -138,7 +138,7 @@ export default function VerifyCVRPage() {
   const someVerified = credentials.some((c) => c.onChain.verified);
   const polygonscanBase = 'https://amoy.polygonscan.com/tx/';
 
-  const snapshotSkills: any[] = snapshot?.skills || [];
+  const snapshotSkills = snapshot?.skills || [];
   const verifiedSkillNames = new Set(credentials.map((c) => c.skillName.toLowerCase()));
   const unverifiedSnapshotSkills = snapshotSkills.filter(
     (s) => !s.verified && !verifiedSkillNames.has(s.name.toLowerCase())
@@ -316,7 +316,7 @@ export default function VerifyCVRPage() {
             <h3 className="font-semibold text-[#E2E8F0] mb-1">Additional Skills on Resume</h3>
             <p className="text-xs text-[#64748B] mb-4">Self-reported by student — not blockchain verified</p>
             <div className="flex flex-wrap gap-2">
-              {unverifiedSnapshotSkills.map((skill: any, i: number) => (
+              {unverifiedSnapshotSkills.map((skill: { name: string; verified?: boolean }, i: number) => (
                 <span key={i} className="px-3 py-1 rounded-full text-sm font-medium border bg-[#1E2536] text-[#94A3B8] border-[#283042]">
                   {skill.name}
                 </span>
