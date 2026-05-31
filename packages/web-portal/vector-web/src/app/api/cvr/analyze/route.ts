@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   // 2. Parse + validate body
   // -------------------------------------------------------------------------
-  let body: any;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     health_score: number | null;
     trend_label: string | null;
     job_count: number | null;
-    avg_salary: any;
+    avg_salary: number | null;
     confidence: string | null;
   }[] = [];
 
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
   const experienceCtx =
     Array.isArray(snapshot.experience) && snapshot.experience.length > 0
       ? `Work Experience: ${snapshot.experience
-        .map((e: any) =>
+        .map((e: { title?: string; company?: string }) =>
           [e.title, e.company].filter(Boolean).join(' at ')
         )
         .filter(Boolean)
@@ -172,21 +172,21 @@ export async function POST(req: NextRequest) {
   const projectsCtx =
     Array.isArray(snapshot.projects) && snapshot.projects.length > 0
       ? `Projects: ${snapshot.projects
-        .map((p: any) => p.title)
+        .map((p: { title?: string }) => p.title)
         .filter(Boolean)
         .join('; ')}`
       : '';
   const certsCtx =
     Array.isArray(snapshot.certifications) && snapshot.certifications.length > 0
       ? `Other Certifications: ${snapshot.certifications
-        .map((c: any) => c.name)
+        .map((c: { name?: string }) => c.name)
         .filter(Boolean)
         .join('; ')}`
       : '';
   const educationCtx =
     Array.isArray(snapshot.education) && snapshot.education.length > 0
       ? `Education: ${snapshot.education
-        .map((e: any) => [e.degree, e.school].filter(Boolean).join(' — '))
+        .map((e: { degree?: string; school?: string }) => [e.degree, e.school].filter(Boolean).join(' — '))
         .filter(Boolean)
         .join('; ')}`
       : '';
@@ -246,7 +246,7 @@ Rules:
     // Strip any accidental markdown fences
     const cleaned = raw.replace(/^```(?:json)?|```$/gm, '').trim();
 
-    let parsed: any;
+    let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(cleaned);
     } catch (parseErr) {
@@ -258,7 +258,7 @@ Rules:
     }
 
     return NextResponse.json({ analysis: parsed });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[cvr/analyze] Gemini error:', err);
     return NextResponse.json(
       { error: 'Analysis failed. Please try again later.' },
