@@ -148,7 +148,7 @@ export default function SkillsPage() {
         const dbRes = await fetch('/api/student/credentials');
         if (dbRes.ok) {
           const dbCreds = await dbRes.json();
-          dbCreds.forEach((c: any) => {
+          dbCreds.forEach((c: { id: string; skill_name: string; skill_tags?: string[]; issued_at?: string; transaction_hash?: string }) => {
             found.push({
               id: c.id,
               skill_name: c.skill_name,
