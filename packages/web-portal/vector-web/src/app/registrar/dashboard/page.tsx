@@ -138,7 +138,7 @@ export default function RegistrarDashboard() {
       // Use the server-side API to bypass RLS and get decrypted notes
       const res = await fetch('/api/registrar/credentials');
       if (!res.ok) throw new Error('Failed to fetch credentials');
-      const allCreds: any[] = await res.json();
+      const allCreds: VerifiedCredential[] = await res.json();
       
       // Filter for the selected student
       const studentCreds = allCreds.filter(c => c.user_id === selectedStudent.id);
@@ -311,7 +311,7 @@ export default function RegistrarDashboard() {
       const provider = new ethers.BrowserProvider(ethereum, 'any');
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
-      let tx: any = null;
+      let tx: ethers.ContractTransactionResponse | null = null;
 
       // Verify balance before burning to prevent silent reverts
       const balance = await contract.balanceOf(selectedStudent.wallet_address, cred.token_id);
@@ -373,16 +373,17 @@ export default function RegistrarDashboard() {
           : 'Credential successfully revoked and token burned.',
         txHash: tx?.hash,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Revocation Error:', err);
-      const isUserRejected = err?.code === 'ACTION_REJECTED' || err?.info?.error?.code === 4001;
+      const typedErr = err as { code?: string; info?: { error?: { code?: number } }; reason?: string; message?: string };
+      const isUserRejected = typedErr?.code === 'ACTION_REJECTED' || typedErr?.info?.error?.code === 4001;
       setMintingProgress({
         isOpen: true,
         progress: 100,
         status: 'error',
         message: isUserRejected
           ? 'Revocation cancelled — you declined the request in MetaMask. No changes were made.'
-          : err.reason || err.message || 'Transaction failed or was rejected.',
+          : typedErr.reason || typedErr.message || 'Transaction failed or was rejected.',
       });
     }
   };
