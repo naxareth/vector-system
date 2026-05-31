@@ -208,9 +208,17 @@ export default function SkillsPage() {
     const fetchHealth = async () => {
       setHealthLoading(true);
       try {
+        // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+        const csrfToken = typeof document !== 'undefined' 
+          ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+          : '';
+
         const res = await fetch('/api/student/skill-health', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken || ''
+          },
           body: JSON.stringify({ skillNames: skillCards.map(c => c.skillName) }),
         });
         if (res.ok) {

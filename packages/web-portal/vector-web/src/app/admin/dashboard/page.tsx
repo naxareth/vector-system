@@ -104,9 +104,17 @@ export default function AdminDashboard() {
     setProcessingId(userId);
     setModal({ isOpen: false, action: null, userId: null, userName: null, message: '' });
     try {
+      // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       const res = await fetch('/api/admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ targetUserId: userId, newRole }),
       });
 
@@ -145,9 +153,17 @@ export default function AdminDashboard() {
     setProcessingId(userId);
     setModal({ isOpen: false, action: null, userId: null, userName: null, message: '' });
     try {
+      // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       const res = await fetch('/api/admin/manage-users', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ targetUserId: userId, action }),
       });
       if (!res.ok) throw new Error((await res.json()).error || `Failed to ${action}`);
@@ -176,9 +192,17 @@ export default function AdminDashboard() {
     setProcessingId(userId);
     setModal({ isOpen: false, action: null, userId: null, userName: null, message: '' });
     try {
+      // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       const res = await fetch('/api/admin/manage-users', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ targetUserId: userId }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete');
@@ -195,9 +219,17 @@ export default function AdminDashboard() {
 
     setProcessingId(userId);
     try {
+      // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       const res = await fetch('/api/admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ targetUserId: userId, newRole }),
       });
 

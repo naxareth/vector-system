@@ -95,10 +95,18 @@ export default function CoachPage() {
         } catch { console.warn("Wallet read failed."); }
       }
 
+      // 🛡️ CSRF - Extract token from cookies
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       // 2. Fetch AI Analysis
       const res = await fetch('/api/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ studentId: activeIdentifier, resumeText: "", skillsOverride: foundSkills })
       });
 
@@ -173,9 +181,17 @@ export default function CoachPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      // 🛡️ CSRF - Extract token from cookies
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({
           userId: session.user.id,
           message: textToSend,

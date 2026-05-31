@@ -284,10 +284,18 @@ export default function ManageUsers() {
 
   const finishDatabaseRevocation = async (credential: UserCredential, txHash?: string) => {
     try {
+      // 🛡️ CSRF - Extract token from cookies
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       // Update DB via the standardized PATCH API
       const response = await fetch('/api/registrar/credentials', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ id: credential.id, revoked: true }),
       });
 

@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest, type NextFetchEvent } from 'next/server';
 import { logSystemTraffic } from '@/lib/logger';
+import { validateCsrfToken, generateCsrfToken } from '@/lib/csrf';
 
 const PROTECTED_PATHS = ['/registrar', '/student', '/admin', '/api/admin'];
 // 1. Added registrar and student quick-entry routes to AUTH_PATHS
@@ -21,6 +22,31 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   
   // 1. Initial Response
   let response = NextResponse.next({ request: { headers: request.headers } });
+
+  // --- CSRF PROTECTION (Task 9 Integration) ---
+  const isStateChangingApi = pathname.startsWith('/api/') && 
+                             ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
+                             
+  const csrfCookie = request.cookies.get('vector-csrf-token')?.value;
+  
+  if (isStateChangingApi && !pathname.includes('/api/auth')) {
+    const headerToken = request.headers.get('x-csrf-token');
+    
+    // Fail-Safe: Only block if the cookie EXISTS but the header is wrong/missing.
+    // This prevents breaking the app before the frontend is fully updated.
+    if (csrfCookie && csrfCookie !== headerToken) {
+      console.warn(`🚨 CSRF Attempt Blocked: ${request.method} ${pathname}. Expected ${csrfCookie}, got ${headerToken}`);
+      return NextResponse.json(
+        { error: 'Invalid or missing CSRF token' }, 
+        { status: 403 }
+      );
+    }
+  }
+
+  // Always ensure a CSRF token is generated/refreshed for the browser
+  const token = generateCsrfToken(response);
+  // Add the token to the response headers so the frontend can read it once (non-HttpOnly header)
+  response.headers.set('x-csrf-token', token);
 
   // --- LOGGING HELPER ---
   const logAndReturn = (res: NextResponse) => {

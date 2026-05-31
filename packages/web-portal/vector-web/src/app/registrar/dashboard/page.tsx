@@ -237,9 +237,17 @@ export default function RegistrarDashboard() {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { skill_tags: _removed, ...credentialDataWithoutTags } = dynamicData;
 
+      // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       const response = await fetch('/api/registrar/credentials', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({
           user_id: selectedStudent!.id,
           schema_id: selectedSchema!.id,
@@ -333,11 +341,17 @@ export default function RegistrarDashboard() {
 
       setMintingProgress({ isOpen: true, progress: 90, status: 'minting', message: skipBlockchain ? 'Performing DB cleanup...' : 'Updating database records...' });
       
+      // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       // Mark as revoked in DB via server-side API (bypasses RLS)
       const res = await fetch('/api/registrar/credentials', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
         },
         body: JSON.stringify({ id: cred.id, revoked: true })
       });
@@ -482,7 +496,18 @@ export default function RegistrarDashboard() {
                   const form = new FormData();
                   form.append('file', csvFile);
                   if (batchSchemaId) form.append('schema_id', batchSchemaId);
-                  const res = await fetch('/api/registrar/csv-upload', { method: 'POST', body: form });
+                  // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+                  const csrfToken = typeof document !== 'undefined' 
+                    ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+                    : '';
+
+                  const res = await fetch('/api/registrar/csv-upload', { 
+                    method: 'POST', 
+                    body: form,
+                    headers: {
+                      'x-csrf-token': csrfToken || ''
+                    }
+                  });
                   const data = await res.json();
                   if (res.ok) {
                     setCsvResult({ success: true, rows: data.rows, warnings: data.warnings });
@@ -623,9 +648,17 @@ export default function RegistrarDashboard() {
                               const { student_id, wallet_address: _wallet_address, skill_tags: rawTags, ...credentialData } = row;
                               const skillTags = rawTags ? String(rawTags).split(',').map((t: string) => t.trim()).filter(Boolean) : [];
 
+                              // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+                              const csrfToken = typeof document !== 'undefined' 
+                                ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+                                : '';
+
                               const saveRes = await fetch('/api/registrar/credentials', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: { 
+                                  'Content-Type': 'application/json',
+                                  'x-csrf-token': csrfToken || ''
+                                },
                                 body: JSON.stringify({
                                   user_id: student_id,
                                   schema_id: batchSchemaId,

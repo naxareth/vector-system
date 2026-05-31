@@ -172,9 +172,17 @@ export default function StudentDashboard() {
       if (cachedData) {
         analysisJson = cachedData;
       } else {
+        // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+        const csrfToken = typeof document !== 'undefined' 
+          ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+          : '';
+
         const res = await fetch('/api/analyze', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken || '' 
+          },
           body: JSON.stringify({
             studentId: identifier,
             resumeText: "",

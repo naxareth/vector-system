@@ -1,7 +1,10 @@
-
 ---
 
-# VECTOR: Decentralized Micro-Credentialing & Career Analytics System
+# 🚀 VECTOR: Decentralized Micro-Credentialing
+
+> [!IMPORTANT]
+> **FINAL DEFENSE RESOURCE:** For all technical deliverables, security logic, and rubric justifications, please refer to the **[CAPSTONE_FINAL_HANDBOOK.md](./CAPSTONE_FINAL_HANDBOOK.md)**.
+ & Career Analytics System
 
 **VECTOR** is a blockchain-based platform that bridges the gap between academic achievements and industry requirements. It transforms static resumes into dynamic, verifiable career assets using **ERC-1155** tokens and **AI-driven** skill analytics.
 
