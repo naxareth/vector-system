@@ -192,11 +192,11 @@ export function validateIpfsPayload(
         }
 
         if (value && typeof value === 'object' && !Array.isArray(value)) {
-            violations.push(...validateIpfsPayload(value, fullPath));
+            violations.push(...validateIpfsPayload(value as Record<string, unknown>, fullPath));
         } else if (Array.isArray(value)) {
             value.forEach((item, idx) => {
                 if (item && typeof item === 'object') {
-                    violations.push(...validateIpfsPayload(item, `${fullPath}[${idx}]`));
+                    violations.push(...validateIpfsPayload(item as Record<string, unknown>, `${fullPath}[${idx}]`));
                 }
             });
         }

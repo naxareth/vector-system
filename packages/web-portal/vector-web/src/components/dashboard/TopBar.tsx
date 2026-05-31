@@ -139,7 +139,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
             (payload: { new: Record<string, unknown> }) => {
               if (!isMounted) return;
               setNotifications(prev => {
-                const newNotif = payload.new as NotificationItem;
+                const newNotif = payload.new as unknown as NotificationItem;
                 if (prev.some(n => n.id === newNotif.id)) return prev;
                 return [newNotif, ...prev].slice(0, 10);
               });
