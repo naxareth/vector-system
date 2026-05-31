@@ -181,7 +181,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(processedData);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Fatal API Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -248,7 +248,7 @@ export async function POST(req: Request) {
     }
 
     // 4. Validate incoming student data against the specific schema fields
-    const schemaObj = schemaTemplate.json_schema as any;
+    const schemaObj = schemaTemplate.json_schema as { properties?: Record<string, unknown>; required?: string[] };
     const definedProperties = schemaObj.properties || {};
     const requiredKeys = schemaObj.required || [];
 
@@ -480,7 +480,7 @@ export async function POST(req: Request) {
       student_id: body.student_id,
     });
 
-    const ipfsViolations = validateIpfsPayload(ipfsMetadata as any);
+    const ipfsViolations = validateIpfsPayload(ipfsMetadata as Record<string, unknown>);
     if (ipfsViolations.length > 0) {
       console.error('[ipfs-privacy] BLOCKED — sensitive fields leaked:', ipfsViolations);
     } else {
@@ -501,7 +501,7 @@ export async function POST(req: Request) {
       },
     }, { status: 201 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
     }
@@ -576,11 +576,12 @@ export async function PATCH(req: Request) {
     const rowsAffected = updateData?.length || 0;
     return NextResponse.json({ success: true, rowsAffected });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('PATCH /api/registrar/credentials error:', error);
+    const errMsg = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ 
       error: 'Database Sync Failed', 
-      details: error.message 
+      details: errMsg 
     }, { status: 500 });
   }
 }
