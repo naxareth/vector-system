@@ -98,7 +98,7 @@ export async function POST(req: Request) {
         }
 
         return extractSkillsFromCredential(
-          cred.credential_data as Record<string, any>, 
+          cred.credential_data as Record<string, unknown>, 
           absoluteSchemaUrl
         );
       });
@@ -145,7 +145,7 @@ export async function POST(req: Request) {
       },
       orderBy: { recorded_at: 'asc' }
     });
-    const chartDataMap: Record<string, any> = {};
+    const chartDataMap: Record<string, Record<string, string | number>> = {};
     marketHistoryRaw.forEach(record => {
       const dateKey = new Date(record.recorded_at ?? Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       if (!chartDataMap[dateKey]) chartDataMap[dateKey] = { date: dateKey };
@@ -218,13 +218,13 @@ export async function POST(req: Request) {
     // 5. Enrich each skillHealth item with trendSlope for the frontend
     // We enforce a realistic market distribution by comparing skills relatively.
     // The Gemini AI tends to be overly optimistic and label everything "growing".
-    const sortedScoreObjects = [...(analysisResult?.skillHealth || [])].sort((a: any, b: any) => a.healthScore - b.healthScore);
+    const sortedScoreObjects = [...(analysisResult?.skillHealth || [])].sort((a: { healthScore: number }, b: { healthScore: number }) => a.healthScore - b.healthScore);
     const p25Index = Math.max(0, Math.floor(sortedScoreObjects.length * 0.25) - 1);
     const p66Index = Math.min(sortedScoreObjects.length - 1, Math.floor(sortedScoreObjects.length * 0.66));
     const p25Score = sortedScoreObjects[p25Index]?.healthScore ?? 40;
     const p66Score = sortedScoreObjects[p66Index]?.healthScore ?? 70;
 
-    const enrichedSkillHealth = (analysisResult?.skillHealth || []).map((s: any) => {
+    const enrichedSkillHealth = (analysisResult?.skillHealth || []).map((s: { healthScore: number; trend: string; skillName: string }) => {
       let actualTrend = 'stable';
       if (sortedScoreObjects.length > 3) {
         if (s.healthScore <= p25Score) actualTrend = 'declining';
