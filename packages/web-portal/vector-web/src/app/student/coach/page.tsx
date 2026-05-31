@@ -52,7 +52,7 @@ export default function CoachPage() {
   const [realHistory, setRealHistory] = useState<MarketPoint[]>([]);
   const [selectedSkillView, setSelectedSkillView] = useState<string>('All');
   const [recommendations, setRecommendations] = useState<CourseRecommendation[]>([]);
-  const [atRiskSkills, setAtRiskSkills] = useState<any[]>([]);
+  const [atRiskSkills, setAtRiskSkills] = useState<{ skillName: string; reason: string }[]>([]);
   const [userName, setUserName] = useState<string>('Student');
   const [hasInteracted, setHasInteracted] = useState(false);
   const [risingPage, setRisingPage] = useState(1);
@@ -117,12 +117,12 @@ export default function CoachPage() {
         let totalScore = 0;
         let overallTrendValue = 0;
 
-        const dbVerifiedSkills = aiData.credentials?.flatMap((c: any) => 
+        const dbVerifiedSkills = aiData.credentials?.flatMap((c: { skill_tags?: string[]; skill_name: string }) => 
           (Array.isArray(c.skill_tags) && c.skill_tags.length > 0) ? c.skill_tags : [c.skill_name]
         ) || [];
         const allVerifiedNames = Array.from(new Set([...foundSkills, ...dbVerifiedSkills]));
 
-        const processedSkills = aiData.skillHealth.map((s: any) => {
+        const processedSkills = aiData.skillHealth.map((s: { skillName: string; healthScore: number; trend: string; trendSlope?: number }) => {
           totalScore += s.healthScore;
           // Use real trendSlope from skill_health_cache (range: -1.0 to +1.0)
           const realSlope = typeof s.trendSlope === 'number' ? s.trendSlope : 0;
@@ -152,7 +152,7 @@ export default function CoachPage() {
         if (allVerifiedNames.length === 0) {
           setMessages([{ role: 'ai', text: `👋 Hi ${firstName}! You don't have any verified skills yet, so I've loaded the **Global Market Trends** for you. Check out what's hot right now!` }]);
         } else {
-          const topSkill = [...processedSkills].sort((a: any, b: any) => b.score - a.score)[0];
+          const topSkill = [...processedSkills].sort((a: SkillMetric, b: SkillMetric) => b.score - a.score)[0];
           const topRec = aiData.recommendations?.[0];
           const recHint = topRec ? `\n\nBased on current market gaps, I'd suggest looking into **${topRec.courseTitle}** — ${topRec.reason}.` : '';
           setMessages([{ role: 'ai', text: `👋 Hi ${firstName}! I've analyzed your **${allVerifiedNames.length}** verified credentials. Your **${topSkill?.name}** is looking strong!${recHint}` }]);
