@@ -337,7 +337,7 @@ export default function RegistrarDashboard() {
         tx = await contract.revokeSkill(selectedStudent.wallet_address, cred.token_id, 1);
         
         setMintingProgress({ isOpen: true, progress: 70, status: 'minting', message: 'Waiting for blockchain confirmation...' });
-        await tx.wait();
+        if (tx) await tx.wait();
       }
 
       setMintingProgress({ isOpen: true, progress: 90, status: 'minting', message: skipBlockchain ? 'Performing DB cleanup...' : 'Updating database records...' });

@@ -480,7 +480,7 @@ export async function POST(req: Request) {
       student_id: body.student_id,
     });
 
-    const ipfsViolations = validateIpfsPayload(ipfsMetadata as Record<string, unknown>);
+    const ipfsViolations = validateIpfsPayload(ipfsMetadata as unknown as Record<string, unknown>);
     if (ipfsViolations.length > 0) {
       console.error('[ipfs-privacy] BLOCKED — sensitive fields leaked:', ipfsViolations);
     } else {

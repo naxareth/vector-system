@@ -110,7 +110,7 @@ export async function GET(
   // -------------------------------------------------------------------------
   // 3. Fetch verified_credentials in this CVR
   // -------------------------------------------------------------------------
-  let credentials: { id: string; skill_name: string; token_id: string | null; transaction_hash: string | null; issued_at: Date; certificate_number: string | null; batch: { batch_name: string; registrar: { full_name: string | null } | null } | null }[] = [];
+  let credentials: { id: string; skill_name: string; token_id: string; transaction_hash: string | null; issued_at: Date | null; certificate_number: string | null; batch: { batch_name: string | null; registrar: { full_name: string | null } | null } | null }[] = [];
   if (cvrExport.credential_ids && cvrExport.credential_ids.length > 0) {
     try {
       credentials = await prisma.verified_credentials.findMany({

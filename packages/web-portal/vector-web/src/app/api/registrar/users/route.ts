@@ -131,7 +131,7 @@ export async function GET(req: Request) {
     // 7. For each user, fetch their credentials issued by this registrar
     const usersWithCredentials = await Promise.all(
       users.map(async (userRecord) => {
-        let credentials: { id: string; skill_name: string; issued_at: Date; transaction_hash: string | null; token_id: string | null; revoked: boolean }[] = [];
+        let credentials: { id: string; skill_name: string; issued_at: Date | null; transaction_hash: string | null; token_id: string; revoked: boolean; issuer_did: string | null }[] = [];
         
         // First try to get credentials from batches
         if (batchIds.length > 0) {
@@ -147,6 +147,7 @@ export async function GET(req: Request) {
               transaction_hash: true,
               token_id: true,
               revoked: true,
+              issuer_did: true,
             },
             orderBy: { issued_at: 'desc' },
           });
