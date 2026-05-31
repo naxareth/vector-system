@@ -71,7 +71,7 @@ interface CredentialItem {
   marketRelevance: number;
   verified: boolean;
   certificateNumber?: string;
-  credentialData?: Record<string, any>;
+  credentialData?: Record<string, unknown>;
 }
 
 function providerPill(provider: string | null): string {
@@ -188,7 +188,7 @@ export default function StudentDashboard() {
             resumeText: "",
             skillsOverride: Array.from(new Set([
               ...foundSkills,
-              ...dbCreds.flatMap((c: any) => (Array.isArray(c.skill_tags) && c.skill_tags.length > 0) ? c.skill_tags : [c.skill_name])
+              ...dbCreds.flatMap((c: { skill_tags?: string[]; skill_name: string }) => (Array.isArray(c.skill_tags) && c.skill_tags.length > 0) ? c.skill_tags : [c.skill_name])
             ]))
           })
         });
@@ -212,18 +212,18 @@ export default function StudentDashboard() {
 
       const mergedCreds: CredentialItem[] = [];
 
-      dbCreds.forEach((dbC: any) => {
+      dbCreds.forEach((dbC: { id: string; skill_name: string; skill_tags?: string[]; issued_at: string; certificate_number?: string; credential_data?: Record<string, unknown> }) => {
         const tags: string[] = Array.isArray(dbC.skill_tags) && dbC.skill_tags.length > 0
           ? dbC.skill_tags
           : [dbC.skill_name];
         const displayTitle = tags.join(', ');
 
         const matchedAnalysis = tags
-          .map((tag: string) => analysisJson?.data?.skillHealth?.find((s: any) => s.skillName === tag))
+          .map((tag: string) => analysisJson?.data?.skillHealth?.find((s: { skillName: string; healthScore: number }) => s.skillName === tag))
           .filter(Boolean);
         const avgHealth = matchedAnalysis.length > 0
-          ? Math.round(matchedAnalysis.reduce((sum: number, a: any) => sum + a.healthScore, 0) / matchedAnalysis.length)
-          : (analysisJson?.data?.skillHealth?.find((s: any) => s.skillName === dbC.skill_name)?.healthScore ?? 70);
+          ? Math.round(matchedAnalysis.reduce((sum: number, a: { healthScore: number }) => sum + a.healthScore, 0) / matchedAnalysis.length)
+          : (analysisJson?.data?.skillHealth?.find((s: { skillName: string; healthScore: number }) => s.skillName === dbC.skill_name)?.healthScore ?? 70);
 
         mergedCreds.push({
           id: dbC.id,
@@ -263,13 +263,13 @@ export default function StudentDashboard() {
   };
 
   const connectWallet = async () => {
-    if (typeof window === 'undefined' || !(window as any).ethereum) {
+    if (typeof window === 'undefined' || !(window as unknown as { ethereum?: object }).ethereum) {
       window.open('https://metamask.io/download/', '_blank');
       return;
     }
     setIsWalletConnecting(true);
     try {
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const provider = new ethers.BrowserProvider((window as unknown as { ethereum: ethers.Eip1193Provider }).ethereum);
       const accounts = await provider.send("eth_requestAccounts", []);
       const address = accounts[0].toLowerCase();
 
@@ -278,8 +278,9 @@ export default function StudentDashboard() {
         setUser(prev => prev ? ({ ...prev, wallet_address: address }) : null);
         await refreshPipeline(address, user.student_id || user.id);
       }
-    } catch (error: any) {
-      alert("Failed to connect wallet: " + (error.message || "Unknown error"));
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : 'Unknown error';
+      alert("Failed to connect wallet: " + errMsg);
     } finally {
       setIsWalletConnecting(false);
     }
