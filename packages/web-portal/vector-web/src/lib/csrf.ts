@@ -51,7 +51,7 @@ export function validateCsrfToken(request: NextRequest): boolean {
 
 /**
  * Recommended Routes to Protect:
- * - /api/registrar/log-mint
+ * - /api/registrar/credentials
  * - /api/admin/verify-user
  * - /api/profile/update
  * 
