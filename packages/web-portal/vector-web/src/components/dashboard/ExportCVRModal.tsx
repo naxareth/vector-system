@@ -62,7 +62,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `CVR_${cvrData.fullName.replace(/\s+/g, '_')}.json`;
+        link.download = `CVR_${(cvrData?.fullName || 'Student').replace(/\s+/g, '_')}.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -82,7 +82,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`CVR_${cvrData.fullName.replace(/\s+/g, '_')}.pdf`);
+        pdf.save(`CVR_${(cvrData?.fullName || 'Student').replace(/\s+/g, '_')}.pdf`);
       }
 
       onClose();

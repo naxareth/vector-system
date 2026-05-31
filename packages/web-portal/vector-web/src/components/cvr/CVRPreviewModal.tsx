@@ -62,10 +62,10 @@ function ProfessionalTemplate({ d }: { d: CVRData }) {
       )}
 
       {/* Education */}
-      {d.education?.length > 0 && (
+      {(d.education?.length ?? 0) > 0 && (
         <Section title="Education" accent={accent}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {d.education.map((edu: CVREducation, i: number) => (
+            {d.education?.map((edu: CVREducation, i: number) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <div>
                   <div style={{ fontWeight: 700, color: C.black, fontSize: '13px' }}>{edu.degree}</div>
@@ -80,10 +80,10 @@ function ProfessionalTemplate({ d }: { d: CVRData }) {
       )}
 
       {/* Experience */}
-      {d.experience?.length > 0 && (
+      {(d.experience?.length ?? 0) > 0 && (
         <Section title="Experience" accent={accent}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {d.experience.map((exp: CVRExperience, i: number) => (
+            {d.experience?.map((exp: CVRExperience, i: number) => (
               <div key={i}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
                   <div style={{ fontWeight: 700, color: C.black, fontSize: '13px' }}>{exp.title}</div>
@@ -98,10 +98,10 @@ function ProfessionalTemplate({ d }: { d: CVRData }) {
       )}
 
       {/* Projects */}
-      {d.projects?.length > 0 && (
+      {(d.projects?.length ?? 0) > 0 && (
         <Section title="Projects" accent={accent}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {d.projects.map((proj: CVRProject, i: number) => (
+            {d.projects?.map((proj: CVRProject, i: number) => (
               <div key={i} style={{ backgroundColor: C.lightGray, padding: '10px 12px', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '4px', background: accent }} />
                 <div style={{ fontWeight: 700, color: C.black, fontSize: '12px', marginBottom: '2px' }}>{proj.title}</div>
@@ -114,10 +114,10 @@ function ProfessionalTemplate({ d }: { d: CVRData }) {
       )}
 
       {/* Certifications */}
-      {d.certifications?.length > 0 && (
+      {(d.certifications?.length ?? 0) > 0 && (
         <Section title="Certifications" accent={accent}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {d.certifications.map((cert: CVRCertification, i: number) => (
+            {d.certifications?.map((cert: CVRCertification, i: number) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 700, color: C.black, fontSize: '12px' }}>{cert.name}</div>
@@ -134,10 +134,10 @@ function ProfessionalTemplate({ d }: { d: CVRData }) {
       )}
 
       {/* Skills */}
-      {d.skills?.length > 0 && (
+      {(d.skills?.length ?? 0) > 0 && (
         <Section title="Competencies & Skills" accent={accent}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {d.skills.map((skill: SkillItem, i: number) => (
+            {d.skills?.map((skill: SkillItem, i: number) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', backgroundColor: skill.verified ? C.greenBg : C.lightGray, borderRadius: '14px', border: `1px solid ${skill.verified ? C.greenText : C.border}` }}>
                 <span style={{ fontWeight: 600, fontSize: '10px', color: skill.verified ? C.greenText : C.black }}>{skill.name}</span>
                 {skill.verified && <span style={{ fontSize: '8px', fontWeight: 700 }}>✓</span>}
@@ -193,10 +193,10 @@ function ModernTemplate({ d }: { d: CVRData }) {
         )}
 
         {/* Education */}
-        {d.education?.length > 0 && (
+        {(d.education?.length ?? 0) > 0 && (
           <SidebarSection title="Education">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '11px' }}>
-              {d.education.map((edu: CVREducation, i: number) => (
+              {d.education?.map((edu: CVREducation, i: number) => (
                 <div key={i}>
                   <p style={{ fontWeight: 600, color: C.s300, margin: '0 0 2px 0' }}>{edu.year}</p>
                   <p style={{ fontWeight: 'bold', color: C.white, margin: '0 0 2px 0' }}>{edu.degree}</p>
@@ -209,10 +209,10 @@ function ModernTemplate({ d }: { d: CVRData }) {
         )}
 
         {/* Skills */}
-        {d.skills?.length > 0 && (
+        {(d.skills?.length ?? 0) > 0 && (
           <SidebarSection title="Expertise">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              {d.skills.map((skill: SkillItem, i: number) => (
+              {d.skills?.map((skill: SkillItem, i: number) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <div style={{ width: '5px', height: '5px', backgroundColor: C.s400, borderRadius: '50%', flexShrink: 0 }} />
                   <span style={{ fontSize: '11px', color: C.s200 }}>{skill.name}</span>
@@ -224,10 +224,10 @@ function ModernTemplate({ d }: { d: CVRData }) {
         )}
 
         {/* Certifications */}
-        {d.certifications?.length > 0 && (
+        {(d.certifications?.length ?? 0) > 0 && (
           <SidebarSection title="Certifications">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px' }}>
-              {d.certifications.map((cert: CVRCertification, i: number) => (
+              {d.certifications?.map((cert: CVRCertification, i: number) => (
                 <div key={i}>
                   <p style={{ fontWeight: 'bold', color: C.white, margin: '0 0 2px 0' }}>{cert.name}</p>
                   {cert.issuer && <p style={{ color: C.s300, margin: 0 }}>{cert.issuer}</p>}
@@ -248,11 +248,11 @@ function ModernTemplate({ d }: { d: CVRData }) {
           </div>
         )}
 
-        {d.experience?.length > 0 && (
+        {(d.experience?.length ?? 0) > 0 && (
           <div style={{ marginBottom: '22px' }}>
             <h3 style={{ fontSize: '11px', fontWeight: 700, color: C.black, paddingBottom: '5px', marginBottom: '12px', borderBottom: `1px solid ${C.s200}`, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Experience</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {d.experience.map((exp: CVRExperience, i: number) => (
+              {d.experience?.map((exp: CVRExperience, i: number) => (
                 <div key={i}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '3px' }}>
                     <h4 style={{ fontSize: '13px', fontWeight: 700, color: C.black, margin: 0, letterSpacing: '-0.01em' }}>{exp.title}</h4>
@@ -266,11 +266,11 @@ function ModernTemplate({ d }: { d: CVRData }) {
           </div>
         )}
 
-        {d.projects?.length > 0 && (
+        {(d.projects?.length ?? 0) > 0 && (
           <div style={{ marginBottom: '22px' }}>
             <h3 style={{ fontSize: '11px', fontWeight: 700, color: C.black, paddingBottom: '5px', marginBottom: '12px', borderBottom: `1px solid ${C.s200}`, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Projects</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {d.projects.map((proj: CVRProject, i: number) => (
+              {d.projects?.map((proj: CVRProject, i: number) => (
                 <div key={i} style={{ borderLeft: `3px solid ${C.s300}`, paddingLeft: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '3px' }}>
                     <h4 style={{ fontSize: '12px', fontWeight: 700, color: C.black, margin: 0 }}>{proj.title}</h4>
@@ -284,11 +284,11 @@ function ModernTemplate({ d }: { d: CVRData }) {
           </div>
         )}
 
-        {d.awards?.length > 0 && (
+        {(d.awards?.length ?? 0) > 0 && (
           <div style={{ marginBottom: '22px' }}>
             <h3 style={{ fontSize: '11px', fontWeight: 700, color: C.black, paddingBottom: '5px', marginBottom: '12px', borderBottom: `1px solid ${C.s200}`, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Awards</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {d.awards.map((award: CVRAward, i: number) => (
+              {d.awards?.map((award: CVRAward, i: number) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                   <div style={{ width: '5px', height: '5px', backgroundColor: C.s400, borderRadius: '50%', flexShrink: 0, marginTop: '5px' }} />
                   <div><strong style={{ fontSize: '12px', fontWeight: 700, color: C.black }}>{award.title}</strong><span style={{ fontSize: '11px', color: C.gray, fontWeight: 400 }}> — {award.description}</span></div>
@@ -348,10 +348,10 @@ function SimpleTemplate({ d }: { d: CVRData }) {
         </div>
       )}
 
-      {d.experience?.length > 0 && (
+      {(d.experience?.length ?? 0) > 0 && (
         <SimpleSection title="Professional Experience">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {d.experience.map((exp: CVRExperience, i: number) => (
+            {d.experience?.map((exp: CVRExperience, i: number) => (
               <div key={i}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <span style={{ fontWeight: 'bold', fontSize: '12px', color: C.black, textTransform: 'uppercase' }}>{exp.company}</span>
@@ -373,10 +373,10 @@ function SimpleTemplate({ d }: { d: CVRData }) {
         </SimpleSection>
       )}
 
-      {d.projects?.length > 0 && (
+      {(d.projects?.length ?? 0) > 0 && (
         <SimpleSection title="Projects">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {d.projects.map((proj: CVRProject, i: number) => (
+            {d.projects?.map((proj: CVRProject, i: number) => (
               <div key={i}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <span style={{ fontWeight: 'bold', fontSize: '12px', color: C.black, textTransform: 'uppercase' }}>{proj.title}</span>
@@ -390,10 +390,10 @@ function SimpleTemplate({ d }: { d: CVRData }) {
         </SimpleSection>
       )}
 
-      {d.education?.length > 0 && (
+      {(d.education?.length ?? 0) > 0 && (
         <SimpleSection title="Education">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {d.education.map((edu: CVREducation, i: number) => (
+            {d.education?.map((edu: CVREducation, i: number) => (
               <div key={i}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <span style={{ fontWeight: 'bold', fontSize: '12px', color: C.black, textTransform: 'uppercase' }}>{edu.school}</span>
@@ -410,10 +410,10 @@ function SimpleTemplate({ d }: { d: CVRData }) {
         </SimpleSection>
       )}
 
-      {d.certifications?.length > 0 && (
+      {(d.certifications?.length ?? 0) > 0 && (
         <SimpleSection title="Certifications">
           <ul style={{ margin: 0, paddingLeft: '16px' }}>
-            {d.certifications.map((cert: CVRCertification, i: number) => (
+            {d.certifications?.map((cert: CVRCertification, i: number) => (
               <li key={i} style={{ fontSize: '11px', color: C.black, marginBottom: '2px', fontFamily: 'inherit' }}>
                 <strong>{cert.name}</strong>{cert.issuer ? ` — ${cert.issuer}` : ''}{cert.date ? ` (${cert.date})` : ''}{cert.verified ? ' [Verified]' : ''}
               </li>
@@ -422,10 +422,10 @@ function SimpleTemplate({ d }: { d: CVRData }) {
         </SimpleSection>
       )}
 
-      {d.awards?.length > 0 && (
+      {(d.awards?.length ?? 0) > 0 && (
         <SimpleSection title="Awards">
           <ul style={{ margin: 0, paddingLeft: '16px' }}>
-            {d.awards.map((award: CVRAward, i: number) => (
+            {d.awards?.map((award: CVRAward, i: number) => (
               <li key={i} style={{ fontSize: '11px', color: C.black, marginBottom: '2px', fontFamily: 'inherit' }}>
                 <strong>{award.title}</strong> — {award.description}
               </li>
@@ -434,10 +434,10 @@ function SimpleTemplate({ d }: { d: CVRData }) {
         </SimpleSection>
       )}
 
-      {d.skills?.length > 0 && (
+      {(d.skills?.length ?? 0) > 0 && (
         <SimpleSection title="Additional Skills">
           <p style={{ fontSize: '11px', color: C.black, lineHeight: 1.5, margin: 0, fontFamily: 'inherit' }}>
-            {d.skills.map((s: SkillItem) => s.name).join(', ')}
+            {d.skills?.map((s: SkillItem) => s.name).join(', ')}
           </p>
         </SimpleSection>
       )}

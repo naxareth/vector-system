@@ -126,7 +126,7 @@ console.log('\nTest Case 3: Deep nested sensitive fields detected and stripped')
         ],
     };
 
-    const stripped = stripSensitiveFields(deepData);
+    const stripped = stripSensitiveFields(deepData) as any;
 
     // stripSensitiveFields should recursively remove all sensitive keys
     assert(stripped.level1.safe_field === 'visible', 'Level 1 safe field preserved');
