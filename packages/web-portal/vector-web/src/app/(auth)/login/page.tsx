@@ -176,11 +176,12 @@ function LoginForm() {
         router.push(target);
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login Error:", err);
+      const errorObj = err as Error;
       // Only genericize standard Supabase errors; preserve our custom Gatekeeper and CAPTCHA messages
-      const isCustomError = err.message.includes("Too many") || err.message.includes("Google") || err.message.includes("CAPTCHA");
-      setError(isCustomError ? err.message : 'Invalid email or password.');
+      const isCustomError = errorObj.message.includes("Too many") || errorObj.message.includes("Google") || errorObj.message.includes("CAPTCHA");
+      setError(isCustomError ? errorObj.message : 'Invalid email or password.');
       setLoading(false);
       
       // Reset Turnstile on error so they can try again

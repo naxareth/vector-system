@@ -155,8 +155,8 @@ export default function ManageUsers() {
         
         setUsers(Array.isArray(data) ? data : []);
         setFetchError('');
-      } catch (error: any) {
-        const errorMsg = error.message || 'Failed to fetch users';
+      } catch (error: unknown) {
+        const errorMsg = error instanceof Error ? error.message : 'Failed to fetch users';
         console.error('Error fetching users:', error);
         setFetchError(errorMsg);
         setUsers([]);
@@ -221,7 +221,7 @@ export default function ManageUsers() {
       const provider = new ethers.BrowserProvider(ethereum, 'any');
       const network = await provider.getNetwork();
       const chainId = Number(network.chainId);
-      let tx: any = null;
+      let tx: ethers.ContractTransactionResponse | null = null;
 
       // 🛡️ Verify Network (Polygon Amoy: 80002 or Localhost: 31337)
       if (chainId !== 80002 && chainId !== 31337 && chainId !== 1337) {
@@ -239,8 +239,9 @@ export default function ManageUsers() {
       let balance;
       try {
         balance = await contract.balanceOf(selectedUser?.wallet_address, credential.token_id);
-      } catch (callError: any) {
-        if (callError.message?.includes("could not decode result data") || callError.data === '0x' || callError.value === '0x') {
+      } catch (callError: unknown) {
+        const err = callError as Error & { data?: string; value?: string };
+        if (err.message?.includes("could not decode result data") || err.data === '0x' || err.value === '0x') {
           throw new Error(`Contract Not Found: No code detected at ${CONTRACT_ADDRESS} on this network (Chain ID ${chainId}). Please check if the contract address is correct for this network.`);
         }
         throw callError;
@@ -275,9 +276,10 @@ export default function ManageUsers() {
       setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Updating database records...' }));
       await finishDatabaseRevocation(credential, tx?.hash);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Revocation Error:', error);
-      const message = error.reason || error.message || 'Transaction failed.';
+      const err = error as Error & { reason?: string };
+      const message = err.reason || err.message || 'Transaction failed.';
       setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
     }
   };
@@ -336,8 +338,9 @@ export default function ManageUsers() {
         message: txHash ? 'Credential successfully revoked!' : 'Database record marked as revoked (Soft Cleanup).',
         txHash: txHash,
       });
-    } catch (error: any) {
-      setMintingProgress({ isOpen: true, progress: 0, status: 'error', message: error.message });
+    } catch (error: unknown) {
+      const err = error as Error;
+      setMintingProgress({ isOpen: true, progress: 0, status: 'error', message: err.message || 'Unknown error' });
     }
   };
 

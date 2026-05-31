@@ -6,10 +6,19 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Link from 'next/link';
 import { SKILL_MAP } from '@/lib/blockchain'; // ✅ Added to decode bc- IDs
 
+interface CredentialData {
+  id: string;
+  skill_name: string;
+  certificate_number?: string;
+  issued_at: string;
+  transaction_hash?: string;
+  private_notes?: string | null;
+}
+
 export default function SkillDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const [credential, setCredential] = useState<any>(null);
+  const [credential, setCredential] = useState<CredentialData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,7 +28,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         if (id.startsWith('bc-')) {
           const skillId = parseInt(id.replace('bc-', ''));
           // Find the skill name by matching the ID in the SKILL_MAP
-          const skillName = Object.keys(SKILL_MAP).find(key => (SKILL_MAP as any)[key] === skillId);
+          const skillName = Object.keys(SKILL_MAP).find(key => (SKILL_MAP as Record<string, number>)[key] === skillId);
           
           if (skillName) {
             setCredential({
@@ -39,7 +48,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         if (!res.ok) throw new Error("Failed to fetch");
         
         const allCreds = await res.json();
-        const found = allCreds.find((c: any) => c.id === id);
+        const found = allCreds.find((c: CredentialData) => c.id === id);
         
         if (!found) {
           router.push('/student/skills');

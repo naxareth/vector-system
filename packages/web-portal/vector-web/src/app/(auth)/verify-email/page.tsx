@@ -63,8 +63,9 @@ function VerifyEmailForm() {
       // Success! Route to the login page so they can establish a fresh, verified session.
       router.push('/login?verified=true');
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'An error occurred during verification';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -82,8 +83,9 @@ function VerifyEmailForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       setResendMessage('A new code has been sent to your email.');
-    } catch (err: any) {
-      setError('Failed to resend code. Please try again later.');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to resend verification email';
+      setError(errorMsg);
     }
   };
 

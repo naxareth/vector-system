@@ -1,7 +1,6 @@
 'use client';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { z } from 'zod';
 import { Eye, EyeOff } from 'lucide-react'; 
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
@@ -87,8 +86,8 @@ export default function ForgotPasswordPage() {
       setStep('otp');
       setSuccessMsg(`Code sent to ${sanitizedEmail}`);
 
-    } catch (err: any) {
-      setError(err instanceof z.ZodError ? err.issues[0].message : err.message);
+    } catch (err: unknown) {
+      setError(err instanceof z.ZodError ? err.issues[0].message : (err instanceof Error ? err.message : "An error occurred"));
       // Reset Turnstile widget so the user can generate a fresh token
       if (step === 'email') {
         turnstileRef.current?.reset();
@@ -109,7 +108,7 @@ export default function ForgotPasswordPage() {
       // If format is valid, move to reset step
       setStep('reset');
       setSuccessMsg("Identity checks out. Set your new password.");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err instanceof z.ZodError ? err.issues[0].message : "Invalid code format");
     }
   };
@@ -146,8 +145,8 @@ export default function ForgotPasswordPage() {
       // Success! Redirect to login
       router.push('/login?reset=success');
 
-    } catch (err: any) {
-      setError(err instanceof z.ZodError ? err.issues[0].message : err.message);
+    } catch (err: unknown) {
+      setError(err instanceof z.ZodError ? err.issues[0].message : (err instanceof Error ? err.message : "An error occurred"));
     } finally {
       setLoading(false);
     }

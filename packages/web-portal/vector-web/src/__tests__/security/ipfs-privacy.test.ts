@@ -9,7 +9,6 @@ import {
     stripSensitiveFields,
     buildIpfsMetadata,
     validateIpfsPayload,
-    SENSITIVE_FIELDS,
 } from '../../lib/ipfs';
 
 let passed = 0;
