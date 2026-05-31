@@ -107,7 +107,7 @@ async function main() {
     process.stdout.write(`  Processing: "${cred.skill_name}" (${cred.id.slice(0, 8)})... `);
 
     // Strategy 1: extract from existing credential_data
-    let tags = extractFromCredentialData(cred.credential_data);
+    let tags = extractFromCredentialData(cred.credential_data as Record<string, unknown> | null);
 
     // Strategy 2: infer from the credential title
     if (!tags || tags.length === 0) {

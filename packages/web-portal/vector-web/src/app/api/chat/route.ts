@@ -76,10 +76,10 @@ export async function POST(req: Request) {
         // Salary enrichment — from Adzuna metadata shape:
         // { average_salary, salary: { min, max, avg, currency }, ... }
         const salary = (meta.salary as Record<string, unknown>) || {};
-        const avgSalary = salary.avg || meta.average_salary;
-        const minSalary = salary.min;
-        const maxSalary = salary.max;
-        const currency = salary.currency || 'USD';
+        const avgSalary = (salary.avg || meta.average_salary) as number | undefined;
+        const minSalary = salary.min as number | undefined;
+        const maxSalary = salary.max as number | undefined;
+        const currency = (salary.currency as string) || 'USD';
 
         if (avgSalary) {
           const avg = Math.round(avgSalary).toLocaleString();

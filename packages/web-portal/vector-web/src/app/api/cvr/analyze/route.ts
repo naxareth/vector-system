@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     health_score: number | null;
     trend_label: string | null;
     job_count: number | null;
-    avg_salary: number | null;
+    avg_salary: { toNumber(): number } | null;
     confidence: string | null;
   }[] = [];
 
