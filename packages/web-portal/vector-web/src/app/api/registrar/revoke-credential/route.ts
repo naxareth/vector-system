@@ -92,7 +92,7 @@ export async function POST(req: Request) {
           transactionHash = tx.hash;
 
           console.log(`[revoke] Successfully burned token ${credential.token_id}: ${transactionHash}`);
-        } catch (blockchainError: any) {
+        } catch (blockchainError: unknown) {
           console.error('[revoke] Blockchain burn failed:', blockchainError);
         }
       }
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true, updated });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
     }
