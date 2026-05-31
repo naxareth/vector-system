@@ -50,7 +50,7 @@ export async function PATCH(req: Request) {
 
     await prisma.users.update({
       where: { id: targetUserId },
-      data: { status: newStatus as any },
+      data: { status: newStatus },
     });
 
     // Log the action
@@ -65,7 +65,7 @@ export async function PATCH(req: Request) {
     }).catch(() => {}); // non-fatal
 
     return NextResponse.json({ success: true, status: newStatus });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
     }
@@ -113,7 +113,7 @@ export async function DELETE(req: Request) {
     }).catch(() => {}); // non-fatal
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
     }

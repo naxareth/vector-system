@@ -27,7 +27,7 @@ export type CVRAnalysis = {
 };
 
 type Props = {
-  snapshot: Record<string, any>;
+  snapshot: Record<string, unknown>;
 };
 
 // ---------------------------------------------------------------------------
@@ -134,8 +134,8 @@ export default function CVRAnalysisPanel({ snapshot }: Props) {
       const data = await res.json();
       setAnalysis(data.analysis);
       setHasRun(true);
-    } catch (err: any) {
-      setError(err.message || 'Analysis failed. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Analysis failed. Please try again.');
     } finally {
       setLoading(false);
     }

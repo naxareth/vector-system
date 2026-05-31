@@ -120,7 +120,7 @@ export default function SchemaBuilder() {
   };
 
   const generateJsonSchema = () => {
-    const schemaProperties: Record<string, any> = {};
+    const schemaProperties: Record<string, { type: string; title: string }> = {};
     const requiredFields: string[] = [];
 
     fields.forEach((field) => {
@@ -177,8 +177,8 @@ export default function SchemaBuilder() {
       setTitle('');
       setFields([{ id: crypto.randomUUID(), ...SKILL_TAGS_FIELD }]);
       setActiveTemplate('custom');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to publish schema');
     } finally {
       setIsSubmitting(false);
     }
@@ -325,7 +325,7 @@ export default function SchemaBuilder() {
                         <label className="block text-xs font-semibold text-gray-600 mb-1">Field Type <HelpTip size={12} text="Controls what kind of input this field accepts: 'Text' for names and descriptions, 'Number' for grades or hours, 'Date' for dates with a calendar picker, or 'Yes/No' for simple toggles like 'Passed with Distinction'." /></label>
                         <select
                           value={field.type}
-                          onChange={(e) => !isSkillTags && updateField(field.id, { type: e.target.value as any })}
+                          onChange={(e) => !isSkillTags && updateField(field.id, { type: e.target.value as SchemaField['type'] })}
                           disabled={isSkillTags}
                           className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white outline-none ${
                             isSkillTags ? 'opacity-60 cursor-not-allowed' : 'focus:ring-1 focus:ring-blue-500'

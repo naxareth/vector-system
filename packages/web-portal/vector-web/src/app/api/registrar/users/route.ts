@@ -55,7 +55,7 @@ export async function GET(req: Request) {
     const batchIds = batches.map((b) => b.id);
 
     // 3. Get all credentials from those batches
-    let credentialsInBatches: any[] = [];
+    let credentialsInBatches: { user_id: string }[] = [];
     if (batchIds.length > 0) {
       credentialsInBatches = await prisma.verified_credentials.findMany({
         where: { batch_id: { in: batchIds } },
@@ -131,7 +131,7 @@ export async function GET(req: Request) {
     // 7. For each user, fetch their credentials issued by this registrar
     const usersWithCredentials = await Promise.all(
       users.map(async (userRecord) => {
-        let credentials: any[] = [];
+        let credentials: { id: string; skill_name: string; issued_at: Date; transaction_hash: string | null; token_id: string | null; revoked: boolean }[] = [];
         
         // First try to get credentials from batches
         if (batchIds.length > 0) {
@@ -204,7 +204,7 @@ export async function GET(req: Request) {
 
     console.log(`[registrar/users] Returning ${usersWithCredentials.length} users with credentials`);
     return NextResponse.json(usersWithCredentials);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[registrar/users] GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }

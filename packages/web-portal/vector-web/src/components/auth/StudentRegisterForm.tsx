@@ -114,9 +114,10 @@ export default function StudentRegisterForm() {
       router.refresh();
       router.push(`/verify-email?email=${encodeURIComponent(validData.email)}`);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Registration Error:", err);
-      setServerError(err.message || 'Registration failed. Please try again.');
+      const errMsg = err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      setServerError(errMsg);
       // Reset Turnstile widget so the user can generate a fresh token to try again
       turnstileRef.current?.reset();
       setTurnstileToken(null);
