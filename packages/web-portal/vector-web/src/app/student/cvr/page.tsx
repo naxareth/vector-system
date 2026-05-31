@@ -23,6 +23,7 @@ import {
   TemplateSelector,
   type SkillItem,
 } from '@/components/cvr/CVRFormSections';
+import { CVRData, CVREducation, CVRExperience, CVRProject, CVRCertification, CVRAward } from '@/lib/schemas/cvr';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -81,15 +82,15 @@ type CVRHistoryItem = {
   generated_at: string;
   template: string | null;
   credential_ids: string[];
-  snapshot: any;
+  snapshot: CVRData | string | null;
 };
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-const sanitizeArray = (arr: any[]) =>
+const sanitizeArray = (arr: Record<string, unknown>[]) =>
   arr.filter((item) =>
-    Object.values(item).some((v: any) => v !== null && v !== undefined && String(v).trim() !== '')
+    Object.values(item).some((v: unknown) => v !== null && v !== undefined && String(v).trim() !== '')
   );
 
 function formatDateTime(iso: string) {
@@ -120,7 +121,7 @@ export default function CVRPage() {
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
 
   // Available verified credentials to pull into CVR
-  const [availableCertifications, setAvailableCertifications] = useState<any[]>([]);
+  const [availableCertifications, setAvailableCertifications] = useState<Record<string, unknown>[]>([]);
 
   // CVR History
   const [cvrHistory, setCvrHistory] = useState<CVRHistoryItem[]>([]);
@@ -130,11 +131,11 @@ export default function CVRPage() {
 
   // Generated state
   const [isGenerated, setIsGenerated] = useState(false);
-  const [generatedData, setGeneratedData] = useState<any>(null);
+  const [generatedData, setGeneratedData] = useState<CVRData | null>(null);
 
   // Preview state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<CVRData | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [draftBanner, setDraftBanner] = useState(false);
   const dbFormDataRef = useRef<typeof formData | null>(null);
@@ -157,18 +158,18 @@ export default function CVRPage() {
   // ---------------------------------------------------------------------------
   // Array helpers (generic section add/remove/update)
   // ---------------------------------------------------------------------------
-  const addItem = (section: keyof FormData, blank: any) =>
-    setFormData((prev) => ({ ...prev, [section]: [...(prev[section] as any[]), blank] }));
+  const addItem = (section: keyof FormData, blank: unknown) =>
+    setFormData((prev) => ({ ...prev, [section]: [...(prev[section] as unknown[]), blank] }));
 
   const removeItem = (section: keyof FormData, index: number) =>
     setFormData((prev) => ({
       ...prev,
-      [section]: (prev[section] as any[]).filter((_, i) => i !== index),
+      [section]: (prev[section] as unknown[]).filter((_, i) => i !== index),
     }));
 
   const updateItem = (section: keyof FormData, index: number, field: string, value: string) =>
     setFormData((prev) => {
-      const next = [...(prev[section] as any[])];
+      const next = [...(prev[section] as Record<string, unknown>[])];
       next[index] = { ...next[index], [field]: value };
       return { ...prev, [section]: next };
     });
@@ -248,7 +249,7 @@ export default function CVRPage() {
           const foundSkills: SkillItem[] = [];
           const seenSkills = new Set<string>();
 
-          certs.forEach((cert: any) => {
+          certs.forEach((cert: Record<string, unknown>) => {
             if (cert.skill_tags && Array.isArray(cert.skill_tags)) {
               cert.skill_tags.forEach((skillName: string) => {
                 const normalized = skillName.trim();
@@ -334,7 +335,7 @@ export default function CVRPage() {
   // ---------------------------------------------------------------------------
   // Verified cert → CVR certifications
   // ---------------------------------------------------------------------------
-  const handleAddVerifiedCertification = (cert: any) => {
+  const handleAddVerifiedCertification = (cert: Record<string, unknown>) => {
     const exists = formData.certifications.some((c) => c.id === cert.id);
     if (exists) return;
     setFormData((prev) => ({
@@ -375,7 +376,7 @@ export default function CVRPage() {
       )
       .map((c) => c.id);
 
-    const snapshot: any = {
+    const snapshot: CVRData = {
       generatedAt: new Date().toISOString(),
       template: selectedTemplate,
       color: selectedColor,
@@ -389,7 +390,7 @@ export default function CVRPage() {
     if (formData.title) snapshot.title = formData.title;
     if (formData.summary) snapshot.summary = formData.summary;
 
-    const cleaned = (arr: any[]) => sanitizeArray(arr);
+    const cleaned = (arr: Record<string, unknown>[]) => sanitizeArray(arr);
     if (cleaned(formData.education).length) snapshot.education = cleaned(formData.education);
     if (cleaned(formData.experience).length) snapshot.experience = cleaned(formData.experience);
     if (cleaned(formData.projects).length) snapshot.projects = cleaned(formData.projects);

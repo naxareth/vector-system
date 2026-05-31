@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { fetchWalletSkillNames } from '@/lib/blockchain';
-import { resumeSchema, SkillItem } from '@/lib/schemas/cvr';
+import { resumeSchema, SkillItem, CVRData, CVREducation, CVRExperience, CVRProject, CVRCertification, CVRAward } from '@/lib/schemas/cvr';
+
+// Type for the dynamic section fields
+type CVRFormSection = CVREducation | CVRExperience | CVRProject | CVRCertification | CVRAward;
 
 export function useCVR() {
   const router = useRouter();
@@ -11,12 +14,12 @@ export function useCVR() {
   // Data States
   const [availableSkills, setAvailableSkills] = useState<SkillItem[]>([]);
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
-  const [availableCertifications, setAvailableCertifications] = useState<any[]>([]);
+  const [availableCertifications, setAvailableCertifications] = useState<Record<string, unknown>[]>([]);
   const [customSkill, setCustomSkill] = useState('');
   
   // UI States
   const [isGenerated, setIsGenerated] = useState(false);
-  const [generatedData, setGeneratedData] = useState<any>(null);
+  const [generatedData, setGeneratedData] = useState<CVRData | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   // Form Data State (Exact match to your original)
@@ -28,11 +31,11 @@ export function useCVR() {
     linkedin: '',
     title: '',
     summary: '',
-    education: [] as any[],
-    experience: [] as any[],
-    projects: [] as any[],
-    certifications: [] as any[],
-    awards: [] as any[],
+    education: [] as CVREducation[],
+    experience: [] as CVRExperience[],
+    projects: [] as CVRProject[],
+    certifications: [] as CVRCertification[],
+    awards: [] as CVRAward[],
   });
 
   // --- Fetching Logic ---
@@ -110,21 +113,21 @@ export function useCVR() {
   };
 
   const updateItem = (section: keyof typeof formData, index: number, field: string, value: string) => {
-    setFormData((prev: any) => {
-      const newItems = [...prev[section]];
+    setFormData((prev: typeof formData) => {
+      const newItems = [...prev[section]] as any[]; // Safe cast to array for mutation
       newItems[index] = { ...newItems[index], [field]: value };
       return { ...prev, [section]: newItems };
     });
   };
 
   const removeItem = (section: keyof typeof formData, index: number) => {
-    setFormData((prev: any) => ({
-      ...prev, [section]: prev[section].filter((_: any, i: number) => i !== index)
+    setFormData((prev: typeof formData) => ({
+      ...prev, [section]: (prev[section] as unknown[]).filter((_, i: number) => i !== index)
     }));
   };
 
-  const addItem = (section: keyof typeof formData, item: any) => {
-    setFormData((prev: any) => ({ ...prev, [section]: [...prev[section], item] }));
+  const addItem = (section: keyof typeof formData, item: CVRFormSection) => {
+    setFormData((prev: typeof formData) => ({ ...prev, [section]: [...(prev[section] as unknown[]), item] }));
   };
 
   // Skill Handlers
@@ -141,8 +144,8 @@ export function useCVR() {
     }
   };
 
-  const handleAddVerifiedCertification = (cert: any) => {
-    const exists = formData.certifications.some((c: any) => c.name === cert.skill_name && c.verified);
+  const handleAddVerifiedCertification = (cert: { skill_name: string; issued_at: string }) => {
+    const exists = formData.certifications.some((c: CVRCertification) => c.name === cert.skill_name && c.verified);
     if (exists) return;
     addItem('certifications', {
       name: cert.skill_name,
@@ -168,15 +171,15 @@ export function useCVR() {
     }
 
     const finalSkills = availableSkills.filter(s => selectedSkillIds.includes(s.id));
-    const sanitizeArray = (arr: any[]) => arr.filter(item => Object.values(item).some((v: any) => v !== null && v !== undefined && String(v).trim() !== ''));
+    const sanitizeArray = (arr: Record<string, unknown>[]) => arr.filter(item => Object.values(item).some((v: unknown) => v !== null && v !== undefined && String(v).trim() !== ''));
 
     const cvrData = {
         ...formData,
-        education: sanitizeArray(formData.education),
-        experience: sanitizeArray(formData.experience),
-        projects: sanitizeArray(formData.projects),
-        certifications: sanitizeArray(formData.certifications),
-        awards: sanitizeArray(formData.awards),
+        education: sanitizeArray(formData.education as Record<string, unknown>[]),
+        experience: sanitizeArray(formData.experience as Record<string, unknown>[]),
+        projects: sanitizeArray(formData.projects as Record<string, unknown>[]),
+        certifications: sanitizeArray(formData.certifications as Record<string, unknown>[]),
+        awards: sanitizeArray(formData.awards as Record<string, unknown>[]),
         skills: finalSkills,
         generatedAt: new Date().toISOString(),
         template: selectedTemplate,

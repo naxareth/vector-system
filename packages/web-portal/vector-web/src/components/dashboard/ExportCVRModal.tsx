@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import { CVRData, CVREducation, CVRExperience, CVRProject, CVRCertification, CVRAward, SkillItem } from '@/lib/schemas/cvr';
 
 interface ExportCVRModalProps {
   isOpen: boolean;
@@ -13,7 +14,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
   const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'json'>('pdf');
   const [includeVerification, setIncludeVerification] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
-  const [cvrData, setCvrData] = useState<any>(null);
+  const [cvrData, setCvrData] = useState<CVRData | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
   // This ref points to the invisible A4 resume div
@@ -315,7 +316,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <div style={{ marginBottom: '22px' }}>
                       <h3 style={{ fontSize: '10px', fontWeight: 700, color: colors.white, marginBottom: '10px', paddingBottom: '5px', borderBottom: `1px solid rgba(255,255,255,0.2)`, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Education</h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '11px' }}>
-                        {cvrData.education.map((edu: any, i: number) => (
+                        {cvrData.education.map((edu: CVREducation, i: number) => (
                           <div key={i}>
                             <p style={{ fontWeight: 600, color: colors.slate400, margin: '0 0 1px 0', fontSize: '10px' }}>{edu.year}</p>
                             <p style={{ fontWeight: 700, color: colors.white, margin: '0 0 1px 0', fontSize: '11px' }}>{edu.degree}</p>
@@ -333,7 +334,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <div style={{ marginBottom: '22px' }}>
                       <h3 style={{ fontSize: '10px', fontWeight: 700, color: colors.white, marginBottom: '10px', paddingBottom: '5px', borderBottom: `1px solid rgba(255,255,255,0.2)`, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Expertise</h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        {cvrData.skills.map((skill: any, i: number) => (
+                        {cvrData.skills.map((skill: SkillItem, i: number) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <div style={{ width: '5px', height: '5px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '50%', flexShrink: 0 }} />
                             <span style={{ fontSize: '11px', color: colors.slate200, fontWeight: 400 }}>{skill.name}</span>
@@ -349,7 +350,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <div style={{ marginBottom: '22px' }}>
                       <h3 style={{ fontSize: '10px', fontWeight: 700, color: colors.white, marginBottom: '10px', paddingBottom: '5px', borderBottom: `1px solid rgba(255,255,255,0.2)`, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Certifications</h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px' }}>
-                        {cvrData.certifications.map((cert: any, i: number) => (
+                        {cvrData.certifications.map((cert: CVRCertification, i: number) => (
                           <div key={i}>
                             <p style={{ fontWeight: 700, color: colors.white, margin: '0 0 1px 0', fontSize: '11px' }}>{cert.name}</p>
                             {cert.issuer && <p style={{ color: colors.slate300, margin: 0, fontSize: '10px' }}>{cert.issuer}</p>}
@@ -376,7 +377,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <div style={{ marginBottom: '22px' }}>
                       <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, paddingBottom: '5px', marginBottom: '12px', borderBottom: `1px solid ${colors.slate200}`, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Experience</h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        {cvrData.experience.map((exp: any, i: number) => (
+                        {cvrData.experience.map((exp: CVRExperience, i: number) => (
                           <div key={i}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '3px' }}>
                               <h4 style={{ fontSize: '13px', fontWeight: 700, color: colors.black, margin: 0, letterSpacing: '-0.01em' }}>{exp.title}</h4>
@@ -395,7 +396,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <div style={{ marginBottom: '22px' }}>
                       <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, paddingBottom: '5px', marginBottom: '12px', borderBottom: `1px solid ${colors.slate200}`, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Projects</h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {cvrData.projects.map((proj: any, i: number) => (
+                        {cvrData.projects.map((proj: CVRProject, i: number) => (
                           <div key={i} style={{ borderLeft: `3px solid ${colors.slate300}`, paddingLeft: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '3px' }}>
                               <h4 style={{ fontSize: '12px', fontWeight: 700, color: colors.black, margin: 0 }}>{proj.title}</h4>
@@ -414,7 +415,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <div style={{ marginBottom: '22px' }}>
                       <h3 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, paddingBottom: '5px', marginBottom: '12px', borderBottom: `1px solid ${colors.slate200}`, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Awards</h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {cvrData.awards.map((award: any, i: number) => (
+                        {cvrData.awards.map((award: CVRAward, i: number) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                             <div style={{ width: '5px', height: '5px', backgroundColor: colors.slate400, borderRadius: '50%', flexShrink: 0, marginTop: '5px' }} />
                             <div><strong style={{ fontSize: '12px', fontWeight: 700, color: colors.black }}>{award.title}</strong><span style={{ fontSize: '11px', color: colors.gray, fontWeight: 400 }}> — {award.description}</span></div>
@@ -487,7 +488,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <h2 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Professional Experience</h2>
                     <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {cvrData.experience.map((exp: any, i: number) => (
+                      {cvrData.experience.map((exp: CVRExperience, i: number) => (
                         <div key={i}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                             <span style={{ fontWeight: 700, fontSize: '12px', color: colors.black }}>{exp.company}</span>
@@ -515,7 +516,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <h2 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Projects</h2>
                     <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {cvrData.projects.map((proj: any, i: number) => (
+                      {cvrData.projects.map((proj: CVRProject, i: number) => (
                         <div key={i}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                             <span style={{ fontWeight: 700, fontSize: '12px', color: colors.black }}>{proj.title}</span>
@@ -535,7 +536,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <h2 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Education</h2>
                     <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {cvrData.education.map((edu: any, i: number) => (
+                      {cvrData.education.map((edu: CVREducation, i: number) => (
                         <div key={i}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                             <span style={{ fontWeight: 700, fontSize: '12px', color: colors.black }}>{edu.school}</span>
@@ -558,7 +559,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <h2 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Certifications</h2>
                     <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
                     <ul style={{ margin: 0, paddingLeft: '16px' }}>
-                      {cvrData.certifications.map((cert: any, i: number) => (
+                      {cvrData.certifications.map((cert: CVRCertification, i: number) => (
                         <li key={i} style={{ fontSize: '11px', color: colors.black, marginBottom: '2px', fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 400, lineHeight: 1.5 }}>
                           <strong style={{ fontWeight: 700 }}>{cert.name}</strong>{cert.issuer ? ` — ${cert.issuer}` : ''}{cert.date ? ` (${cert.date})` : ''}{cert.verified ? ' [Verified]' : ''}
                         </li>
@@ -573,7 +574,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     <h2 style={{ fontSize: '11px', fontWeight: 700, color: colors.black, textTransform: 'uppercase', letterSpacing: '0.15em', margin: '0 0 2px 0', fontFamily: 'Georgia, "Times New Roman", Times, serif' }}>Awards</h2>
                     <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
                     <ul style={{ margin: 0, paddingLeft: '16px' }}>
-                      {cvrData.awards.map((award: any, i: number) => (
+                      {cvrData.awards.map((award: CVRAward, i: number) => (
                         <li key={i} style={{ fontSize: '11px', color: colors.black, marginBottom: '2px', fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 400, lineHeight: 1.5 }}>
                           <strong style={{ fontWeight: 700 }}>{award.title}</strong> — {award.description}
                         </li>
@@ -588,7 +589,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                   <hr style={{ border: 'none', borderTop: '0.5px solid #94a3b8', margin: '0 0 10px 0' }} />
                   {cvrData.skills && cvrData.skills.length > 0 ? (
                     <p style={{ fontSize: '11px', color: colors.black, lineHeight: 1.55, margin: 0, fontFamily: 'Georgia, "Times New Roman", Times, serif', fontWeight: 400 }}>
-                      {cvrData.skills.map((s: any) => s.name).join(', ')}
+                      {cvrData.skills.map((s: SkillItem) => s.name).join(', ')}
                     </p>
                   ) : (
                     <p style={{ fontSize: '11px', color: colors.gray, fontStyle: 'italic', fontWeight: 400 }}>No specific skills listed.</p>
@@ -657,7 +658,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                       Education
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {cvrData.education.map((edu: any, i: number) => (
+                      {cvrData.education.map((edu: CVREducation, i: number) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                           <div>
                             <div style={{ fontWeight: 700, color: colors.black, fontSize: '13px' }}>{edu.degree}</div>
@@ -678,7 +679,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                       Experience
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      {cvrData.experience.map((exp: any, i: number) => (
+                      {cvrData.experience.map((exp: CVRExperience, i: number) => (
                         <div key={i}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
                             <div style={{ fontWeight: 700, color: colors.black, fontSize: '13px' }}>{exp.title}</div>
@@ -699,7 +700,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                       Projects
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {cvrData.projects.map((proj: any, i: number) => (
+                      {cvrData.projects.map((proj: CVRProject, i: number) => (
                         <div key={i} style={{ backgroundColor: colors.lightGray, padding: '10px 12px', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
                           <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '4px', background: cvrData.color || colors.purple }} />
                           <div style={{ fontWeight: 700, color: colors.black, fontSize: '12px', marginBottom: '2px' }}>{proj.title}</div>
@@ -718,7 +719,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                       Certifications
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {cvrData.certifications.map((cert: any, i: number) => (
+                      {cvrData.certifications.map((cert: CVRCertification, i: number) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
                             <div style={{ fontWeight: 700, color: colors.black, fontSize: '12px' }}>{cert.name}</div>
@@ -741,7 +742,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                       Awards
                     </h3>
                     <ul style={{ paddingLeft: '18px', margin: 0 }}>
-                      {cvrData.awards.map((award: any, i: number) => (
+                      {cvrData.awards.map((award: CVRAward, i: number) => (
                         <li key={i} style={{ fontSize: '11px', color: colors.black, marginBottom: '3px', fontWeight: 400, lineHeight: 1.5 }}>
                           <strong style={{ fontWeight: 700 }}>{award.title}</strong> — {award.description}
                         </li>
@@ -756,7 +757,7 @@ export default function ExportCVRModal({ isOpen, onClose }: ExportCVRModalProps)
                     Competencies & Skills
                   </h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {cvrData.skills && cvrData.skills.map((skill: any, i: number) => (
+                    {cvrData.skills && cvrData.skills.map((skill: SkillItem, i: number) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', backgroundColor: skill.verified ? colors.greenBg : colors.lightGray, borderRadius: '14px', border: `1px solid ${skill.verified ? colors.greenText : colors.border}` }}>
                         <span style={{ fontWeight: 600, fontSize: '10px', color: skill.verified ? colors.greenText : colors.black }}>{skill.name}</span>
                         {skill.verified && <span style={{ fontSize: '8px', fontWeight: 700 }}>✓</span>}

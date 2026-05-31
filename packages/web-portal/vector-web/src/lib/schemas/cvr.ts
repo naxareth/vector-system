@@ -6,6 +6,12 @@ export interface SkillItem {
   verified: boolean;
 }
 
+export interface CVREducation { degree?: string; school?: string; location?: string; year?: string; honors?: string; }
+export interface CVRExperience { title?: string; company?: string; dates?: string; description?: string; }
+export interface CVRProject { title?: string; description?: string; technologies?: string; role?: string; }
+export interface CVRCertification { name?: string; issuer?: string; date?: string; verified?: boolean; }
+export interface CVRAward { title?: string; description?: string; }
+
 export const resumeSchema = z.object({
   fullName: z.string().min(2, "Full Name is required (min 2 chars)"),
   title: z.string().min(2, "Professional Title is required"),
@@ -51,3 +57,16 @@ export const resumeSchema = z.object({
 });
 
 export type CVRFormData = z.infer<typeof resumeSchema>;
+
+export interface CVRData extends Partial<CVRFormData> {
+  color?: string;
+  template?: string;
+  credentialId?: string;
+  isCvrExport?: boolean;
+  skills?: SkillItem[];
+  education?: CVREducation[];
+  experience?: CVRExperience[];
+  projects?: CVRProject[];
+  certifications?: CVRCertification[];
+  awards?: CVRAward[];
+}
