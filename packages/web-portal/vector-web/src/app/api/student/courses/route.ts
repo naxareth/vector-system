@@ -36,8 +36,8 @@ export async function GET(req: Request) {
 
   try {
     // Build the where clause dynamically
-    const where: any = {};
-    const conditions: any[] = [];
+    const where: Record<string, unknown> = {};
+    const conditions: Record<string, unknown>[] = [];
 
     // Text search across title and provider
     if (q) {

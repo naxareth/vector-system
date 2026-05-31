@@ -51,7 +51,7 @@ export async function GET() {
       logs 
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('System Logs API Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

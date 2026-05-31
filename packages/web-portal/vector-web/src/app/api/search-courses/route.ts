@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     const recommendations = analysisData.data.recommendations;
     const courses: Course[] = recommendations
-      .map((rec: any, index: number) => ({
+      .map((rec: { courseTitle?: string; courseName?: string; provider?: string; link?: string; relevanceScore?: number }, index: number) => ({
         id: `course-${index}`,
         courseTitle: rec.courseTitle || rec.courseName || 'Course',
         courseName: rec.courseName,

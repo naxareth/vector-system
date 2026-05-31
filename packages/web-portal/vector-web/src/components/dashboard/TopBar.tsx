@@ -91,7 +91,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
 
   useEffect(() => {
     let isMounted = true;
-    let channel: any = null;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
     let pollInterval: NodeJS.Timeout | null = null;
 
     const getUser = async () => {
@@ -136,7 +136,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
               table: 'notifications',
               filter: `user_id=eq.${session.user.id}`,
             },
-            (payload: any) => {
+            (payload: { new: Record<string, unknown> }) => {
               if (!isMounted) return;
               setNotifications(prev => {
                 const newNotif = payload.new as NotificationItem;
