@@ -273,7 +273,7 @@ export default function SchemaBuilder() {
             <div className="text-center py-12 bg-gray-50 dark:bg-[#131825] border-2 border-dashed border-gray-200 dark:border-[#283042] rounded-xl text-gray-400">
               <FileText className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-[#64748B]" />
               <p className="text-sm font-medium text-gray-600 dark:text-[#94A3B8]">No fields added yet.</p>
-              <p className="text-xs mt-1">Click "Add Field" or pick a preset to start.</p>
+              <p className="text-xs mt-1">Click &quot;Add Field&quot; or pick a preset to start.</p>
             </div>
           ) : (
             <div className="space-y-3">

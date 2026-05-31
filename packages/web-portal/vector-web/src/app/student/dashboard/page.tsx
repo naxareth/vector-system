@@ -706,7 +706,7 @@ export default function StudentDashboard() {
                   return (
                     <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all overflow-hidden">
                       <div className="relative flex-shrink-0 w-24 h-20 rounded-lg overflow-hidden border border-gray-200 bg-slate-100">
-                        // eslint-disable-next-line @next/next/no-img-element
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={getCourseImageSrc(courseTitle, rec.provider, rec.link)}
                           alt={`${courseTitle} course thumbnail`}

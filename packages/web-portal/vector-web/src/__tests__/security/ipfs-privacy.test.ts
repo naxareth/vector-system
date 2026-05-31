@@ -126,6 +126,7 @@ console.log('\nTest Case 3: Deep nested sensitive fields detected and stripped')
         ],
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stripped = stripSensitiveFields(deepData) as any;
 
     // stripSensitiveFields should recursively remove all sensitive keys

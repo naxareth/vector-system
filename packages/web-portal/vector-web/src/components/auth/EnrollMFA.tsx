@@ -70,7 +70,7 @@ export default function EnrollMFA({ onComplete }: { onComplete: () => void }) {
       {error && <p className="text-red-600 text-sm mb-4 bg-red-50 p-2 rounded">{error}</p>}
 
       <div className="flex justify-center mb-6">
-        // eslint-disable-next-line @next/next/no-img-element
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         {qrCodeUrl && <img src={qrCodeUrl} alt="Scan this QR Code" className="border rounded-lg" />}
       </div>
 

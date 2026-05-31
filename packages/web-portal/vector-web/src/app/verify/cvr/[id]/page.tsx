@@ -127,7 +127,7 @@ export default function VerifyCVRPage() {
           </div>
           <h1 className="text-xl font-bold text-white mb-2">CVR Not Found</h1>
           <p className="text-[#94A3B8] text-sm">{error || 'This CVR link is invalid or has been removed.'}</p>
-          // eslint-disable-next-line @next/next/no-html-link-for-pages
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/" className="mt-6 inline-block text-sm text-[#06B4C9] hover:underline">← Return to VECTOR</a>
         </div>
       </div>
@@ -372,7 +372,7 @@ export default function VerifyCVRPage() {
           <div className="flex flex-col sm:flex-row gap-6 items-start">
             {qrDataUrl && (
               <div className="flex-shrink-0">
-                // eslint-disable-next-line @next/next/no-img-element
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={qrDataUrl} alt="QR code" className="w-32 h-32 rounded-xl border border-[#1E2536]" />
                 <p className="text-xs text-[#64748B] mt-1 text-center">Scan to verify</p>
               </div>

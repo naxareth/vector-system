@@ -457,7 +457,7 @@ export default function ExploreCourses() {
               </div>
             ))}
           </div>
-          // eslint-disable-next-line react-hooks/static-components
+          {/* eslint-disable-next-line react-hooks/static-components */}
           <Pagination />
         </>
       )}
