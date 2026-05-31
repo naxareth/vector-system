@@ -44,9 +44,9 @@ console.log('Test Case 1: Missing API key triggers error');
     let errorMsg = '';
     try {
         validateSecretEnvVars();
-    } catch (e: any) {
+    } catch (e: unknown) {
         threw = true;
-        errorMsg = e.message;
+        errorMsg = e instanceof Error ? e.message : String(e);
     }
 
     assert(threw, 'validateSecretEnvVars() throws when keys are missing');
@@ -83,9 +83,9 @@ console.log('\nTest Case 2: Client-side leak detection');
     let errorMsg = '';
     try {
         validateSecretEnvVars();
-    } catch (e: any) {
+    } catch (e: unknown) {
         threw = true;
-        errorMsg = e.message;
+        errorMsg = e instanceof Error ? e.message : String(e);
     }
 
     assert(threw, 'Throws when a secret is exposed as NEXT_PUBLIC_*');

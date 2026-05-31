@@ -151,7 +151,7 @@ console.log('  Claim: Show "CSV file has headers but no data rows"');
     results.push({
         test: 'Empty Input',
         claim: '"CSV file has headers but no data rows"',
-        actual: `${!result.ok ? '"' + (result as any).error + '"' : 'UNEXPECTED OK'}`,
+        actual: `${!result.ok ? '"' + result.error + '"' : 'UNEXPECTED OK'}`,
         pass: !result.ok,
         note: `Error caught in ${elapsed.toFixed(2)}ms, before any chain interaction`
     });

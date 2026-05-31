@@ -47,7 +47,7 @@ const KNOWN_SKILL_MAP: Record<string, string[]> = {
  * Tries to extract skill_tags from credential_data JSON.
  * Looks for common field names registrars might have used.
  */
-function extractFromCredentialData(credentialData: any): string[] | null {
+function extractFromCredentialData(credentialData: Record<string, unknown> | null | undefined): string[] | null {
   if (!credentialData || typeof credentialData !== 'object') return null;
 
   // Check known field names
@@ -59,7 +59,7 @@ function extractFromCredentialData(credentialData: any): string[] | null {
       if (parsed.length > 0) return parsed;
     }
     if (Array.isArray(val) && val.length > 0) {
-      return val.map((s: any) => String(s).trim()).filter(s => s.length > 0);
+      return val.map((s: unknown) => String(s).trim()).filter(s => s.length > 0);
     }
   }
   return null;
@@ -101,7 +101,7 @@ async function main() {
   console.log(`Found ${credentials.length} credential(s) to backfill.\n`);
 
   let successCount = 0;
-  let skippedCount = 0;
+  const skippedCount = 0;
 
   for (const cred of credentials) {
     process.stdout.write(`  Processing: "${cred.skill_name}" (${cred.id.slice(0, 8)})... `);
