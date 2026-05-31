@@ -68,7 +68,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(processedData);
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Credential Fetch Error:", err);
     return NextResponse.json({ error: 'Failed to fetch credentials' }, { status: 500 });
   }

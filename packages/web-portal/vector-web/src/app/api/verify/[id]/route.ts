@@ -135,8 +135,8 @@ export async function GET(
         tokenId,
         error: null,
       };
-    } catch (err: any) {
-      console.error('[verify] On-chain check failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[verify] On-chain check failed:', err instanceof Error ? err.message : err);
       // Non-fatal: return DB data with chain error flagged
       onChain = {
         verified: false,
