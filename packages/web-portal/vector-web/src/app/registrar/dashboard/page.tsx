@@ -26,6 +26,7 @@ interface StudentRecord {
 
 interface VerifiedCredential {
   id: string;
+  user_id: string;
   skill_name: string;
   issued_at: string;
   transaction_hash: string;
