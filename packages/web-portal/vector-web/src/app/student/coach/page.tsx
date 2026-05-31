@@ -1,16 +1,17 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import HelpTip from '@/components/shared/HelpTip';
 import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import MarketInsightsPanel from '@/components/student/MarketInsightsPanel';
 import RecommendationsPanel, { CourseRecommendation } from '@/components/student/RecommendationsPanel';
 import Pagination from '@/components/shared/Pagination';
-import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
+import { fetchWalletSkillNames } from '@/lib/blockchain';
 import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import chatbotSticker from './sticker_chatbot.png';
 import chatbotProfile from './profile_chatbot.png';
 
@@ -37,6 +38,7 @@ export default function CoachPage() {
   const router = useRouter();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [userId, setUserId] = useState<string>('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [studentId, setStudentId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
@@ -51,11 +53,13 @@ export default function CoachPage() {
   const [realHistory, setRealHistory] = useState<MarketPoint[]>([]);
   const [selectedSkillView, setSelectedSkillView] = useState<string>('All');
   const [recommendations, setRecommendations] = useState<CourseRecommendation[]>([]);
-  const [atRiskSkills, setAtRiskSkills] = useState<any[]>([]);
+  const [atRiskSkills, setAtRiskSkills] = useState<{ skillName: string; reason: string }[]>([]);
   const [userName, setUserName] = useState<string>('Student');
   const [hasInteracted, setHasInteracted] = useState(false);
   const [risingPage, setRisingPage] = useState(1);
   const [decliningPage, setDecliningPage] = useState(1);
+  const [skillSearch, setSkillSearch] = useState('');
+  const [skillDropOpen, setSkillDropOpen] = useState(false);
 
   const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', text: "👋 Hi! I'm connecting to the blockchain to analyze your career data..." }
@@ -88,23 +92,22 @@ export default function CoachPage() {
       const foundSkills: string[] = [];
       if (profile.wallet_address) {
         try {
-          const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
-          const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
-          const processedIds = new Set<number>();
-          for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
-            if (typeof skillId !== 'number' || processedIds.has(skillId)) continue;
-            try {
-              const balance = await contract.balanceOf(profile.wallet_address, skillId);
-              if (balance > BigInt(0)) { processedIds.add(skillId); foundSkills.push(skillName); }
-            } catch (e) { console.error(e); }
-          }
+          foundSkills.push(...await fetchWalletSkillNames(profile.wallet_address));
         } catch { console.warn("Wallet read failed."); }
       }
+
+      // 🛡️ CSRF - Extract token from cookies
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
 
       // 2. Fetch AI Analysis
       const res = await fetch('/api/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ studentId: activeIdentifier, resumeText: "", skillsOverride: foundSkills })
       });
 
@@ -115,28 +118,33 @@ export default function CoachPage() {
         let totalScore = 0;
         let overallTrendValue = 0;
 
-        const dbVerifiedSkills = aiData.credentials?.map((c: any) => c.skill_name) || [];
+        const dbVerifiedSkills = aiData.credentials?.flatMap((c: { skill_tags?: string[]; skill_name: string }) => 
+          (Array.isArray(c.skill_tags) && c.skill_tags.length > 0) ? c.skill_tags : [c.skill_name]
+        ) || [];
         const allVerifiedNames = Array.from(new Set([...foundSkills, ...dbVerifiedSkills]));
 
-        const processedSkills = aiData.skillHealth.map((s: any) => {
+        const processedSkills = aiData.skillHealth.map((s: { skillName: string; healthScore: number; trend: string; trendSlope?: number }) => {
           totalScore += s.healthScore;
-          if (s.trend === 'growing') overallTrendValue += 1;
-          if (s.trend === 'declining') overallTrendValue -= 1;
+          // Use real trendSlope from skill_health_cache (range: -1.0 to +1.0)
+          const realSlope = typeof s.trendSlope === 'number' ? s.trendSlope : 0;
+          overallTrendValue += realSlope;
           return {
             name: s.skillName,
             category: 'Tech',
             score: s.healthScore,
             trend: s.trend,
-            growthRate: s.trend === 'growing' ? 0.15 : s.trend === 'declining' ? -0.10 : 0.02,
+            growthRate: realSlope,
             verified: allVerifiedNames.includes(s.skillName)
           };
         });
 
         const avgScore = Math.round(totalScore / processedSkills.length) || 50;
         const alignment = avgScore > 75 ? 'Very High' : avgScore > 50 ? 'Moderate' : 'Needs Work';
-        const growth = overallTrendValue > 0 ? '+12%' : overallTrendValue < 0 ? '-5%' : '+2%';
+        // Derive projected growth from the average real trend slope across all skills
+        const avgSlope = processedSkills.length > 0 ? overallTrendValue / processedSkills.length : 0;
+        const projectedGrowthPct = Math.round(avgSlope * 100);
 
-        setMetrics({ portfolioScore: avgScore, marketAlignment: alignment, projectedGrowth: parseInt(growth) });
+        setMetrics({ portfolioScore: avgScore, marketAlignment: alignment, projectedGrowth: projectedGrowthPct });
         setSkillsList(processedSkills);
         if (json.data.history) setRealHistory(json.data.history);
         if (aiData.recommendations) setRecommendations(aiData.recommendations);
@@ -145,7 +153,7 @@ export default function CoachPage() {
         if (allVerifiedNames.length === 0) {
           setMessages([{ role: 'ai', text: `👋 Hi ${firstName}! You don't have any verified skills yet, so I've loaded the **Global Market Trends** for you. Check out what's hot right now!` }]);
         } else {
-          const topSkill = [...processedSkills].sort((a: any, b: any) => b.score - a.score)[0];
+          const topSkill = [...processedSkills].sort((a: SkillMetric, b: SkillMetric) => b.score - a.score)[0];
           const topRec = aiData.recommendations?.[0];
           const recHint = topRec ? `\n\nBased on current market gaps, I'd suggest looking into **${topRec.courseTitle}** — ${topRec.reason}.` : '';
           setMessages([{ role: 'ai', text: `👋 Hi ${firstName}! I've analyzed your **${allVerifiedNames.length}** verified credentials. Your **${topSkill?.name}** is looking strong!${recHint}` }]);
@@ -174,9 +182,17 @@ export default function CoachPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      // 🛡️ CSRF - Extract token from cookies
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({
           userId: session.user.id,
           message: textToSend,
@@ -202,196 +218,105 @@ export default function CoachPage() {
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // renderTrendGraph
-  //
-  // Fixed pixel viewBox (600×160) with preserveAspectRatio="xMidYMid meet" —
-  // avoids the distortion that came from preserveAspectRatio="none" which was
-  // stretching circle radii and stroke widths non-uniformly.
-  //
-  // Smooth cubic bezier curves replace polyline for clean, professional lines.
-  //
-  // Per-skill normalization: each skill maps its own min/max to the Y range
-  // so all lines fill the vertical space regardless of absolute job count.
-  // A legend with actual job counts preserves the real-world context.
-  // ---------------------------------------------------------------------------
   const renderTrendGraph = () => {
     if (realHistory.length === 0) return null;
 
-    // Cap "All Skills" to top 5 by score to avoid spaghetti chart
     const activeSkills = selectedSkillView === 'All'
       ? [...skillsList].sort((a, b) => b.score - a.score).slice(0, 5).map(s => s.name)
       : [selectedSkillView];
 
     const colors = ['#06B4C9', '#22c55e', '#ef4444', '#3b82f6', '#f59e0b'];
-
-    // Fixed pixel coordinate space — ~35% wider/taller than original
-    const VW = 820;
-    const VH = 220;
-    const PAD_LEFT = 8;
-    const PAD_RIGHT = 8;
-    const PAD_TOP = 10;
-    const PAD_BOTTOM = 20; // room for date labels
-    const chartW = VW - PAD_LEFT - PAD_RIGHT;
-    const chartH = VH - PAD_TOP - PAD_BOTTOM;
-
     const hasEnoughData = realHistory.length >= 4;
 
-    // Per-skill ranges
-    const skillRanges: Record<string, { min: number; max: number; latest: number }> = {};
-    activeSkills.forEach(skill => {
-      const values = realHistory.map(d => Number(d[skill] || 0)).filter(v => v > 0);
-      if (values.length === 0) return;
-      skillRanges[skill] = {
-        min: Math.min(...values),
-        max: Math.max(...values),
-        latest: values[values.length - 1],
-      };
+    const visibleSkills = activeSkills.filter((skill) =>
+      realHistory.some((row) => Number(row[skill] || 0) > 0)
+    );
+
+    const chartData = realHistory.map((row) => {
+      const parsedRow: Record<string, string | number | null> = { date: row.date };
+      visibleSkills.forEach((skill) => {
+        const value = Number(row[skill] || 0);
+        parsedRow[skill] = Number.isFinite(value) && value > 0 ? value : null;
+      });
+      return parsedRow;
     });
 
-    const visibleSkills = activeSkills.filter(s => skillRanges[s]);
-
-    // Smooth cubic bezier path builder
-    const smoothPath = (pts: { x: number; y: number }[]): string => {
-      if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
-      if (pts.length === 2) return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
-      let d = `M ${pts[0].x} ${pts[0].y}`;
-      for (let i = 0; i < pts.length - 1; i++) {
-        const p0 = pts[i];
-        const p1 = pts[i + 1];
-        const tension = 0.4;
-        const cp1x = p0.x + (p1.x - p0.x) * tension;
-        const cp1y = p0.y;
-        const cp2x = p1.x - (p1.x - p0.x) * tension;
-        const cp2y = p1.y;
-        d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x} ${p1.y}`;
-      }
-      return d;
-    };
+    const latestBySkill: Record<string, number> = {};
+    visibleSkills.forEach((skill) => {
+      const values = realHistory
+        .map((row) => Number(row[skill] || 0))
+        .filter((value) => Number.isFinite(value) && value > 0);
+      latestBySkill[skill] = values.length ? values[values.length - 1] : 0;
+    });
 
     return (
-      <div className="space-y-3">
-        {/* Low data notice */}
+      <div className="space-y-4">
         {!hasEnoughData && (
           <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Only {realHistory.length} snapshot{realHistory.length !== 1 ? 's' : ''} available.
-            Trend lines improve after 4+ daily cron runs. Check back tomorrow!
+            Only {realHistory.length} resume{realHistory.length !== 1 ? 's' : ''} version is available so far.
+            More insights and trends will appear after you’ve created a few more over the next several days. Check back soon!
           </div>
         )}
 
-        {/* Chart */}
-        <div className="relative w-full" style={{ height: '240px' }}>
-          <svg
-            viewBox={`0 0 ${VW} ${VH}`}
-            preserveAspectRatio="xMidYMid meet"
-            className="w-full h-full"
-          >
-            {/* Gradient defs */}
-            <defs>
-              {visibleSkills.map((skill, index) => (
-                <linearGradient key={skill} id={`grad-${index}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={colors[index % colors.length]} stopOpacity="0.15" />
-                  <stop offset="100%" stopColor={colors[index % colors.length]} stopOpacity="0" />
-                </linearGradient>
-              ))}
-            </defs>
+        <div className="relative w-full min-w-0 -mx-1 sm:mx-0" style={{ height: 280 }}>
+          <ResponsiveContainer width="100%" height={280} minWidth={0}>
+            <AreaChart data={chartData} margin={{ top: 8, right: 6, left: 0, bottom: 2 }}>
+              <defs>
+                {visibleSkills.map((skill, index) => (
+                  <linearGradient key={skill} id={`trend-grad-${index}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={colors[index % colors.length]} stopOpacity={0.24} />
+                    <stop offset="100%" stopColor={colors[index % colors.length]} stopOpacity={0.03} />
+                  </linearGradient>
+                ))}
+              </defs>
 
-            {/* Subtle horizontal grid lines */}
-            {[0, 0.25, 0.5, 0.75, 1].map(frac => {
-              const y = PAD_TOP + frac * chartH;
-              return (
-                <line
-                  key={frac}
-                  x1={PAD_LEFT} y1={y}
-                  x2={PAD_LEFT + chartW} y2={y}
-                  stroke="#f3f4f6"
-                  strokeWidth="1"
-                />
-              );
-            })}
+              <CartesianGrid stroke="#eef2f7" strokeDasharray="4 4" vertical={false} />
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                minTickGap={26}
+                tickMargin={8}
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
+              />
+              <YAxis hide />
+              <Tooltip
+                contentStyle={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 20px rgba(2, 8, 23, 0.08)',
+                  backgroundColor: '#ffffff',
+                }}
+                labelStyle={{ color: '#334155', fontWeight: 600 }}
+                formatter={(value, name) => [`${Number(value ?? 0).toLocaleString()} jobs`, String(name)]}
+              />
 
-            {visibleSkills.map((skill, index) => {
-              const { min, max } = skillRanges[skill];
-              const range = max - min || 1;
-              const color = colors[index % colors.length];
-
-              const dataPoints = realHistory
-                .map((point) => ({ val: Number(point[skill] || 0), date: point.date }))
-                .filter(p => p.val > 0);
-
-              if (dataPoints.length < 1) return null;
-
-              const pts = dataPoints.map((p, j) => ({
-                x: PAD_LEFT + (dataPoints.length === 1
-                  ? chartW / 2
-                  : (j / (dataPoints.length - 1)) * chartW),
-                y: PAD_TOP + chartH - ((p.val - min) / range) * chartH,
-                val: p.val,
-                date: p.date,
-              }));
-
-              const pathD = smoothPath(pts);
-              const areaD = `${pathD} L ${pts[pts.length - 1].x} ${PAD_TOP + chartH} L ${pts[0].x} ${PAD_TOP + chartH} Z`;
-
-              return (
-                <g key={skill}>
-                  {/* Area fill */}
-                  <path d={areaD} fill={`url(#grad-${index})`} />
-
-                  {/* Smooth line */}
-                  <path
-                    d={pathD}
-                    fill="none"
+              {visibleSkills.map((skill, index) => {
+                const color = colors[index % colors.length];
+                return (
+                  <Area
+                    key={skill}
+                    type="monotone"
+                    dataKey={skill}
+                    connectNulls
                     stroke={color}
-                    strokeWidth="2.5"
-                    vectorEffect="non-scaling-stroke"
-                    className="drop-shadow-sm"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill={`url(#trend-grad-${index})`}
+                    dot={{ r: 3, strokeWidth: 2, fill: '#ffffff', stroke: color }}
+                    activeDot={{ r: 5, strokeWidth: 2, fill: '#ffffff', stroke: color }}
                   />
-
-                  {/* Data point dots — crisp fixed-size circles */}
-                  {pts.map((p, j) => (
-                    <g key={j}>
-                      <circle cx={p.x} cy={p.y} r="3.5" fill="white" stroke={color} strokeWidth="2" />
-                      <title>{`${skill}: ${p.val.toLocaleString()} jobs (${p.date})`}</title>
-                    </g>
-                  ))}
-                </g>
-              );
-            })}
-
-            {/* X-axis date labels inside the SVG — consistent sizing */}
-            {(() => {
-              const step = Math.max(1, Math.ceil(realHistory.length / 5));
-              return realHistory
-                .map((d, i) => ({ d, i }))
-                .filter(({ i }) => i === 0 || i === realHistory.length - 1 || i % step === 0)
-                .map(({ d, i }) => {
-                  const x = PAD_LEFT + (realHistory.length === 1
-                    ? chartW / 2
-                    : (i / (realHistory.length - 1)) * chartW);
-                  return (
-                    <text
-                      key={i}
-                      x={x}
-                      y={VH - 4}
-                      textAnchor={i === 0 ? 'start' : i === realHistory.length - 1 ? 'end' : 'middle'}
-                      fontSize="9"
-                      fill="#9ca3af"
-                    >
-                      {d.date}
-                    </text>
-                  );
-                });
-            })()}
-          </svg>
+                );
+              })}
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* Legend with actual job counts */}
         {visibleSkills.length > 0 && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+          <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
             {visibleSkills.map((skill, index) => (
               <div key={skill} className="flex items-center gap-1.5">
                 <span
@@ -405,7 +330,7 @@ export default function CoachPage() {
                 <span className="text-xs text-gray-500">
                   {skill}
                   <span className="text-gray-400 ml-1">
-                    ({skillRanges[skill]?.latest.toLocaleString()} jobs)
+                    ({latestBySkill[skill]?.toLocaleString()} jobs)
                   </span>
                 </span>
               </div>
@@ -461,15 +386,9 @@ export default function CoachPage() {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Career Intelligence Report</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Career Intelligence Report <HelpTip text="An AI-generated overview of your skills, how they match the job market, and what to improve." /></h1>
             </div>
             <p className="text-sm md:text-base text-gray-500">AI-powered analysis of your skill portfolio against real-time market data.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 md:gap-3 text-sm">
-            <button onClick={() => setIsExportModalOpen(true)} className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-xs md:text-sm transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="gray" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              <span className='text-gray-500'>Export Report</span>
-            </button>
           </div>
         </div>
       </div>
@@ -480,20 +399,65 @@ export default function CoachPage() {
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Market Demand Trends</h2>
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-1">Market Demand Trends <HelpTip text="A graph showing how many employers are hiring for each of your skills over time." size={14} /></h2>
               <p className="text-xs text-gray-500">Real-time job postings</p>
             </div>
-            <select
-              value={selectedSkillView}
-              onChange={(e) => setSelectedSkillView(e.target.value)}
-              className="text-xs border border-gray-300 dark:border-[#283042] rounded-lg px-2 py-1 bg-white dark:bg-[#151C2A] text-gray-900 dark:text-[#E2E8F0] outline-none focus:ring-1 focus:ring-[#06B4C9]"
-            >
-              <option value="All">Top 5 Skills</option>
-              {skillsList.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-            </select>
+            {/* Searchable Skill Selector */}
+            {(() => {
+              const filteredSkills = skillsList.filter(s =>
+                s.name.toLowerCase().includes(skillSearch.toLowerCase())
+              );
+              return (
+                <div className="relative">
+                  <div
+                    className="flex items-center gap-1 border border-gray-300 dark:border-[#283042] rounded-lg px-2 py-1 bg-white dark:bg-[#151C2A] cursor-pointer min-w-[140px]"
+                    onClick={() => setSkillDropOpen(!skillDropOpen)}
+                  >
+                    <span className="text-xs text-gray-900 dark:text-[#E2E8F0] truncate flex-1">
+                      {selectedSkillView === 'All' ? 'Top 5 Skills' : selectedSkillView}
+                    </span>
+                    <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                  {skillDropOpen && (
+                    <div className="absolute right-0 z-20 mt-1 w-56 bg-white dark:bg-[#131825] border border-gray-200 dark:border-[#283042] rounded-lg shadow-xl overflow-hidden">
+                      <div className="p-2 border-b border-gray-100 dark:border-[#1E2536]">
+                        <input
+                          type="text"
+                          value={skillSearch}
+                          onChange={e => setSkillSearch(e.target.value)}
+                          placeholder="Search skills..."
+                          className="w-full text-xs px-2 py-1.5 border border-gray-200 dark:border-[#283042] rounded bg-gray-50 dark:bg-[#0E1220] text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-[#06B4C9]"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        <button
+                          onClick={() => { setSelectedSkillView('All'); setSkillDropOpen(false); setSkillSearch(''); }}
+                          className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-white/5 ${selectedSkillView === 'All' ? 'text-[#06B4C9] font-semibold' : 'text-gray-700 dark:text-[#E2E8F0]'}`}
+                        >
+                          Top 5 Skills
+                        </button>
+                        {filteredSkills.map(s => (
+                          <button
+                            key={s.name}
+                            onClick={() => { setSelectedSkillView(s.name); setSkillDropOpen(false); setSkillSearch(''); }}
+                            className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-white/5 ${selectedSkillView === s.name ? 'text-[#06B4C9] font-semibold' : 'text-gray-700 dark:text-[#E2E8F0]'}`}
+                          >
+                            {s.name}
+                          </button>
+                        ))}
+                        {filteredSkills.length === 0 && (
+                          <p className="px-3 py-3 text-xs text-gray-400 text-center">No matching skills</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
-          <div className="mb-8 px-2">
+          <div className="mb-5 px-0">
             {realHistory.length > 0 ? renderTrendGraph() : (
               <div className="flex flex-col items-center justify-center h-56 gap-3 rounded-lg">
                 <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
@@ -525,7 +489,7 @@ export default function CoachPage() {
                   {metrics.portfolioScore}
                 </span>
               </div>
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Score</span>
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">Score <HelpTip text="A 0–100 rating of your overall skill portfolio strength based on verified credentials and market demand." size={11} /></span>
             </div>
 
             {/* Market Alignment */}
@@ -542,7 +506,7 @@ export default function CoachPage() {
               <div className="text-center">
                 <div className={`text-sm font-bold ${metrics.portfolioScore > 75 ? 'text-green-600' : metrics.portfolioScore > 50 ? 'text-[#06B4C9]' : 'text-amber-600'
                   }`}>{metrics.marketAlignment}</div>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Alignment</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">Alignment <HelpTip text="How closely your current skills match what employers are hiring for right now." size={11} /></span>
               </div>
             </div>
 
@@ -564,7 +528,7 @@ export default function CoachPage() {
                 <div className={`text-sm font-bold ${metrics.projectedGrowth >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                   {metrics.projectedGrowth >= 0 ? '+' : ''}{metrics.projectedGrowth}%
                 </div>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Growth</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">Growth <HelpTip text="The predicted change in demand for your skills over the coming months. Positive means demand is rising." size={11} /></span>
               </div>
             </div>
           </div>
@@ -582,6 +546,7 @@ export default function CoachPage() {
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
               Rising Skills
+              <HelpTip text="Skills where employer demand is growing — these are becoming more valuable in the job market." size={13} />
               {skillsList.filter(s => s.trend === 'growing').length > 0 && (
                 <span className="text-xs text-gray-400 font-normal ml-auto">{skillsList.filter(s => s.trend === 'growing').length} skills</span>
               )}
@@ -589,6 +554,7 @@ export default function CoachPage() {
             {(() => {
               const rising = skillsList.filter(s => s.trend === 'growing');
               const SKILLS_PER_PAGE = 8;
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               const totalRisingPages = Math.ceil(rising.length / SKILLS_PER_PAGE);
               const risingSlice = rising.slice((risingPage - 1) * SKILLS_PER_PAGE, risingPage * SKILLS_PER_PAGE);
               return rising.length > 0 ? (
@@ -598,10 +564,10 @@ export default function CoachPage() {
                       <div key={i}>
                         <div className="flex justify-between text-sm mb-1">
                           <span className="font-medium">{skill.name}</span>
-                          <span className="text-green-600">+{Math.round(skill.growthRate * 100)}%</span>
+                          <span className="text-[#06B4C9]">+{Math.round(skill.growthRate * 100)}%</span>
                         </div>
                         <div className="w-full bg-gray-100 rounded-full h-1.5">
-                          <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
+                          <div className="bg-[#06B4C9] h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
                         </div>
                       </div>
                     ))}
@@ -625,6 +591,7 @@ export default function CoachPage() {
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
               Declining Skills
+              <HelpTip text="Skills where job market demand is dropping. Consider upgrading or complementing these with newer skills." size={13} />
               {skillsList.filter(s => s.trend === 'declining').length > 0 && (
                 <span className="text-xs text-gray-400 font-normal ml-auto">{skillsList.filter(s => s.trend === 'declining').length} skills</span>
               )}
@@ -632,6 +599,7 @@ export default function CoachPage() {
             {(() => {
               const declining = skillsList.filter(s => s.trend === 'declining');
               const SKILLS_PER_PAGE = 8;
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               const totalDecliningPages = Math.ceil(declining.length / SKILLS_PER_PAGE);
               const decliningSlice = declining.slice((decliningPage - 1) * SKILLS_PER_PAGE, decliningPage * SKILLS_PER_PAGE);
               return declining.length > 0 ? (
@@ -641,10 +609,10 @@ export default function CoachPage() {
                       <div key={i}>
                         <div className="flex justify-between text-sm mb-1">
                           <span className="font-medium">{skill.name}</span>
-                          <span className="text-red-500">{Math.round(skill.growthRate * 100)}%</span>
+                          <span className="text-amber-500">{Math.round(skill.growthRate * 100)}%</span>
                         </div>
                         <div className="w-full bg-gray-100 rounded-full h-1.5">
-                          <div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
+                          <div className="bg-amber-400 h-1.5 rounded-full" style={{ width: `${skill.score}%` }} />
                         </div>
                       </div>
                     ))}
@@ -683,7 +651,7 @@ export default function CoachPage() {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="font-bold text-sm leading-tight">Vector Co-Pilot</h2>
+                <h2 className="font-bold text-sm leading-tight flex items-center gap-1">Vector Co-Pilot <HelpTip text="An AI assistant that can answer questions about your skills, career options, and market trends." size={12} /></h2>
                 <p className="text-[11px] font-medium text-[#06B4C9]">{chatLoading ? 'Thinking...' : 'Online'}</p>
               </div>
               <div className="flex items-center gap-1">

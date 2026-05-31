@@ -7,7 +7,7 @@ interface LogOptions {
   targetId?: string;
   action: AuditAction;
   description: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**

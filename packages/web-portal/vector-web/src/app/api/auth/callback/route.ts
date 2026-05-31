@@ -17,8 +17,8 @@ export async function GET(request: Request) {
       {
         cookies: {
           get(name: string) { return cookieStore.get(name)?.value },
-          set(name: string, value: string, options: any) { cookieStore.set({ name, value, ...options }) },
-          remove(name: string, options: any) { cookieStore.delete({ name, ...options }) },
+          set(name: string, value: string, options: Record<string, unknown>) { cookieStore.set({ name, value, ...options }) },
+          remove(name: string, options: Record<string, unknown>) { cookieStore.delete({ name, ...options }) },
         },
       }
     );
@@ -69,11 +69,13 @@ export async function GET(request: Request) {
       }
 
       console.log(`🚀 Redirecting to: ${redirectUrl}`);
-      return NextResponse.redirect(`${origin}${redirectUrl}`);
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
+      return NextResponse.redirect(`${baseUrl}${redirectUrl}`);
     }
     
     console.error('❌ OAuth Exchange Error:', error?.message);
   }
 
-  return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
+  return NextResponse.redirect(`${baseUrl}/login?error=oauth_failed`);
 }

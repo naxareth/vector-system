@@ -1,0 +1,575 @@
+@import url(https://themes.googleusercontent.com/fonts/css?kit=wAPX1HepqA24RkYW1AuHYA);ul.lst-kix_l83wjcg8lp90-3{list-style-type:none}ul.lst-kix_l83wjcg8lp90-2{list-style-type:none}ul.lst-kix_l83wjcg8lp90-1{list-style-type:none}.lst-kix_8mrzr823tkou-1>li{counter-increment:lst-ctn-kix_8mrzr823tkou-1}ul.lst-kix_l83wjcg8lp90-0{list-style-type:none}ul.lst-kix_l83wjcg8lp90-7{list-style-type:none}ul.lst-kix_l83wjcg8lp90-6{list-style-type:none}ul.lst-kix_l83wjcg8lp90-5{list-style-type:none}.lst-kix_xyx8gemhsv7l-8>li:before{content:"" counter(lst-ctn-kix_xyx8gemhsv7l-8,lower-roman) ". "}ul.lst-kix_l83wjcg8lp90-4{list-style-type:none}ol.lst-kix_y404olbyt88z-6.start{counter-reset:lst-ctn-kix_y404olbyt88z-6 0}ul.lst-kix_l83wjcg8lp90-8{list-style-type:none}ol.lst-kix_xyx8gemhsv7l-8.start{counter-reset:lst-ctn-kix_xyx8gemhsv7l-8 0}ol.lst-kix_4zne4hhw92na-4.start{counter-reset:lst-ctn-kix_4zne4hhw92na-4 0}.lst-kix_4zne4hhw92na-6>li{counter-increment:lst-ctn-kix_4zne4hhw92na-6}ol.lst-kix_y404olbyt88z-0.start{counter-reset:lst-ctn-kix_y404olbyt88z-0 0}ol.lst-kix_7ewrsqbuc79n-7.start{counter-reset:lst-ctn-kix_7ewrsqbuc79n-7 0}.lst-kix_7ewrsqbuc79n-0>li{counter-increment:lst-ctn-kix_7ewrsqbuc79n-0}.lst-kix_xyx8gemhsv7l-1>li:before{content:"" counter(lst-ctn-kix_xyx8gemhsv7l-1,lower-latin) ". "}.lst-kix_4zne4hhw92na-4>li:before{content:"" counter(lst-ctn-kix_4zne4hhw92na-4,lower-roman) ". "}.lst-kix_xyx8gemhsv7l-0>li:before{content:"" counter(lst-ctn-kix_xyx8gemhsv7l-0,decimal) ". "}.lst-kix_xyx8gemhsv7l-2>li:before{content:"" counter(lst-ctn-kix_xyx8gemhsv7l-2,lower-roman) ". "}.lst-kix_8mrzr823tkou-3>li{counter-increment:lst-ctn-kix_8mrzr823tkou-3}.lst-kix_4zne4hhw92na-5>li:before{content:"" counter(lst-ctn-kix_4zne4hhw92na-5,decimal) ". "}.lst-kix_4zne4hhw92na-6>li:before{content:"" counter(lst-ctn-kix_4zne4hhw92na-6,lower-latin) ". "}.lst-kix_xyx8gemhsv7l-5>li:before{content:"" counter(lst-ctn-kix_xyx8gemhsv7l-5,lower-roman) ". "}.lst-kix_4zne4hhw92na-7>li:before{content:"" counter(lst-ctn-kix_4zne4hhw92na-7,lower-roman) ". "}.lst-kix_4zne4hhw92na-8>li:before{content:"" counter(lst-ctn-kix_4zne4hhw92na-8,decimal) ". "}.lst-kix_xyx8gemhsv7l-4>li:before{content:"" counter(lst-ctn-kix_xyx8gemhsv7l-4,lower-latin) ". "}.lst-kix_xyx8gemhsv7l-6>li:before{content:"" counter(lst-ctn-kix_xyx8gemhsv7l-6,decimal) ". "}ol.lst-kix_xyx8gemhsv7l-2.start{counter-reset:lst-ctn-kix_xyx8gemhsv7l-2 0}.lst-kix_xyx8gemhsv7l-3>li:before{content:"" counter(lst-ctn-kix_xyx8gemhsv7l-3,decimal) ". "}.lst-kix_xyx8gemhsv7l-7>li:before{content:"" counter(lst-ctn-kix_xyx8gemhsv7l-7,lower-latin) ". "}.lst-kix_4zne4hhw92na-8>li{counter-increment:lst-ctn-kix_4zne4hhw92na-8}.lst-kix_4zne4hhw92na-4>li{counter-increment:lst-ctn-kix_4zne4hhw92na-4}ol.lst-kix_y404olbyt88z-1.start{counter-reset:lst-ctn-kix_y404olbyt88z-1 0}ul.lst-kix_w0d5k6g1r4mi-8{list-style-type:none}ol.lst-kix_xyx8gemhsv7l-7{list-style-type:none}ol.lst-kix_xyx8gemhsv7l-8{list-style-type:none}ol.lst-kix_xyx8gemhsv7l-5{list-style-type:none}ol.lst-kix_xyx8gemhsv7l-6{list-style-type:none}ul.lst-kix_w0d5k6g1r4mi-4{list-style-type:none}ul.lst-kix_w0d5k6g1r4mi-5{list-style-type:none}ul.lst-kix_w0d5k6g1r4mi-6{list-style-type:none}.lst-kix_y404olbyt88z-7>li{counter-increment:lst-ctn-kix_y404olbyt88z-7}ul.lst-kix_w0d5k6g1r4mi-7{list-style-type:none}.lst-kix_y404olbyt88z-2>li{counter-increment:lst-ctn-kix_y404olbyt88z-2}.lst-kix_gkyreslgzb1w-0>li:before{content:"\0025cf   "}.lst-kix_8mrzr823tkou-5>li{counter-increment:lst-ctn-kix_8mrzr823tkou-5}.lst-kix_7ewrsqbuc79n-7>li{counter-increment:lst-ctn-kix_7ewrsqbuc79n-7}ol.lst-kix_xyx8gemhsv7l-0{list-style-type:none}.lst-kix_gkyreslgzb1w-1>li:before{content:"\0025cb   "}ol.lst-kix_xyx8gemhsv7l-3{list-style-type:none}ol.lst-kix_xyx8gemhsv7l-4{list-style-type:none}ol.lst-kix_xyx8gemhsv7l-1{list-style-type:none}ol.lst-kix_xyx8gemhsv7l-2{list-style-type:none}.lst-kix_4zne4hhw92na-3>li:before{content:"" counter(lst-ctn-kix_4zne4hhw92na-3,lower-latin) ". "}.lst-kix_xyx8gemhsv7l-5>li{counter-increment:lst-ctn-kix_xyx8gemhsv7l-5}.lst-kix_gkyreslgzb1w-3>li:before{content:"\0025cf   "}.lst-kix_gkyreslgzb1w-2>li:before{content:"\0025a0   "}.lst-kix_4zne4hhw92na-1>li:before{content:"" counter(lst-ctn-kix_4zne4hhw92na-1,lower-roman) ". "}.lst-kix_4zne4hhw92na-2>li:before{content:"" counter(lst-ctn-kix_4zne4hhw92na-2,decimal) ". "}.lst-kix_4zne4hhw92na-0>li:before{content:"" counter(lst-ctn-kix_4zne4hhw92na-0,lower-latin) ". "}ol.lst-kix_y404olbyt88z-7.start{counter-reset:lst-ctn-kix_y404olbyt88z-7 0}ol.lst-kix_xyx8gemhsv7l-7.start{counter-reset:lst-ctn-kix_xyx8gemhsv7l-7 0}ol.lst-kix_4zne4hhw92na-3.start{counter-reset:lst-ctn-kix_4zne4hhw92na-3 0}.lst-kix_4zne4hhw92na-1>li{counter-increment:lst-ctn-kix_4zne4hhw92na-1}ol.lst-kix_xyx8gemhsv7l-1.start{counter-reset:lst-ctn-kix_xyx8gemhsv7l-1 0}.lst-kix_8mrzr823tkou-8>li{counter-increment:lst-ctn-kix_8mrzr823tkou-8}ol.lst-kix_8mrzr823tkou-6{list-style-type:none}ol.lst-kix_8mrzr823tkou-7{list-style-type:none}ol.lst-kix_8mrzr823tkou-8{list-style-type:none}.lst-kix_y404olbyt88z-5>li{counter-increment:lst-ctn-kix_y404olbyt88z-5}ul.lst-kix_f3vj7cre038u-2{list-style-type:none}.lst-kix_4zne4hhw92na-0>li{counter-increment:lst-ctn-kix_4zne4hhw92na-0}.lst-kix_xyx8gemhsv7l-2>li{counter-increment:lst-ctn-kix_xyx8gemhsv7l-2}ul.lst-kix_f3vj7cre038u-1{list-style-type:none}ul.lst-kix_f3vj7cre038u-4{list-style-type:none}ul.lst-kix_f3vj7cre038u-3{list-style-type:none}ul.lst-kix_f3vj7cre038u-6{list-style-type:none}ul.lst-kix_f3vj7cre038u-5{list-style-type:none}ul.lst-kix_f3vj7cre038u-8{list-style-type:none}ul.lst-kix_f3vj7cre038u-7{list-style-type:none}.lst-kix_y404olbyt88z-5>li:before{content:"" counter(lst-ctn-kix_y404olbyt88z-5,decimal) ". "}ol.lst-kix_4zne4hhw92na-2.start{counter-reset:lst-ctn-kix_4zne4hhw92na-2 0}.lst-kix_gkyreslgzb1w-7>li:before{content:"\0025cb   "}.lst-kix_w0d5k6g1r4mi-2>li:before{content:"\0025a0   "}.lst-kix_w0d5k6g1r4mi-4>li:before{content:"\0025cb   "}.lst-kix_y404olbyt88z-3>li:before{content:"" counter(lst-ctn-kix_y404olbyt88z-3,decimal) ". "}.lst-kix_y404olbyt88z-7>li:before{content:"" counter(lst-ctn-kix_y404olbyt88z-7,decimal) ". "}.lst-kix_l83wjcg8lp90-5>li:before{content:"\0025a0   "}ul.lst-kix_f3vj7cre038u-0{list-style-type:none}ol.lst-kix_8mrzr823tkou-8.start{counter-reset:lst-ctn-kix_8mrzr823tkou-8 0}.lst-kix_l83wjcg8lp90-1>li:before{content:"\0025cb   "}.lst-kix_y404olbyt88z-1>li:before{content:"" counter(lst-ctn-kix_y404olbyt88z-1,decimal) ". "}.lst-kix_gkyreslgzb1w-5>li:before{content:"\0025a0   "}.lst-kix_8mrzr823tkou-6>li{counter-increment:lst-ctn-kix_8mrzr823tkou-6}.lst-kix_w0d5k6g1r4mi-0>li:before{content:"\0025cf   "}.lst-kix_w0d5k6g1r4mi-6>li:before{content:"\0025cf   "}.lst-kix_w0d5k6g1r4mi-8>li:before{content:"\0025a0   "}.lst-kix_l83wjcg8lp90-3>li:before{content:"\0025cf   "}ol.lst-kix_7ewrsqbuc79n-6.start{counter-reset:lst-ctn-kix_7ewrsqbuc79n-6 0}.lst-kix_xyx8gemhsv7l-0>li{counter-increment:lst-ctn-kix_xyx8gemhsv7l-0}.lst-kix_l83wjcg8lp90-7>li:before{content:"\0025cb   "}ul.lst-kix_gkyreslgzb1w-0{list-style-type:none}.lst-kix_7ewrsqbuc79n-2>li{counter-increment:lst-ctn-kix_7ewrsqbuc79n-2}ul.lst-kix_gkyreslgzb1w-4{list-style-type:none}ul.lst-kix_gkyreslgzb1w-3{list-style-type:none}ul.lst-kix_gkyreslgzb1w-2{list-style-type:none}ul.lst-kix_gkyreslgzb1w-1{list-style-type:none}ul.lst-kix_gkyreslgzb1w-8{list-style-type:none}ul.lst-kix_gkyreslgzb1w-7{list-style-type:none}ul.lst-kix_gkyreslgzb1w-6{list-style-type:none}ul.lst-kix_gkyreslgzb1w-5{list-style-type:none}ol.lst-kix_xyx8gemhsv7l-3.start{counter-reset:lst-ctn-kix_xyx8gemhsv7l-3 0}.lst-kix_y404olbyt88z-0>li{counter-increment:lst-ctn-kix_y404olbyt88z-0}.lst-kix_xyx8gemhsv7l-7>li{counter-increment:lst-ctn-kix_xyx8gemhsv7l-7}.lst-kix_f3vj7cre038u-5>li:before{content:"\0025a0   "}ol.lst-kix_8mrzr823tkou-2{list-style-type:none}ol.lst-kix_8mrzr823tkou-3{list-style-type:none}ol.lst-kix_8mrzr823tkou-4{list-style-type:none}ol.lst-kix_8mrzr823tkou-5{list-style-type:none}ol.lst-kix_7ewrsqbuc79n-8.start{counter-reset:lst-ctn-kix_7ewrsqbuc79n-8 0}ol.lst-kix_8mrzr823tkou-0{list-style-type:none}.lst-kix_xyx8gemhsv7l-1>li{counter-increment:lst-ctn-kix_xyx8gemhsv7l-1}.lst-kix_f3vj7cre038u-7>li:before{content:"\0025cb   "}ol.lst-kix_8mrzr823tkou-1{list-style-type:none}ol.lst-kix_4zne4hhw92na-0.start{counter-reset:lst-ctn-kix_4zne4hhw92na-0 0}.lst-kix_f3vj7cre038u-1>li:before{content:"\0025cb   "}.lst-kix_y404olbyt88z-6>li{counter-increment:lst-ctn-kix_y404olbyt88z-6}.lst-kix_8mrzr823tkou-7>li{counter-increment:lst-ctn-kix_8mrzr823tkou-7}.lst-kix_7ewrsqbuc79n-8>li{counter-increment:lst-ctn-kix_7ewrsqbuc79n-8}ol.lst-kix_xyx8gemhsv7l-4.start{counter-reset:lst-ctn-kix_xyx8gemhsv7l-4 0}.lst-kix_f3vj7cre038u-3>li:before{content:"\0025cf   "}.lst-kix_4zne4hhw92na-7>li{counter-increment:lst-ctn-kix_4zne4hhw92na-7}.lst-kix_xyx8gemhsv7l-8>li{counter-increment:lst-ctn-kix_xyx8gemhsv7l-8}ol.lst-kix_y404olbyt88z-3.start{counter-reset:lst-ctn-kix_y404olbyt88z-3 0}ol.lst-kix_7ewrsqbuc79n-4.start{counter-reset:lst-ctn-kix_7ewrsqbuc79n-4 0}.lst-kix_8mrzr823tkou-0>li:before{content:"" counter(lst-ctn-kix_8mrzr823tkou-0,lower-latin) ". "}ol.lst-kix_4zne4hhw92na-1.start{counter-reset:lst-ctn-kix_4zne4hhw92na-1 0}ol.lst-kix_7ewrsqbuc79n-7{list-style-type:none}ol.lst-kix_7ewrsqbuc79n-6{list-style-type:none}ol.lst-kix_7ewrsqbuc79n-5{list-style-type:none}.lst-kix_8mrzr823tkou-2>li{counter-increment:lst-ctn-kix_8mrzr823tkou-2}ol.lst-kix_7ewrsqbuc79n-4{list-style-type:none}ol.lst-kix_7ewrsqbuc79n-8{list-style-type:none}ol.lst-kix_xyx8gemhsv7l-0.start{counter-reset:lst-ctn-kix_xyx8gemhsv7l-0 0}ol.lst-kix_xyx8gemhsv7l-5.start{counter-reset:lst-ctn-kix_xyx8gemhsv7l-5 0}.lst-kix_7ewrsqbuc79n-8>li:before{content:"" counter(lst-ctn-kix_7ewrsqbuc79n-8,lower-roman) ". "}.lst-kix_8mrzr823tkou-0>li{counter-increment:lst-ctn-kix_8mrzr823tkou-0}.lst-kix_8mrzr823tkou-6>li:before{content:"" counter(lst-ctn-kix_8mrzr823tkou-6,lower-latin) ". "}.lst-kix_7ewrsqbuc79n-5>li:before{content:"" counter(lst-ctn-kix_7ewrsqbuc79n-5,lower-roman) ". "}ol.lst-kix_8mrzr823tkou-1.start{counter-reset:lst-ctn-kix_8mrzr823tkou-1 0}.lst-kix_7ewrsqbuc79n-6>li:before{content:"" counter(lst-ctn-kix_7ewrsqbuc79n-6,decimal) ". "}.lst-kix_8mrzr823tkou-7>li:before{content:"" counter(lst-ctn-kix_8mrzr823tkou-7,lower-roman) ". "}.lst-kix_7ewrsqbuc79n-7>li:before{content:"" counter(lst-ctn-kix_7ewrsqbuc79n-7,lower-latin) ". "}.lst-kix_8mrzr823tkou-8>li:before{content:"" counter(lst-ctn-kix_8mrzr823tkou-8,decimal) ". "}.lst-kix_7ewrsqbuc79n-1>li:before{content:"" counter(lst-ctn-kix_7ewrsqbuc79n-1,lower-latin) ". "}.lst-kix_xyx8gemhsv7l-6>li{counter-increment:lst-ctn-kix_xyx8gemhsv7l-6}.lst-kix_7ewrsqbuc79n-0>li:before{content:"" counter(lst-ctn-kix_7ewrsqbuc79n-0,decimal) ". "}.lst-kix_7ewrsqbuc79n-2>li:before{content:"" counter(lst-ctn-kix_7ewrsqbuc79n-2,lower-roman) ". "}.lst-kix_8mrzr823tkou-1>li:before{content:"" counter(lst-ctn-kix_8mrzr823tkou-1,lower-roman) ". "}.lst-kix_8mrzr823tkou-3>li:before{content:"" counter(lst-ctn-kix_8mrzr823tkou-3,lower-latin) ". "}.lst-kix_7ewrsqbuc79n-1>li{counter-increment:lst-ctn-kix_7ewrsqbuc79n-1}.lst-kix_4zne4hhw92na-5>li{counter-increment:lst-ctn-kix_4zne4hhw92na-5}.lst-kix_8mrzr823tkou-2>li:before{content:"" counter(lst-ctn-kix_8mrzr823tkou-2,decimal) ". "}.lst-kix_7ewrsqbuc79n-4>li:before{content:"" counter(lst-ctn-kix_7ewrsqbuc79n-4,lower-latin) ". "}.lst-kix_8mrzr823tkou-5>li:before{content:"" counter(lst-ctn-kix_8mrzr823tkou-5,decimal) ". "}.lst-kix_7ewrsqbuc79n-3>li:before{content:"" counter(lst-ctn-kix_7ewrsqbuc79n-3,decimal) ". "}.lst-kix_8mrzr823tkou-4>li:before{content:"" counter(lst-ctn-kix_8mrzr823tkou-4,lower-roman) ". "}ol.lst-kix_y404olbyt88z-0{list-style-type:none}ol.lst-kix_y404olbyt88z-8.start{counter-reset:lst-ctn-kix_y404olbyt88z-8 0}.lst-kix_1bemd3smlcuw-1>li:before{content:"\0025cb   "}ol.lst-kix_y404olbyt88z-1{list-style-type:none}.lst-kix_1bemd3smlcuw-0>li:before{content:"\0025cf   "}.lst-kix_1bemd3smlcuw-2>li:before{content:"\0025a0   "}ol.lst-kix_y404olbyt88z-4{list-style-type:none}ol.lst-kix_y404olbyt88z-5{list-style-type:none}.lst-kix_y404olbyt88z-1>li{counter-increment:lst-ctn-kix_y404olbyt88z-1}ol.lst-kix_y404olbyt88z-2{list-style-type:none}ol.lst-kix_y404olbyt88z-3{list-style-type:none}ol.lst-kix_y404olbyt88z-8{list-style-type:none}.lst-kix_1bemd3smlcuw-5>li:before{content:"\0025a0   "}ol.lst-kix_y404olbyt88z-6{list-style-type:none}.lst-kix_1bemd3smlcuw-6>li:before{content:"\0025cf   "}ol.lst-kix_y404olbyt88z-7{list-style-type:none}.lst-kix_1bemd3smlcuw-7>li:before{content:"\0025cb   "}ol.lst-kix_xyx8gemhsv7l-6.start{counter-reset:lst-ctn-kix_xyx8gemhsv7l-6 0}.lst-kix_y404olbyt88z-8>li{counter-increment:lst-ctn-kix_y404olbyt88z-8}ol.lst-kix_7ewrsqbuc79n-5.start{counter-reset:lst-ctn-kix_7ewrsqbuc79n-5 0}.lst-kix_7ewrsqbuc79n-3>li{counter-increment:lst-ctn-kix_7ewrsqbuc79n-3}.lst-kix_1bemd3smlcuw-4>li:before{content:"\0025cb   "}.lst-kix_1bemd3smlcuw-3>li:before{content:"\0025cf   "}ol.lst-kix_8mrzr823tkou-7.start{counter-reset:lst-ctn-kix_8mrzr823tkou-7 0}ol.lst-kix_7ewrsqbuc79n-3{list-style-type:none}ol.lst-kix_7ewrsqbuc79n-2{list-style-type:none}ol.lst-kix_7ewrsqbuc79n-1{list-style-type:none}ol.lst-kix_7ewrsqbuc79n-0{list-style-type:none}ol.lst-kix_8mrzr823tkou-6.start{counter-reset:lst-ctn-kix_8mrzr823tkou-6 0}ol.lst-kix_4zne4hhw92na-7{list-style-type:none}ol.lst-kix_8mrzr823tkou-0.start{counter-reset:lst-ctn-kix_8mrzr823tkou-0 0}ol.lst-kix_4zne4hhw92na-8{list-style-type:none}ol.lst-kix_4zne4hhw92na-3{list-style-type:none}ol.lst-kix_4zne4hhw92na-4{list-style-type:none}ol.lst-kix_4zne4hhw92na-5{list-style-type:none}ol.lst-kix_4zne4hhw92na-6{list-style-type:none}ol.lst-kix_4zne4hhw92na-0{list-style-type:none}ol.lst-kix_4zne4hhw92na-1{list-style-type:none}ol.lst-kix_4zne4hhw92na-2{list-style-type:none}ol.lst-kix_4zne4hhw92na-8.start{counter-reset:lst-ctn-kix_4zne4hhw92na-8 0}.lst-kix_y404olbyt88z-4>li{counter-increment:lst-ctn-kix_y404olbyt88z-4}.lst-kix_7ewrsqbuc79n-5>li{counter-increment:lst-ctn-kix_7ewrsqbuc79n-5}ol.lst-kix_7ewrsqbuc79n-0.start{counter-reset:lst-ctn-kix_7ewrsqbuc79n-0 0}ul.lst-kix_1bemd3smlcuw-0{list-style-type:none}ul.lst-kix_1bemd3smlcuw-1{list-style-type:none}ul.lst-kix_1bemd3smlcuw-2{list-style-type:none}ul.lst-kix_1bemd3smlcuw-3{list-style-type:none}.lst-kix_y404olbyt88z-0>li:before{content:"" counter(lst-ctn-kix_y404olbyt88z-0,decimal) ". "}ul.lst-kix_1bemd3smlcuw-4{list-style-type:none}ul.lst-kix_1bemd3smlcuw-5{list-style-type:none}.lst-kix_7ewrsqbuc79n-6>li{counter-increment:lst-ctn-kix_7ewrsqbuc79n-6}ol.lst-kix_8mrzr823tkou-2.start{counter-reset:lst-ctn-kix_8mrzr823tkou-2 0}.lst-kix_gkyreslgzb1w-8>li:before{content:"\0025a0   "}ol.lst-kix_y404olbyt88z-2.start{counter-reset:lst-ctn-kix_y404olbyt88z-2 0}.lst-kix_l83wjcg8lp90-2>li:before{content:"\0025a0   "}.lst-kix_l83wjcg8lp90-4>li:before{content:"\0025cb   "}.lst-kix_y404olbyt88z-4>li:before{content:"" counter(lst-ctn-kix_y404olbyt88z-4,decimal) ". "}.lst-kix_y404olbyt88z-8>li:before{content:"" counter(lst-ctn-kix_y404olbyt88z-8,decimal) ". "}ol.lst-kix_7ewrsqbuc79n-3.start{counter-reset:lst-ctn-kix_7ewrsqbuc79n-3 0}.lst-kix_w0d5k6g1r4mi-1>li:before{content:"\0025cb   "}.lst-kix_w0d5k6g1r4mi-5>li:before{content:"\0025a0   "}.lst-kix_gkyreslgzb1w-4>li:before{content:"\0025cb   "}ul.lst-kix_1bemd3smlcuw-6{list-style-type:none}ul.lst-kix_1bemd3smlcuw-7{list-style-type:none}ul.lst-kix_1bemd3smlcuw-8{list-style-type:none}.lst-kix_gkyreslgzb1w-6>li:before{content:"\0025cf   "}ol.lst-kix_8mrzr823tkou-5.start{counter-reset:lst-ctn-kix_8mrzr823tkou-5 0}.lst-kix_y404olbyt88z-2>li:before{content:"" counter(lst-ctn-kix_y404olbyt88z-2,decimal) ". "}.lst-kix_w0d5k6g1r4mi-7>li:before{content:"\0025cb   "}ul.lst-kix_w0d5k6g1r4mi-0{list-style-type:none}ol.lst-kix_4zne4hhw92na-5.start{counter-reset:lst-ctn-kix_4zne4hhw92na-5 0}ul.lst-kix_w0d5k6g1r4mi-1{list-style-type:none}.lst-kix_1bemd3smlcuw-8>li:before{content:"\0025a0   "}.lst-kix_7ewrsqbuc79n-4>li{counter-increment:lst-ctn-kix_7ewrsqbuc79n-4}ul.lst-kix_w0d5k6g1r4mi-2{list-style-type:none}ul.lst-kix_w0d5k6g1r4mi-3{list-style-type:none}.lst-kix_4zne4hhw92na-2>li{counter-increment:lst-ctn-kix_4zne4hhw92na-2}.lst-kix_xyx8gemhsv7l-3>li{counter-increment:lst-ctn-kix_xyx8gemhsv7l-3}.lst-kix_l83wjcg8lp90-6>li:before{content:"\0025cf   "}.lst-kix_l83wjcg8lp90-8>li:before{content:"\0025a0   "}.lst-kix_y404olbyt88z-6>li:before{content:"" counter(lst-ctn-kix_y404olbyt88z-6,decimal) ". "}.lst-kix_w0d5k6g1r4mi-3>li:before{content:"\0025cf   "}ol.lst-kix_8mrzr823tkou-4.start{counter-reset:lst-ctn-kix_8mrzr823tkou-4 0}ol.lst-kix_4zne4hhw92na-6.start{counter-reset:lst-ctn-kix_4zne4hhw92na-6 0}ol.lst-kix_y404olbyt88z-5.start{counter-reset:lst-ctn-kix_y404olbyt88z-5 0}.lst-kix_l83wjcg8lp90-0>li:before{content:"\0025cf   "}ol.lst-kix_4zne4hhw92na-7.start{counter-reset:lst-ctn-kix_4zne4hhw92na-7 0}.lst-kix_4zne4hhw92na-3>li{counter-increment:lst-ctn-kix_4zne4hhw92na-3}ol.lst-kix_7ewrsqbuc79n-2.start{counter-reset:lst-ctn-kix_7ewrsqbuc79n-2 0}ol.lst-kix_8mrzr823tkou-3.start{counter-reset:lst-ctn-kix_8mrzr823tkou-3 0}.lst-kix_f3vj7cre038u-6>li:before{content:"\0025cf   "}.lst-kix_f3vj7cre038u-8>li:before{content:"\0025a0   "}.lst-kix_xyx8gemhsv7l-4>li{counter-increment:lst-ctn-kix_xyx8gemhsv7l-4}li.li-bullet-0:before{margin-left:-18pt;white-space:nowrap;display:inline-block;min-width:18pt}.lst-kix_f3vj7cre038u-0>li:before{content:"\0025cf   "}ol.lst-kix_7ewrsqbuc79n-1.start{counter-reset:lst-ctn-kix_7ewrsqbuc79n-1 0}.lst-kix_8mrzr823tkou-4>li{counter-increment:lst-ctn-kix_8mrzr823tkou-4}.lst-kix_f3vj7cre038u-2>li:before{content:"\0025a0   "}.lst-kix_f3vj7cre038u-4>li:before{content:"\0025cb   "}.lst-kix_y404olbyt88z-3>li{counter-increment:lst-ctn-kix_y404olbyt88z-3}ol.lst-kix_y404olbyt88z-4.start{counter-reset:lst-ctn-kix_y404olbyt88z-4 0}ol{margin:0;padding:0}table td,table th{padding:0}.c7{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;background-color:#f0f4f8;border-left-style:solid;border-bottom-width:1pt;width:128pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c102{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#2c5f8a;border-top-width:1pt;border-right-width:1pt;border-left-color:#2c5f8a;vertical-align:middle;border-right-color:#2c5f8a;border-left-width:1pt;border-top-style:solid;background-color:#2c5f8a;border-left-style:solid;border-bottom-width:1pt;width:110pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c76{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;background-color:#f2f4f8;border-left-style:solid;border-bottom-width:1pt;width:55.5pt;border-top-color:#1c4587;border-bottom-style:solid}.c98{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#2c5f8a;border-top-width:1pt;border-right-width:1pt;border-left-color:#2c5f8a;vertical-align:middle;border-right-color:#2c5f8a;border-left-width:1pt;border-top-style:solid;background-color:#2c5f8a;border-left-style:solid;border-bottom-width:1pt;width:124pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c100{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;background-color:#f2f4f8;border-left-style:solid;border-bottom-width:1pt;width:126.8pt;border-top-color:#1c4587;border-bottom-style:solid}.c67{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#1c4587;border-top-width:1pt;border-right-width:1pt;border-left-color:#1c4587;vertical-align:top;border-right-color:#1c4587;border-left-width:1pt;border-top-style:solid;background-color:#1c4587;border-left-style:solid;border-bottom-width:1pt;width:55.5pt;border-top-color:#1c4587;border-bottom-style:solid}.c56{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#2c5f8a;border-top-width:1pt;border-right-width:1pt;border-left-color:#2c5f8a;vertical-align:middle;border-right-color:#2c5f8a;border-left-width:1pt;border-top-style:solid;background-color:#2c5f8a;border-left-style:solid;border-bottom-width:1pt;width:128pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c32{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#1c4587;border-top-width:1pt;border-right-width:1pt;border-left-color:#1c4587;vertical-align:top;border-right-color:#1c4587;border-left-width:1pt;border-top-style:solid;background-color:#1c4587;border-left-style:solid;border-bottom-width:1pt;width:309.8pt;border-top-color:#1c4587;border-bottom-style:solid}.c78{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#2c5f8a;border-top-width:1pt;border-right-width:1pt;border-left-color:#2c5f8a;vertical-align:middle;border-right-color:#2c5f8a;border-left-width:1pt;border-top-style:solid;background-color:#2c5f8a;border-left-style:solid;border-bottom-width:1pt;width:150pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c104{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#2c5f8a;border-top-width:1pt;border-right-width:1pt;border-left-color:#2c5f8a;vertical-align:middle;border-right-color:#2c5f8a;border-left-width:1pt;border-top-style:solid;background-color:#2c5f8a;border-left-style:solid;border-bottom-width:1pt;width:233pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c71{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#2c5f8a;border-top-width:1pt;border-right-width:1pt;border-left-color:#2c5f8a;vertical-align:middle;border-right-color:#2c5f8a;border-left-width:1pt;border-top-style:solid;background-color:#2c5f8a;border-left-style:solid;border-bottom-width:1pt;width:140pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c18{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;background-color:#ffffff;border-left-style:solid;border-bottom-width:1pt;width:140pt;border-top-color:#cccccc;border-bottom-style:solid}.c117{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#2c5f8a;border-top-width:1pt;border-right-width:1pt;border-left-color:#2c5f8a;vertical-align:middle;border-right-color:#2c5f8a;border-left-width:1pt;border-top-style:solid;background-color:#2c5f8a;border-left-style:solid;border-bottom-width:1pt;width:218pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c27{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;background-color:#f0f4f8;border-left-style:solid;border-bottom-width:1pt;width:140pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c81{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;background-color:#f2f4f8;border-left-style:solid;border-bottom-width:1pt;width:309.8pt;border-top-color:#1c4587;border-bottom-style:solid}.c114{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#1c4587;border-top-width:1pt;border-right-width:1pt;border-left-color:#1c4587;vertical-align:top;border-right-color:#1c4587;border-left-width:1pt;border-top-style:solid;background-color:#1c4587;border-left-style:solid;border-bottom-width:1pt;width:111.8pt;border-top-color:#1c4587;border-bottom-style:solid}.c2{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;background-color:#f0f4f8;border-left-style:solid;border-bottom-width:1pt;width:124pt;border-top-color:#cccccc;border-bottom-style:solid}.c108{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#1c4587;border-top-width:1pt;border-right-width:1pt;border-left-color:#1c4587;vertical-align:top;border-right-color:#1c4587;border-left-width:1pt;border-top-style:solid;background-color:#1c4587;border-left-style:solid;border-bottom-width:1pt;width:165.8pt;border-top-color:#1c4587;border-bottom-style:solid}.c55{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#1c4587;border-top-width:1pt;border-right-width:1pt;border-left-color:#1c4587;vertical-align:top;border-right-color:#1c4587;border-left-width:1pt;border-top-style:solid;background-color:#1c4587;border-left-style:solid;border-bottom-width:1pt;width:126.8pt;border-top-color:#1c4587;border-bottom-style:solid}.c22{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;background-color:#ffffff;border-left-style:solid;border-bottom-width:1pt;width:203pt;border-top-color:#cccccc;border-bottom-style:solid}.c101{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#2c5f8a;border-top-width:1pt;border-right-width:1pt;border-left-color:#2c5f8a;vertical-align:middle;border-right-color:#2c5f8a;border-left-width:1pt;border-top-style:solid;background-color:#2c5f8a;border-left-style:solid;border-bottom-width:1pt;width:203pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c109{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;background-color:#f1f4f8;border-left-style:solid;border-bottom-width:1pt;width:111.8pt;border-top-color:#1c4587;border-bottom-style:solid}.c97{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#1c4587;vertical-align:top;border-right-color:#1c4587;border-left-width:1pt;border-top-style:solid;background-color:#1c4587;border-left-style:solid;border-bottom-width:1pt;width:152.2pt;border-top-color:#1c4587;border-bottom-style:solid}.c86{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#2c5f8a;border-top-width:1pt;border-right-width:1pt;border-left-color:#2c5f8a;vertical-align:middle;border-right-color:#2c5f8a;border-left-width:1pt;border-top-style:solid;background-color:#2c5f8a;border-left-style:solid;border-bottom-width:1pt;width:125pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c116{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#1c4587;vertical-align:top;border-right-color:#1c4587;border-left-width:1pt;border-top-style:solid;background-color:#1c4587;border-left-style:solid;border-bottom-width:1pt;width:111.8pt;border-top-color:#1c4587;border-bottom-style:solid}.c122{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;background-color:#f2f4f8;border-left-style:solid;border-bottom-width:1pt;width:165.8pt;border-top-color:#1c4587;border-bottom-style:solid}.c26{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;background-color:#f0f4f8;border-left-style:solid;border-bottom-width:1pt;width:110pt;border-top-color:#cccccc;border-bottom-style:solid}.c36{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;background-color:#ffffff;border-left-style:solid;border-bottom-width:1pt;width:124pt;border-top-color:#cccccc;border-bottom-style:solid}.c48{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#2c5f8a;border-top-width:1pt;border-right-width:1pt;border-left-color:#2c5f8a;vertical-align:middle;border-right-color:#2c5f8a;border-left-width:1pt;border-top-style:solid;background-color:#2c5f8a;border-left-style:solid;border-bottom-width:1pt;width:100pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c99{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:110pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c51{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:110pt;border-top-color:#cccccc;border-bottom-style:solid}.c50{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:218pt;border-top-color:#cccccc;border-bottom-style:solid}.c94{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:203pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c45{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:100pt;border-top-color:#cccccc;border-bottom-style:solid}.c112{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:111.8pt;border-top-color:#000000;border-bottom-style:solid}.c13{border-right-style:solid;padding:0pt 5.4pt 0pt 5.4pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:99pt;border-top-color:#000000;border-bottom-style:solid}.c105{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:203pt;border-top-color:#cccccc;border-bottom-style:solid}.c31{border-right-style:solid;padding:0pt 5.4pt 0pt 5.4pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:201.5pt;border-top-color:#000000;border-bottom-style:solid}.c82{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:152.2pt;border-top-color:#000000;border-bottom-style:solid}.c30{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:111.8pt;border-top-color:#000000;border-bottom-style:solid}.c89{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:218pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c84{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:140pt;border-top-color:#cccccc;border-bottom-style:solid}.c65{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:128pt;border-top-color:#cccccc;border-bottom-style:solid}.c113{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:233pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c92{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:125pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c87{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:165.8pt;border-top-color:#000000;border-bottom-style:solid}.c96{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:124pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c43{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:100pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c106{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:152.2pt;border-top-color:#000000;border-bottom-style:solid}.c47{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:125pt;border-top-color:#cccccc;border-bottom-style:solid}.c75{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:126.8pt;border-top-color:#000000;border-bottom-style:solid}.c62{border-right-style:solid;padding:0pt 5.4pt 0pt 5.4pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:150.3pt;border-top-color:#000000;border-bottom-style:solid}.c33{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:309.8pt;border-top-color:#000000;border-bottom-style:solid}.c79{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:150pt;border-top-color:#cccccc;border-bottom-style:solid}.c83{border-right-style:solid;padding:5pt 5pt 5pt 5pt;border-bottom-color:#000000;border-top-width:1pt;border-right-width:1pt;border-left-color:#000000;vertical-align:top;border-right-color:#000000;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:55.5pt;border-top-color:#000000;border-bottom-style:solid}.c120{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:150pt;border-top-color:#2c5f8a;border-bottom-style:solid}.c91{border-right-style:solid;padding:4pt 6pt 4pt 6pt;border-bottom-color:#cccccc;border-top-width:1pt;border-right-width:1pt;border-left-color:#cccccc;vertical-align:top;border-right-color:#cccccc;border-left-width:1pt;border-top-style:solid;border-left-style:solid;border-bottom-width:1pt;width:233pt;border-top-color:#cccccc;border-bottom-style:solid}.c34{margin-left:36pt;padding-top:12pt;padding-left:0pt;padding-bottom:12pt;line-height:1.5;orphans:2;widows:2;text-align:left}.c4{padding-top:12pt;text-indent:36pt;padding-bottom:12pt;line-height:1.5;orphans:2;widows:2;text-align:justify;height:11pt}.c12{padding-top:12pt;padding-bottom:8pt;line-height:1.5;page-break-after:avoid;orphans:2;widows:2;text-align:justify;height:12pt}.c9{padding-top:0pt;text-indent:36pt;padding-bottom:8pt;line-height:1.0;orphans:2;widows:2;text-align:justify}.c1{color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:"Times New Roman";font-style:normal}.c41{padding-top:0pt;padding-bottom:0pt;line-height:1.5;orphans:2;widows:2;text-align:center;height:16pt}.c25{color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:"Times New Roman";font-style:normal}.c3{color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:12pt;font-family:"Times New Roman";font-style:normal}.c24{color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:14pt;font-family:"Times New Roman";font-style:normal}.c14{color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:16pt;font-family:"Times New Roman";font-style:normal}.c5{color:#000000;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:"Arial";font-style:normal}.c44{color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:11pt;font-family:"Arial";font-style:normal}.c19{padding-top:0pt;padding-bottom:8pt;line-height:1.5;orphans:2;widows:2;text-align:justify;height:11pt}.c0{color:#000000;font-weight:700;text-decoration:none;vertical-align:baseline;font-size:12pt;font-family:"Times New Roman";font-style:normal}.c59{padding-top:0pt;padding-bottom:10pt;line-height:1.0;orphans:2;widows:2;text-align:left}.c57{padding-top:0pt;padding-bottom:0pt;line-height:1.5;orphans:2;widows:2;text-align:center}.c17{padding-top:12pt;padding-bottom:12pt;line-height:1.5;orphans:2;widows:2;text-align:justify}.c16{padding-top:12pt;padding-bottom:8pt;line-height:1.0;orphans:2;widows:2;text-align:left}.c74{padding-top:12pt;padding-bottom:8pt;line-height:1.5;orphans:2;widows:2;text-align:justify}.c123{padding-top:0pt;padding-bottom:0pt;line-height:1.5;orphans:2;widows:2;text-align:justify}.c38{padding-top:4pt;padding-bottom:10pt;line-height:1.0;orphans:2;widows:2;text-align:center}.c28{padding-top:0pt;padding-bottom:8pt;line-height:1.5;orphans:2;widows:2;text-align:center}.c77{padding-top:6pt;padding-bottom:4pt;line-height:1.0;orphans:2;widows:2;text-align:center}.c80{padding-top:0pt;padding-bottom:8pt;line-height:1.5;orphans:2;widows:2;text-align:left}.c72{padding-top:12pt;padding-bottom:12pt;line-height:1.5;orphans:2;widows:2;text-align:left}.c88{padding-top:0pt;padding-bottom:0pt;line-height:1.5;orphans:2;widows:2;text-align:left}.c103{padding-top:12pt;padding-bottom:12pt;line-height:1.5;orphans:2;widows:2;text-align:center}.c20{padding-top:0pt;padding-bottom:0pt;line-height:1.0;orphans:2;widows:2;text-align:center}.c42{padding-top:0pt;padding-bottom:8pt;line-height:1.5;orphans:2;widows:2;text-align:justify}.c11{padding-top:0pt;padding-bottom:0pt;line-height:1.0;orphans:2;widows:2;text-align:left}.c85{padding-top:0pt;padding-bottom:8pt;line-height:1.0;orphans:2;widows:2;text-align:justify}.c8{padding-top:0pt;padding-bottom:0pt;line-height:1.0;text-align:left;height:11pt}.c40{margin-left:36pt;padding-top:3pt;padding-bottom:0pt;line-height:1.0;text-align:left}.c35{padding-top:0pt;padding-bottom:0pt;line-height:1.0;text-align:left}.c95{margin-left:-40.5pt;border-spacing:0;border-collapse:collapse;margin-right:auto}.c115{padding-top:12pt;padding-bottom:12pt;line-height:1.5;text-align:justify}.c70{border-spacing:0;border-collapse:collapse;margin-right:auto}.c53{padding-top:3pt;padding-bottom:0pt;line-height:1.0;text-align:left}.c60{vertical-align:baseline;font-size:1pt;font-style:normal}.c64{text-decoration:none;vertical-align:baseline;font-style:normal}.c58{vertical-align:baseline;font-size:10pt;font-style:italic}.c61{padding:0;margin:0}.c49{margin-left:72pt;padding-left:0pt}.c107{font-size:10pt;font-style:italic}.c110{max-width:451.3pt;padding:72pt 72pt 72pt 72pt}.c54{color:#000000;text-decoration:none}.c69{margin-left:36pt;padding-left:0pt}.c93{color:#000000;font-size:10pt}.c52{font-weight:700;font-family:"Times New Roman"}.c6{font-weight:400;font-family:"Times New Roman"}.c21{color:inherit;text-decoration:inherit}.c73{margin-left:54pt}.c111{height:16pt}.c66{text-indent:18pt}.c121{height:15.3pt}.c37{background-color:#f0f4f8}.c90{font-size:14pt}.c119{height:14pt}.c23{height:11pt}.c15{height:0pt}.c10{font-size:12pt}.c29{text-indent:36pt}.c63{color:#ffffff}.c118{margin-left:36pt}.c39{page-break-after:avoid}.c68{margin-left:18pt}.c46{background-color:#ffffff}.title{padding-top:0pt;color:#000000;font-size:28pt;padding-bottom:4pt;font-family:"Calibri";line-height:1.0;orphans:2;widows:2;text-align:justify}.subtitle{padding-top:0pt;color:#595959;font-size:14pt;padding-bottom:8pt;font-family:"Arial";line-height:1.5;orphans:2;widows:2;text-align:justify}li{color:#000000;font-size:11pt;font-family:"Arial"}p{margin:0;color:#000000;font-size:11pt;font-family:"Arial"}h1{padding-top:0pt;color:#000000;font-weight:700;font-size:16pt;padding-bottom:0pt;font-family:"Times New Roman";line-height:1.5;page-break-after:avoid;orphans:2;widows:2;text-align:center}h2{padding-top:0pt;color:#000000;font-weight:700;font-size:14pt;padding-bottom:0pt;font-family:"Times New Roman";line-height:1.5;page-break-after:avoid;orphans:2;widows:2;text-align:center}h3{padding-top:0pt;color:#000000;font-weight:700;font-size:12pt;padding-bottom:8pt;font-family:"Times New Roman";line-height:1.5;page-break-after:avoid;orphans:2;widows:2;text-align:justify}h4{padding-top:12pt;color:#000000;font-weight:700;font-size:12pt;padding-bottom:8pt;font-family:"Times New Roman";line-height:1.5;page-break-after:avoid;orphans:2;widows:2;text-align:justify}h5{padding-top:4pt;color:#2f5496;font-size:11pt;padding-bottom:2pt;font-family:"Arial";line-height:1.5;page-break-after:avoid;orphans:2;widows:2;text-align:justify}h6{padding-top:2pt;color:#595959;font-size:11pt;padding-bottom:0pt;font-family:"Arial";line-height:1.5;page-break-after:avoid;font-style:italic;orphans:2;widows:2;text-align:justify}
+VECTOR: A Decentralized Micro-Credentialing System with Predictive Career Analytics and Skill Decay Detection
+Submitted by
+Designation
+Name of Student
+Signature
+Leader
+Denulan, Ace Philip Soriano
+Members
+Amrinto, Kyle James
+De Guzman, Gemerald
+Doria, Charry Mae Sison 
+Valencia, Symon Aquino 
+Submitted to:
+Dr. Kris C. Calpotura, DIT
+Date
+January 2026
+Declaration
+This project portfolio is submitted in partial fulfillment of the requirements for the course Platform Technologies. The work presented herein is original and has been developed by the undersigned students, except where acknowledged through proper citation. All sources have been referenced according to academic standards.
+Student Signatures:
+Date: _________
+Date: _________
+Date: _________
+Date: _________
+Date: _________
+Instructor's Acknowledgment:
+Received and reviewed on: _________
+Instructor's Signature: _________________________
+Date: _________
+Table of Contents
+Declaration        1
+Abstract        4
+List of Tables        5
+List of Figures        6
+Acronym        6
+Chapter One        7
+Introduction        7
+1.1 Background and Problem Statement        7
+1.2.1 General Objectives        8
+1.2.2 Specific Objectives        9
+1.3 Platform Choice Justification        9
+1.4 Significance of the Project        10
+1.5 Scope and Limitation        11
+1.5.1 Scope        11
+1.5.2 Limitations        11
+Chapter Two        12
+2. Methodology        12
+2.1 Software Methodology        12
+2.2 Sources of Data        13
+2.3 System Requirements        14
+2.3.1 Functional Requirements        14
+2.3.2 Nonfunctional Requirements        15
+2.3.3 Software Requirements        16
+2.3.4 Hardware Requirements        17
+2.4 System Architecture        17
+2.4.1 Overall System Design        17
+2.4.2 Technical Block Diagram (User → Input → Processing → Output)        18
+2.4.3 APIs and Microservice Integrations        19
+2.4.4 API and Microservice Architecture        20
+2.5 Prototype Development Process        21
+2.6 Security Implementation        22
+2.7 Testing Methodology        23
+Chapter Three        25
+3.Results        25
+3.1 Performance Metrics        25
+3.2 Security Testing Outcomes        26
+3.3 System Functionality        27
+Chapter Four        28
+4.Discussion        28
+4.1 Interpretation of Results        28
+4.2 Challenges and Solutions        29
+4.3 Limitations and Improvements        30
+4.4 Implications and Future Work        31
+Chapter Five        32
+5.Conclusion        32
+References        34
+Appendices        35
+Abstract
+VECTOR is a decentralized micro-credentialing platform designed to address the limitations of traditional academic credential verification systems. Conventional verification methods rely on centralized databases and manual validation procedures, which may lead to inefficiencies, delays, and increased vulnerability to credential fraud. This study presents VECTOR, a hybrid Web 2.5 platform that integrates blockchain technology with artificial intelligence–driven career analytics to provide secure credential issuance, automated verification, and predictive skill analysis.
+The system utilizes ERC-1155 smart contracts deployed on the Polygon Amoy Testnet to ensure tamper-resistant credential issuance and decentralized verification. A full-stack web application developed using Next.js and Supabase manages authentication, credential storage, and user interaction. In addition, an artificial intelligence module implemented with Google Gemini and statistical analysis libraries performs skill extraction, detects skill decay trends, and generates personalized course recommendations.
+System evaluation was conducted through functional testing, security validation, and performance analysis. Results indicate that the AI skill extraction pipeline achieved an F1-score of 0.61, meeting the defined system performance threshold. Blockchain-based credential issuance and verification were successfully validated through smart contract testing and API-based verification endpoints.The findings demonstrate that integrating blockchain verification with AI-driven analytics can enhance credential authenticity, transparency, and career intelligence for modern digital learning ecosystems.
+List of Tables
+Table 1 Functional Requirements of the VECTOR Platform ................................................. 10
+Table 2 Nonfunctional Requirements Based on ISO/IEC 25010 ........................................... 11
+Table 3 Software Requirements and Technology Stack ......................................................... 12
+Table 4 AI Skill Extraction Evaluation Results ...................................................................... 20
+List of Figures
+Figure 1 VECTOR Agile SDLC – 5-Phase Iterative Development Model …………………. 8
+Figure 2 VECTOR Three-Layer System Architecture ........................................................... 14
+Figure 3 VECTOR Technical Block Diagram ........................................................................ 14
+Figure 4 VECTOR API and Microservice Architecture ........................................................ 15
+Acronym
+AI – Artificial Intelligence
+API – Application Programming Interface
+APK – Android Package Kit
+CVR – Credential Verification Repository
+ERC – Ethereum Request for Comments
+F1 Score – Harmonic Mean of Precision and Recall
+ISO – International Organization for Standardization
+JSON – JavaScript Object Notation
+NLP – Natural Language Processing
+RPC – Remote Procedure Call
+SDLC – Software Development Life Cycle
+SSI – Self-Sovereign Identity
+UI – User Interface
+UAT – User Acceptance Testing
+Chapter One
+Introduction
+1.1 Background and Problem Statement
+The global employment ecosystem is transitioning from traditional credential-based hiring toward competency-based evaluation frameworks. The World Economic Forum (2023) projects that approximately 44% of core workforce skills will undergo disruption within five years due to rapid digital transformation. Static academic qualifications no longer sufficiently represent dynamic labor market competencies. The Organisation for Economic Co-operation and Development (OECD, 2022) further reports that nearly one-third of workers are either overqualified or underqualified, reflecting structural misalignment between educational output and industry demand.
+In the Philippine context, this misalignment manifests as a dual crisis of unemployment and credential irrelevance. The Philippine Statistics Authority (2025) reports over 845,000 unemployed bachelor’s degree holders, with 43% belonging to the 15–24 age bracket. Simultaneously, sectors such as IT and BPO report skill shortages, indicating that conventional diplomas fail to capture real-time competency signals. The issue is compounded by credential fraud. Industry estimates suggest that approximately 7% of credentials submitted to Philippine employers contain misrepresentations (Avvanz, 2025). Existing verification mechanisms remain manual, resource-intensive, and vulnerable to document manipulation, enabling fraudulent credentials to circulate undetected during early recruitment stages.
+Blockchain technology offers cryptographic immutability and decentralized verification. ERC-1155 token standards deployed on Layer-2 networks such as Polygon enable scalable, tamper-proof micro-credential issuance. However, immutability alone does not address skill relevance over time. Artificial Intelligence enables predictive modeling of Skill Decay, correlating credential timestamps with industry demand signals to assess competency obsolescence.
+These converging issues establish the need for VECTOR: a Web 2.5 Hybrid decentralized micro-credentialing system integrating blockchain immutability with predictive AI-driven career analytics to transform static academic records into dynamic, verifiable skill portfolios.
+​Statement of the Problem
+​Traditional academic credentialing systems are static, vulnerable to fraud, and incapable of reflecting evolving labor market demands. Employers lack trustless, real-time verification mechanisms, while graduates lack tools to monitor skill relevance and anticipate competency obsolescence. This study aims to design and implement VECTOR, a decentralized micro-credentialing system that enables tamper-proof credential issuance and predictive Skill Decay detection.
+​        Specifically, this study aims to answer the following questions:
+How can a Web 2.5 Hybrid Architecture utilizing Polygon-based ERC-1155 tokens enhance credential reliability and integrity?
+How effective is a Hybrid AI Pipeline combining Gemini 2.5 Flash NLP and a deterministic 3-signal Weighted Velocity Scoring model in detecting Skill Decay?
+​What is the Precision@5 performance of a Cosine Similarity-based Recommendation Engine in generating relevant upskilling pathways?
+To what extent does a QR-linked Credential Verification Repository improve verification efficiency compared to traditional manual processes?
+1.2.1 General Objectives
+        
+The general objective of this study is to design, develop, and implement VECTOR: A Decentralized Micro-Credentialing System with Predictive Career Analytics and Skill Decay Detection, integrating blockchain-based immutability with AI-driven competency forecasting.
+1.2.2 Specific Objectives
+The specific objectives of the project are the following, arranged in chronological order based on the software development process:
+To analyze registrar and HR credential verification workflows and identify systemic gaps in fraud prevention and continuous skill tracking.
+To design a modular Web 2.5 Hybrid Architecture integrating a blockchain layer, AI analytics engine, and role-based dashboards.
+To develop and deploy ERC-1155 smart contracts on the Polygon Amoy Testnet for tamper-proof micro-credential issuance.
+To implement a Hybrid AI Pipeline utilizing Gemini 2.5 Flash for zero-shot skill normalization and a deterministic 3-signal Weighted Velocity Scoring model (trend slope 40%, job volume 30%, recency 30%) for Skill Decay detection.
+To implement a Cosine Similarity-based recommendation engine (ml-matrix) with Tier 1/Tier 2 domain filtering, targeting Precision@5 ≥ 0.70.
+To generate a QR-linked Credential Verification Repository (CVR) enabling trustless employer authentication.
+To evaluate AI performance (F1 ≥ 0.60 baseline), blockchain minting latency, and system compliance with ISO/IEC 25010:2023 quality characteristics.
+1.3 Platform Choice Justification
+The VECTOR platform adopts a Web 2.5 Hybrid Architecture consisting of:
+Polygon Layer-2 blockchain (ERC-1155) for credential immutability
+Next.js serverless application layer as an Off-Chain Mirror
+Supabase (PostgreSQL) for off-chain metadata and Skill Health Cache
+Google Gemini 2.5 Flash for zero-shot NLP normalization
+        Gemini 2.5 Flash is strictly confined to skill extraction and normalization of unstructured credential text. Quantitative forecasting is executed using a deterministic Weighted Velocity Scoring model combining trend slope (40%), job volume (30%), and recency (30%), producing a bounded velocityScore ∈ [0,100].
+ARIMA forecasting was formally evaluated but deferred due to insufficient temporal density within the market_snapshots dataset. A minimum accumulation period of 6–12 months of daily snapshots is required before ARIMA achieves statistical validity. This principled deferral prevents unreliable predictive outputs during the prototype phase.
+Cosine Similarity (ml-matrix) is selected for recommendation generation due to its deterministic behavior and empirically validated performance in course recommendation systems.
+1.4 Significance of the Project
+The development of 
+VECTOR
+ holds significant value for the following stakeholders:
+For the Technology Industry:
+ This project demonstrates the practical application of decentralized applications (dApps) beyond financial use cases. It serves as a proof-of-concept for using ERC-1155 tokens to manage intellectual property and verified records, contributing to the broader adoption of Web3 architecture in enterprise data management.
+For Educational Institutions (Registrars):
+ The platform modernizes administrative workflows by replacing manual signing and sealing with cryptographic signatures. This reduces fraud liability and drastically cuts the man-hours required to respond to background checks.
+For Employers and HR Offices:
+ The system provides an instant, trustless verification method. By utilizing the QR-linked Credential Verification Repository (CVR), employers can validate candidate claims in seconds without needing to contact the issuing university, streamlining the recruitment lifecycle.
+For Students and Alumni:
+ It grants individuals "Self-Sovereign Identity" (SSI) over their achievements. The AI integration further adds value by providing data-driven alerts on when their skills are becoming obsolete, enabling proactive upskilling to maintain market relevance.
+1.5 Scope and Limitation
+1.5.1 Scope
+The project encompasses the full-stack development of 
+VECTOR
+ as a prototype system. The technical scope includes:
+ERC-1155 smart contracts deployed on Polygon Amoy Testnet
+Next.js serverless backend acting as an Off-Chain Mirror
+Supabase-based Skill Health Cache for precomputed trend slopes
+Gemini 2.5 Flash NLP for skill extraction
+3-signal Weighted Velocity Scoring for Skill Decay detection
+Cosine Similarity recommendation engine
+QR-linked Credential Verification Repository (CVR)
+1.5.2 Limitations
+Network Dependency:
+ The system functions rely on the uptime and latency of the Polygon Amoy Testnet and public RPC nodes; network congestion may result in delayed transaction confirmations.
+Test Environment:
+ As a prototype, the system operates on a testnet environment using test currency (MATIC/POL). Real-world financial costs of minting on the Mainnet are calculated but not incurred during the study.
+AI Data Constraints:
+ The "Career Coach" and "Skill Decay" predictions are limited to the dataset provided during the training/configuration phase and do not pull live, real-time job market data from the open internet during the pilot.
+Browser Compatibility:
+ The application requires a Web3-enabled browser environment (or extensions like MetaMask) for the Registrar and Student roles to sign transactions; it is not designed as a native mobile application.
+Recommendation Cold Start:
+ The Collaborative Filtering engine relies on existing peer enrollment data to generate suggestions. Consequently, initial recommendations for early users may rely solely on content-based matching until sufficient enrollment data is populated within the system.
+Chapter Two
+2. Methodology
+2.1 Software Methodology
+The VECTOR system was developed using the Agile Methodology with an iterative sprint-based approach. Agile was selected because the integration of blockchain smart contracts and AI analytics demands continuous refinement based on testing outcomes—a development context poorly suited to sequential, waterfall-style processes. The methodology is structured across five phases, each producing a measurable deliverable before the next phase commences.
+Figure 1. VECTOR Agile SDLC — 5-Phase Iterative Development Model
+Phase
+Activities
+Deliverable
+Justification
+Phase 1Analysis & Requirements Gathering
+Stakeholder interviews with registrars and HR officers; gap analysis of existing verification workflows; alignment with IEC 25010:2023 quality attributes
+Requirements Specification Document; use case diagrams; functional and non-functional requirements matrix
+Ensures system design is grounded in real institutional needs rather than assumptions; prevents costly redesign in later phases
+Phase 2System Design
+Architecture design (blockchain, AI, and web/mobile layers); database schema design; API contract specification; UI/UX wireframing for PWA and APK
+System Architecture Diagram; ER Diagrams; API specification; UI mockups
+A well-defined architecture reduces integration risk and provides a shared technical blueprint for parallel development of blockchain and AI components
+Phase 3Sprint 1 (MVP)
+ERC-1155 smart contract deployment on Polygon Amoy Testnet; registrar batch-upload module; student wallet and QR-linked CVR generation; Supabase schema and authentication setup
+Functional MVP: credential minting, CVR generation, and public verification portal
+Sprint 1 isolates the core blockchain functionality, enabling early validation of the most technically complex component before AI features are layered in
+Phase 3Sprint 2 (AI + Mobile)
+Gemini 2.5 Flash NLP integration; 3-signal Weighted Velocity Scoring; Cosine Similarity engine; F1 evaluation (evaluate-extractor.ts + golden dataset); Android APK; Supabase Realtime notifications; security hardening
+AI Career Coach; skill health dashboard; F1: 0.61 baseline; Android APK; completed full-stack integration
+Separating AI integration into Sprint 2 allows blockchain stability to be confirmed before introducing complexity; F1 evaluation provides objective accuracy baseline for defense
+Phase 4Testing & Evaluation
+Unit testing (Hardhat, Jest); integration testing; system testing against IEC 25010:2023; AI accuracy benchmarking (F1, Precision, Recall); UAT with registrars and students
+Test reports; defect logs; IEC 25010:2023 compliance matrix; AI accuracy metrics
+Structured testing against an international quality standard provides objective, defensible evaluation criteria beyond mere functional correctness
+Phase 5Deployment & Documentation
+Final Amoy Testnet deployment; APK build and distribution; user manuals for registrars and students; technical documentation; project portfolio submission
+Deployed system; user manuals; technical documentation; final project report
+Documentation ensures the system is transferable and maintainable beyond the study period; aligns with academic and institutional accountability requirements 
+2.2 Sources of Data
+The VECTOR platform leverages two primary data streams to power its Skill Decay Detection and AI Career Coach capabilities:
+Blockchain Transaction Data: 
+Immutable, time-stamped records of issued micro-credentials stored on the Polygon ledger. Each credential's issuance date, issuer wallet, and metadata URI are permanently recorded on-chain, providing a tamper-resistant chronological baseline for skill age analysis.
+Industry Reference Dataset: 
+A pre-configured off-chain dataset containing industry-defined skill lifespans, competency relevance thresholds, and domain-specific obsolescence windows. This dataset is curated from published labor market reports (WEF, OECD, DOLE-TESDA) and updated periodically by system administrators.
+External Job Market API (JSearch via RapidAPI / Adzuna API): 
+Real-time job posting data is ingested to provide contextual labor market signals for skill demand trend analysis. The JSearch API aggregates listings from LinkedIn, Indeed, and Glassdoor, while Adzuna provides structured job market analytics with documented data provenance. Both APIs are commercially maintained, utilize standardized job taxonomy (O*NET/ESCO), and serve active enterprise clients—establishing them as sufficiently trusted and accurate sources for skill demand trend analysis. API responses are validated against the internal reference dataset before influencing skill health scores, providing an additional accuracy safeguard.
+2.3 System Requirements
+The technical foundation of the VECTOR platform is built upon a high-performance, decentralized framework designed to bridge the gap between static academic records and a dynamic, AI-enhanced verification repository. These requirements ensure that the platform remains scalable on the Polygon network while delivering actionable career insights through the integration of large language models and statistical analysis libraries. To ensure a robust implementation that balances security with user accessibility, the system's requirements have been categorized into functional, non-functional, software, and hardware specifications; specifically, the technical blueprint and necessary components for the system’s realization include:
+ 
+2.3.1 Functional Requirements
+Table 1: Functional Requirements of the VECTOR Platform
+ID
+REQUIREMENT
+DESCRIPTION
+FR-01
+Registrar Data Management
+System shall enable authorized registrars to batch-upload student records via CSV, validate, and queue them for on-chain minting.
+FR-02
+Blockchain Credential Issuance
+System shall mint ERC-1155 micro-credentials on Polygon Amoy Testnet, immutably linking each token to a student wallet.
+FR-03
+AI Skill Decay Detection
+System shall compute a velocityScore [0-100] per skill using 3-signal Weighted Velocity Scoring (slope 40%, volume 30%, recency 30%) and assign a trend_label (Rising/Stable/Decaying).
+FR-04
+AI Upskilling Recommendations
+System shall generate personalized course recommendations using Cosine Similarity with Tier 1/Tier 2 domain filtering based on detected skill gaps.
+FR-05
+Credential Verification Repository (CVR)
+System shall auto-generate a QR-linked public verification page per student, accessible by employers without authentication.
+FR-06
+Student Wallet
+System shall provide a student dashboard (PWA and APK) for viewing credentials, skill health ticker, and AI career insights with real-time notifications.
+FR-07
+Employer Verification Portal
+System shall provide a public portal for employers to scan QR codes and instantly verify credential authenticity, issuer identity, and issuance timestamp.
+FR-08
+AI Model Accuracy
+NLP skill extraction (Gemini zero-shot) shall achieve a minimum F1-score of 0.60 on a 20-case golden dataset spanning 4 credential types (academic, bootcamp, event, government/TESDA/DICT). Achieved baseline: F1 0.61, Precision 0.62, Recall 0.60 (SOFT match). Recommendation engine (Cosine Similarity) shall achieve Precision@5 >= 0.70.
+2.3.2 Nonfunctional Requirements
+Non-functional requirements are expressed as quality characteristics per ISO/IEC 25010:2023. The table below specifies optimal (acceptable for production) and minimum (acceptable for prototype validation) thresholds.
+Table 2: Nonfunctional Requirements Based on ISO/IEC 25010:2023
+Quality Characteristic
+Sub-characteristic
+Optimal Target
+Minimum Acceptable
+Functional Suitability
+Functional Completeness
+All 8 FRs implemented and verified
+FR-01 to FR-07 verified; FR-08 partially evaluated
+Performance Efficiency
+Response Time
+Credential verification: <= 2 seconds
+<= 5 seconds under normal network conditions
+Performance Efficiency
+Blockchain Confirmation
+Amoy Testnet: <= 15 seconds per mint
+<= 30 seconds (network congestion tolerance)
+Performance Efficiency
+Batch Minting Cost
+<= $0.001 per credential (Mainnet estimate)
+<= $0.005 per credential
+Reliability
+Availability
+>= 99.5% uptime (excluding Testnet downtime)
+>= 95% uptime during evaluation period
+Reliability
+Fault Tolerance
+Smart contract reverts on invalid input without state corruption
+All tested error cases handled gracefully
+Security
+Integrity
+Zero unauthorized minting events in testing
+All access control tests passed
+Security
+Confidentiality
+All API routes over HTTPS; PII stored off-chain only
+No PII transmitted on-chain; HTTPS enforced
+Usability
+Learnability
+SUS score >= 80 (Excellent) from UAT participants
+SUS score >= 68 (Above Average)
+Maintainability
+Modularity
+Each microservice independently deployable
+Core, AI, and Verification services independently testable
+Portability
+Installability
+APK installable on Android 9+ without errors
+APK installable on Android 10+
+2.3.3 Software Requirements
+Table 3: Software Requirements and Technology Stack
+Layer
+Component
+Technology / Version
+Blockchain
+Development Framework
+Hardhat v2.28
+Blockchain
+Blockchain Interaction
+Ethers.js v6
+Blockchain
+Smart Contract Language
+Solidity (ERC-1155 standard)
+Blockchain
+Testnet
+Polygon Amoy Testnet (Chain ID: 80002)
+Application
+Frontend Framework
+Next.js 15+ (App Router)
+Application
+UI Styling
+TailwindCSS + Lucide React + Framer Motion
+Application
+Web3 Connectivity
+RainbowKit, Wagmi, Viem
+Application
+Mobile (APK)
+Android APK (Capacitor / TWA)
+Database & Backend
+Database
+Supabase (PostgreSQL)
+Database & Backend
+ORM
+Prisma ORM
+Database & Backend
+Backend Logic
+Next.js Serverless API Routes
+AI & Analytics
+NLP Engine
+@google/generative-ai — Gemini 2.5 Flash (GEMINI_MODEL constant; geminiModel singleton in lib/gemini.ts)
+AI & Analytics
+Skill Decay Scoring
+simple-statistics v7.8 (slope); custom 3-signal Weighted Velocity algorithm
+AI & Analytics
+Time-Series Forecasting (Future)
+ARIMA — planned upgrade path after 6-12 months of market_snapshots accumulation
+AI & Analytics
+Recommendation Engine
+ml-matrix v6.10 (Cosine Similarity)
+Storage & Utilities
+Decentralized Storage
+IPFS via Pinata
+Storage & Utilities
+PDF Generation
+@react-pdf/renderer
+External APIs
+Job Market Data
+JSearch API (RapidAPI) + Adzuna API
+2.3.4 Hardware Requirements
+Context
+Device
+Minimum Specification
+Client — Registrar
+Desktop / Laptop
+Modern web browser (Chrome 90+, Firefox 88+); MetaMask extension; stable internet connection
+Client — Student
+Mobile Device (Android)
+Android 9.0+; camera (for QR scanning); 2 GB RAM; internet connection
+Client — Employer
+Any device
+Web browser with camera access for QR code scanning; no account required
+Server
+Cloud Hosting
+Vercel (Next.js deployment); Supabase cloud instance; Polygon Amoy public RPC endpoint
+2.4 System Architecture
+The system is organized into a monorepo structure that separates concerns while sharing critical logic. It utilizes a hybrid architecture where the core application logic utilizes a 
+Serverless Modular Monolith architecture.
+ The development environment functions as a unified codebase for type safety and consistency, while the deployment infrastructure utilizes serverless functions (via Next.js API routes) to ensure automatic scalability and cost-efficiency.
+2.4.1 Overall System Design
+The system architecture is divided into three primary functional layers that interact through a shared logic package to maintain data consistency:
+Blockchain Layer.  This layer manages the Solidity smart contracts on the Polygon Amoy Testnet. It utilizes the ERC-1155 standard to handle semi-fungible micro-credentials, ensuring each achievement is immutable and cryptographically linked to a student’s wallet.
+Application & Logic Layer.  Built with Next.js 15+ and Supabase, this layer serves as the "Off-Chain Mirror" and identity manager. It handles Supabase Auth for identity management and uses Prisma ORM to manage the PostgreSQL database, which stores off-chain details including registrar logs, student portfolios, and the 
+AI Skill Health Cache
+. This caching layer stores pre-calculated trend slopes to reduce API latency and computational costs during dashboard loading.
+AI & Machine Learning Layer.  This layer provides the "Intelligence" of the system. It utilizes Google Gemini 2.5 Flash for natural language processing (NLP) to extract skills, while libraries like simple-statistics and ml-matrix calculate Skill Decay slopes and Collaborative Filtering for course recommendations.
+Figure 2. VECTOR — Three-Layer System Architecture
+2.4.2 Technical Block Diagram (User → Input → Processing → Output)
+The following visual representation delineates the technical progression of the system, mapping the data journey from initial user input through decentralized processing to the final intelligent output:
+Diagram I
+Figure 3. VECTOR — Technical Block Diagram (User → Input → Processing → Output)
+2.4.3 APIs and Microservice Integrations
+The AI pipeline employs a deliberate hybrid architecture that assigns each algorithm to the task it performs most reliably:
+Algorithm
+Role in VECTOR
+Justification
+Google Gemini 2.5 Flash (NLP)
+Zero-shot skill extraction and normalization from credential text
+State-of-the-art instruction-following; used only for text normalization where hallucination risk is mitigated by downstream deterministic validation. Free tier: 5 RPM / 20 RPD.
+3-Signal Weighted Velocity Scoring
+Skill Decay health score: slope (40%) + job volume (30%) + recency (30%) = velocityScore [0-100]
+Deterministic and interpretable; statistically appropriate for current data density; directly outputs student-facing health scores. Kotsiantis et al. (2023) validate slope-based trend analysis for academic credential datasets.
+Cosine Similarity (ml-matrix)
+Course recommendation based on skill-vector proximity with Tier 1/Tier 2 domain filtering
+Park et al. (2023) report F1 >= 0.85 for cosine similarity in course recommendation; deterministic and free from generative hallucination.
+ARIMA (Deferred — Future Work)
+Time-series forecasting of skill demand for volatile/cyclical competencies
+Rahman & Watanobe (2024) confirm ARIMA superiority for non-stationary signals but require sufficient historical data density. Current market_snapshots requires 6-12 months of daily cron accumulation before ARIMA is statistically valid.
+The Weighted Velocity Scoring model is the production implementation for Skill Decay in this prototype. Linear Regression is used as one of three input signals (slope component). ARIMA was formally evaluated and deliberately deferred due to insufficient data density in the current market_snapshots table—a statistically principled decision supported by Rahman and Watanobe (2024). ARIMA remains the documented upgrade path and will be revisited after 6-12 months of daily cron-driven snapshot accumulation.
+2.4.4 API and Microservice Architecture
+VECTOR operates through four logically separated microservices. The diagram below illustrates the complete API and microservice flow:
+Figure 4. VECTOR — API & Microservice Architecture
+Core API: 
+Server-side blockchain credential issuance. Validates batch-uploaded records, constructs ERC-1155 metadata, and submits minting transactions using a secured server-side wallet preventing client-side private key exposure. Step 8b inserts student notifications using superbase Admin service role to bypass RLS.
+AI Service: 
+Skill extraction via Gemini 2.5 Flash zero-shot NLP, Skill Decay computation via 3-signal Weighted Velocity Scoring, and upskilling recommendation generation via Cosine Similarity. Results are cached in the Supabase Skill Health Cache to minimize repeat API calls and reduce latency on dashboard load.
+Recommendation Service: 
+Performs collaborative filtering using student_course_enrollment data and ml-matrix vector similarity to identify relevant upskilling pathways based on peer enrollment patterns. Tier 1/Tier 2 domain filtering ensures relevance; explore fallback handles cold-start cases.
+Verification Service: 
+Public-facing, authentication-free endpoint. Retrieves on-chain credential data via Polygon RPC and combines with IPFS-stored metadata to present the CVR—enabling employer verification without any system account.
+2.5 Prototype Development Process
+The development of the VECTOR: A Decentralized Micro-Credentialing System with Predictive Career Analytics and Skill Decay Detection prototype followed an Agile, sprint-based development methodology. This approach emphasized iterative development, continuous testing, and incremental delivery of system functionalities. The prototype was developed across two major sprints, each aligned with the prescribed course modules and producing measurable functional outputs that were evaluated before proceeding to the next phase.
+For sprint one, the researchers focused on the implementation of the system’s foundational components, forming the minimum viable product (MVP) of the VECTOR platform. The primary objective of this sprint was to establish secure, decentralized credential issuance and verification. Development activities included the creation and deployment of ERC-1155 smart contracts on the Polygon Amoy Testnet, enabling the minting of immutable micro-credentials. Registrar batch-upload functionality was implemented to support large-scale credential issuance, while wallet-based identity association ensured credentials were cryptographically linked to their rightful owners. The initial application framework using Next.js and Tailwind CSS was established, along with Supabase authentication and database schemas to store off-chain metadata. By the end of Sprint One, the system demonstrated the ability to mint blockchain-backed credentials and generate QR-linked Credential Verification Repositories (CVRs) for public verification.
+For sprint two, the researchers focused on system expansion, advanced feature integration, and refinement of existing functionalities. This phase introduced the AI Career Coach powered by Google Gemini 2.5 Flash, enabling automated analysis of credential relevance and detection of Skill Decay based on predefined industry lifespans. Statistical and matrix-based libraries were integrated to support decay forecasting and upskilling recommendation generation. API integrations between the blockchain layer, AI services, application logic, and Supabase backend were completed to ensure secure and seamless data exchange. Enhancements were also applied to the registrar dashboard, student credential views, and public verification portals. Security measures, including transaction authorization checks and input validation, were strengthened based on testing results.
+This sprint-based development process adhered to Agile best practices by enabling continuous feedback incorporation, reducing implementation risks, and ensuring progressive alignment with the project objectives.
+2.6 Security Implementation
+Security was a fundamental design consideration in the development of the VECTOR platform due to the sensitive nature of academic records and the irreversible characteristics of blockchain-based credential issuance. The system adopts a layered security approach that combines blockchain-level protections, application-layer safeguards, secure data handling practices, and controlled AI service integration to ensure confidentiality, integrity, and authenticity across all operations.
+At the blockchain level, ERC-1155 smart contracts were designed and implemented following established best practices to prevent common vulnerabilities such as unauthorized minting, improper access control, and transaction manipulation. Credential minting is restricted to authorized registrar wallets through server-side authorization checks, ensuring that only legitimate institutional actors can issue credentials. Once minted, credentials are cryptographically signed and recorded on the Polygon blockchain, providing immutability and verifiable provenance that prevents post-issuance alteration or forgery.
+Within the application layer, security mechanisms were implemented to protect user interactions and backend processes. Input validation is enforced on both client-side and server-side components to mitigate risks such as malformed data submission and injection attacks. Authentication and role-based access control are managed through Supabase, ensuring that registrars, students, and third-party verifiers have access only to functionalities relevant to their roles. All serverless API communications operate over secure HTTPS channels with token-based authorization to prevent unauthorized access and data interception.
+Data privacy and storage security were also prioritized through the separation of on-chain and off-chain data. Sensitive academic metadata and user profiles are stored off-chain within Supabase, protected by access control policies and database-level security configurations. Supporting documents and credential metadata stored on IPFS via Pinata utilize content-addressable hashes, ensuring that publicly accessible verification materials cannot be altered without detection. Additionally, interactions with the AI Career Coach are conducted using anonymized or minimally scoped data to reduce exposure of personally identifiable information during analytics processing.
+Collectively, these security measures provide a robust framework that safeguards academic credentials against fraud, unauthorized access, and data tampering, while preserving the transparency and trust advantages inherent to decentralized systems.
+2.7 Testing Methodology
+Testing is structured across four levels, aligned with the IEC 25010:2023 quality characteristics and documented per IEEE 829 standards:
+Testing Level
+Scope
+Tools
+Quality Characteristics Covered
+Unit Testing
+Individual components: smart contract logic, API routes, AI algorithm outputs (F1/Precision/Recall), UI components
+Hardhat (smart contracts); Jest (frontend); evaluate-extractor.ts (AI accuracy)
+Functional Suitability, Reliability
+Integration Testing
+Cross-component data flow: registrar upload → minting → CVR generation → student dashboard; AI service invocation; Realtime notification delivery
+Postman (API), Hardhat (blockchain-backend integration)
+Functional Suitability, Performance Efficiency
+System Testing
+Full platform against all FRs and NFRs; blockchain performance metrics (minting latency, cost); AI accuracy benchmarking (F1: 0.61 baseline)
+Browser developer tools; Supabase monitoring; Postman
+All IEC 25010:2023 characteristics
+User Acceptance Testing (UAT)
+Usability and practical effectiveness with registrar and student participants; SUS questionnaire administration
+SUS Questionnaire; structured task scenarios
+Usability, Functional Suitability
+AI model accuracy is evaluated as follows: NLP skill extraction (Gemini 2.5 Flash zero-shot) is assessed using Precision, Recall, and F1-score with SOFT matching against a 20-case golden dataset spanning 4 credential types (academic degree, bootcamp certificate, event badge, government/TESDA/DICT certification). The prototype achieved F1: 0.61, Precision: 0.62, Recall: 0.60—meeting the FR-08 minimum threshold of F1 >= 0.60. Weighted Velocity Scoring outputs are validated by cross-referencing velocityScore trends against market_snapshots data for consistency. The Cosine Similarity recommendation engine is evaluated using Precision@5. ARIMA, while not implemented in this prototype, is formally documented as the upgrade path with its data-density prerequisites noted for future research.
+Chapter Three
+3.Results
+3.1 Performance Metrics
+        
+This section presents the observed performance of the VECTOR platform during testing. The evaluation focused on the accuracy of the AI skill extraction pipeline, the reliability of blockchain credential issuance, and the responsiveness of system APIs used for credential verification and analytics.
+The AI extraction component was evaluated using a labeled golden dataset containing diverse credential text samples. The evaluation script compared extracted skills against manually labeled ground truth values and computed precision, recall, and F1-score. The results are summarized in Table 4.
+Table 4: AI Skill Extraction Evaluation Results
+Metric
+Result
+Requirement
+Status
+Precision
+0.62
+≥0.60
+Passed
+Recall
+0.62
+≥0.60
+Passed
+F1 Score
+0.61
+≥0.60
+Passed
+Recommendation Precision@5
+≥0.70 (target)
+≥0.70
+Target Defined
+        
+The results indicate that the AI extraction pipeline achieved an F1 score of 0.61, exceeding the minimum threshold defined in the system requirements. Precision and recall values demonstrate balanced extraction accuracy across multiple credential categories. These outcomes confirm that the AI module provides sufficiently reliable skill signals for downstream analytics such as skill health forecasting and recommendation generation.
+Blockchain credential issuance was validated through successful deployment and minting operations on the Polygon Amoy test network. Registrars were able to execute mint transactions through the integrated dashboard interface, and the resulting token identifiers and transaction hashes were recorded within the system database. Verification APIs successfully retrieved blockchain state through JSON-RPC queries, confirming token ownership and credential authenticity.
+System response behavior was evaluated through repeated invocation of verification and analytics endpoints. Requests successfully retrieved credential metadata and on-chain verification status, demonstrating that the web portal, blockchain interface, and database layer operate cohesively during runtime operations.
+3.2 Security Testing Outcomes
+Security validation was conducted to confirm that the system’s protective mechanisms effectively prevent unauthorized access and malicious input.The following security outcomes were observed during testing:
+Unauthorized attempts to access registrar-only routes were blocked through role-based middleware enforcement.
+Public verification APIs successfully enforced rate-limiting protections, preventing excessive request attempts beyond configured thresholds.
+CSV upload validation mechanisms rejected malformed files and prevented formula injection attempts during credential batch uploads.
+Sensitive registrar notes were encrypted before database storage using AES-256 encryption routines.
+Authentication workflows enforced verification procedures, preventing access from unverified accounts.
+Input validation schemas implemented through Zod ensured that API payloads containing malformed or unexpected data were rejected prior to processing.
+These results demonstrate that the implemented security architecture successfully protects critical system functions, including credential issuance, database access, and public verification services.
+3.3 System Functionality
+Functional testing confirmed that the primary workflows of the VECTOR platform operate correctly and integrate multiple system components.Credential issuance functionality allowed registrars to define credential schemas, upload student credential information, and execute blockchain-backed mint transactions. Each successful issuance produced a corresponding blockchain transaction, database credential record, and notification event.Students were able to access the platform dashboard and view verified credentials associated with their accounts. The dashboard displayed credential metadata, skill tags, and activity logs representing recent issuance events.
+The AI analytics module generated skill health analysis and course recommendations when students accessed the career analytics interface. The system aggregated credential-derived skills, analyzed labor market signals, and produced recommendations aimed at improving future employability.Public verification services enabled external users to validate credentials through verification endpoints. These endpoints retrieved database records and confirmed blockchain token ownership through Polygon Amoy RPC queries before returning verification responses. This functionality allows employers or third parties to confirm the authenticity of issued credentials without requiring privileged access to the internal system.Future documentation will include screenshots demonstrating registrar credential issuance, student dashboard views, and public verification pages to provide visual confirmation of system functionality.
+Chapter Four
+4.Discussion
+4.1 Interpretation of Results
+The results presented in Chapter 3 demonstrate that the VECTOR platform successfully integrates blockchain-based credential verification with AI-driven career analytics within a unified system architecture. The observed evaluation metrics provide evidence that the implemented subsystems namely the AI extraction module, blockchain credential infrastructure, and web application layer operate cohesively to achieve the objectives defined in Chapter 1.
+The AI extraction component achieved a measured F1 score of 0.61 with precision and recall values of 0.62 and 0.60 respectively. These values exceed the minimum performance threshold established during system design, indicating that the extraction mechanism is capable of reliably identifying skill entities from heterogeneous credential text. While the achieved accuracy does not yet reach the level of specialized machine-learning models trained on large domain-specific datasets, it demonstrates that the hybrid extraction strategy employed in the system is sufficiently effective for early-stage career analytics. In practice, the extraction pipeline provides meaningful structured inputs for subsequent modules such as skill health forecasting and course recommendation generation.
+The blockchain subsystem also demonstrated reliable operation during testing. Credential issuance through ERC-1155 smart contracts deployed on the Polygon Amoy test network successfully produced verifiable token records associated with student wallets. The verification APIs were able to independently query blockchain state and confirm token ownership using JSON-RPC calls. This behavior validates the system’s decentralized verification approach, where credential authenticity can be confirmed without reliance on centralized databases. Such architecture improves transparency and reduces the risk of credential tampering or falsification.
+At the system level, the platform demonstrated stable end-to-end workflow execution. Registrars were able to issue credentials, students were able to view and analyze their verified skills, and external parties were able to perform public credential verification. The successful interaction between the web portal, blockchain infrastructure, AI engine, and relational database confirms that the proposed modular architecture effectively supports the intended functionality of the platform.Overall, the observed results suggest that the VECTOR platform provides a technically feasible solution for integrating decentralized credential verification with intelligent career analytics, fulfilling the design objectives established in the earlier chapters of this study.
+4.2 Challenges and Solutions
+The development of the VECTOR platform involved several technical challenges associated with integrating heterogeneous technologies including blockchain infrastructure, artificial intelligence processing, and secure web application frameworks.One major challenge involved the synchronization of blockchain operations with traditional web application workflows. Unlike conventional database transactions, blockchain interactions require asynchronous confirmation through distributed network consensus. This introduces latency and uncertainty into application logic. To address this challenge, the researchers implemented transaction monitoring mechanisms through Ethers.js and designed the registrar dashboard to handle wallet-based signing operations via MetaMask. The system architecture separates blockchain confirmation from database persistence, ensuring that credential records are stored only after successful transaction verification.
+Another significant challenge involved processing credential text with varying structure and terminology. Academic certificates, training credentials, and professional certifications often describe skills using inconsistent vocabulary. This variability complicates automated skill extraction processes. To mitigate this issue, the AI pipeline incorporated normalization routines and evaluation against a manually curated golden dataset. This evaluation process allowed the researchers to calibrate extraction behavior and measure accuracy using precision, recall, and F1 metrics.
+Security considerations also introduced development complexity. Because the platform exposes public verification endpoints and administrative credential issuance routes, strong input validation and access control mechanisms were required. The system therefore incorporates multiple security layers including role-based access control, schema validation using Zod, request rate limiting, encrypted storage of sensitive notes, and authentication verification workflows. These measures collectively reduce the risk of injection attacks, unauthorized credential manipulation, and data exposure.
+Integration complexity represented another development challenge. The platform combines several subsystems including blockchain smart contracts, an AI analysis engine, and a Next.js-based web application. Coordinating these components required a modular design approach in which each subsystem operates independently but communicates through well-defined API routes. The monorepo architecture used in the project allowed shared dependencies and consistent configuration across modules, significantly simplifying integration management.Through these solutions, the researchers were able to overcome the principal technical challenges encountered during system development.
+4.3 Limitations and Improvements
+Despite the successful implementation of the VECTOR platform, several limitations were identified during testing and evaluation.One limitation relates to the accuracy of the AI extraction module. While the measured F1 score of 0.61 satisfies the system’s minimum performance requirement, it indicates that the model may still miss certain skills or incorrectly classify ambiguous text segments. This limitation is primarily due to the relatively small dataset used during evaluation. Future improvements could involve training specialized machine-learning models on larger domain-specific datasets to improve extraction accuracy and reduce ambiguity in skill detection.
+A second limitation concerns blockchain testing conditions. All blockchain interactions were performed on the Polygon Amoy test network rather than a production environment. Although the test network accurately simulates blockchain functionality, real-world deployment would introduce additional variables such as transaction fees, network congestion, and higher operational traffic. Additional testing under production conditions would therefore be necessary to evaluate long-term system performance.
+Another limitation involves the scope of market intelligence data used for career analytics. The current implementation relies on periodic snapshots of job market data to estimate skill demand trends. While this provides useful insights, more comprehensive datasets could significantly improve the accuracy of skill health forecasting and course recommendation algorithms. Integrating additional labor market sources or real-time data feeds could enhance the predictive capabilities of the platform.
+The user interface also represents an area for potential improvement. Although the current interface supports all core system workflows, additional usability studies could identify opportunities to improve accessibility, visualization clarity, and interaction efficiency for students and registrars.Addressing these limitations would further strengthen the reliability and scalability of the VECTOR platform in future implementations.
+4.4 Implications and Future Work
+The development of VECTOR demonstrates the potential benefits of combining decentralized credential verification with AI-driven analytics within digital education ecosystems.Blockchain-based credential systems have the potential to significantly improve trust and transparency in academic record management. By storing credential proofs on a decentralized ledger, institutions can provide tamper-resistant verification mechanisms that reduce administrative overhead and minimize fraud risks. Such systems could simplify credential validation for employers and training institutions while providing students with portable, verifiable records of achievement.
+The integration of AI analytics further enhances the value of digital credential platforms. By analyzing skill trends and labor market signals, systems like VECTOR can provide personalized insights that support career planning and continuous learning. This capability could help students identify emerging skill gaps and make informed decisions regarding professional development.Future development of the platform could focus on expanding the scale and accuracy of market intelligence integration. Incorporating additional job market datasets, training catalogs, and industry certification frameworks could significantly improve the quality of recommendation outputs.
+Another potential direction involves interoperability with decentralized identity standards and global digital credential frameworks. Integrating decentralized identifiers (DIDs) and verifiable credential standards could allow the platform to operate across institutions, enabling broader adoption beyond a single academic environment.Finally, real-world deployment in educational institutions would provide valuable insights regarding system usability, scalability, and adoption barriers. Such deployment would allow further refinement of both the blockchain credential infrastructure and the AI analytics components.
+Chapter Five
+5.Conclusion
+This study presented the design and implementation of VECTOR, a decentralized micro-credentialing and career analytics platform that integrates blockchain-based credential verification with artificial intelligence–driven skill analysis. The system was developed to address limitations in traditional credential verification systems, which often rely on centralized databases and manual validation procedures that may be vulnerable to fraud or inefficiency.
+The implemented platform combines several technological components including a full-stack web application, a blockchain credential infrastructure built on ERC-1155 smart contracts, and an AI engine capable of analyzing skill trends and generating career recommendations. Through this architecture, the platform enables registrars to issue verifiable credentials, allows students to monitor verified skills and career insights, and provides external stakeholders with publicly accessible verification mechanisms.
+Evaluation results demonstrated that the platform functions reliably across its core subsystems. The AI extraction module achieved acceptable performance levels based on precision, recall, and F1 evaluation metrics. Blockchain credential issuance and verification were successfully executed through the Polygon test network, confirming the viability of decentralized credential validation. Security testing also indicated that the implemented safeguards—including input validation, encryption mechanisms, and access control policies—effectively protect system operations.
+The successful integration of blockchain verification, AI analytics, and modern web technologies demonstrates that decentralized credential platforms can provide both secure credential management and meaningful career intelligence. While further improvements are possible in areas such as AI accuracy, market data integration, and user interface design, the implemented system provides a functional prototype capable of supporting future research and real-world deployment.
+In conclusion, the VECTOR platform successfully addresses the research objectives established in Chapter 1 by demonstrating a secure and intelligent approach to digital credential management. The results indicate that decentralized credential verification combined with AI-driven analytics can offer significant benefits for students, educational institutions, and employers seeking more reliable and data-driven credential systems.The platform is therefore considered suitable for continued development, further evaluation, and potential deployment in academic or professional credentialing environments.
+References
+Ethers.js. (2024). Ethers.js documentation. Retrieved from
+ https://docs.ethers.org/
+Google. (2024). Google Generative AI (Gemini) API documentation. Retrieved from
+ https://ai.google.dev/docs
+Hardhat Foundation. (2024). Hardhat Ethereum development environment documentation. Retrieved from
+ https://hardhat.org/docs
+MetaMask. (2024). MetaMask developer documentation. Retrieved from
+ https://docs.metamask.io/
+Next.js Team. (2024). Next.js documentation. Vercel. Retrieved from
+ https://nextjs.org/docs
+Node.js Foundation. (2024). Node.js documentation. Retrieved from
+ https://nodejs.org/en/docs/
+OpenZeppelin. (2024). OpenZeppelin smart contracts library. Retrieved from
+ https://docs.openzeppelin.com/contracts/
+OWASP Foundation. (2023). OWASP top ten web application security risks. Retrieved from
+ https://owasp.org/www-project-top-ten/
+Polygon Technology. (2024). Polygon developer documentation. Retrieved from
+ https://docs.polygon.technology/
+Prisma. (2024). Prisma ORM documentation. Retrieved from
+ https://www.prisma.io/docs
+Simple Statistics. (2024). Simple-statistics JavaScript library documentation. Retrieved from
+ https://simplestatistics.org/docs
+Supabase. (2024). Supabase documentation. Retrieved from
+ https://supabase.com/docs
+Tailwind Labs. (2024). Tailwind CSS documentation. Retrieved from
+ https://tailwindcss.com/docs
+Zod. (2024). Zod TypeScript schema validation documentation. Retrieved from
+ https://zod.dev/
+Appendices
+Appendix A: System Architecture Diagram
+        
+This appendix contains the high-level architecture diagram of the VECTOR platform. The architecture illustrates the interaction between the web application layer, blockchain credential infrastructure, and AI analytics engine. The diagram highlights the flow of data from user input through processing modules to verification outputs.
+Appendix B: Blockchain Credential Minting Workflow
+        
+This appendix provides screenshots demonstrating the credential minting process performed by a registrar through the web dashboard. The process includes credential schema selection, student information entry, and confirmation of blockchain transaction submission through the MetaMask wallet interface.
+Appendix C: Student Dashboard Interface
+        
+This appendix contains screenshots of the student dashboard interface displaying verified credentials and activity records. The dashboard allows students to view blockchain-issued credentials and access analytics generated by the AI engine.
+Appendix D: Public Credential Verification Page
+        
+This appendix presents screenshots of the public credential verification interface. The verification page retrieves credential records from the system database and performs on-chain verification using the Polygon network.
+Appendix E: AI Skill Extraction Evaluation
+        
+This appendix presents additional details regarding the AI evaluation process used in the study. The evaluation utilized a golden dataset of credential text samples to measure skill extraction accuracy through precision, recall, and F1 metrics.
+The evaluation script compared extracted skills with manually labeled ground truth values to determine the effectiveness of the implemented extraction pipeline.
+Appendix F: Smart Contract Code Snippet
+        
+The following excerpt shows a simplified portion of the ERC-1155 smart contract used for credential issuance.
+This function allows authorized registrars to issue credentials represented as blockchain tokens.

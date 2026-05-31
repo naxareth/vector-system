@@ -21,15 +21,14 @@ export default function RegistrarTour() {
           popover: { 
             title: 'Registrar Portal', 
             description: 'Welcome, Admin. This is your command center for issuing verified credentials.', 
-            side: 'center', 
             align: 'center'
           } 
         },
         { 
           element: '#reg-tour-mint', 
           popover: { 
-            title: 'Issue Credentials', 
-            description: 'Use this form to mint degrees or certificates. You can do single issuance or bulk CSV upload.',
+            title: 'Issue Certificate', 
+            description: 'Use this form to create a certificate. Issue a single certificate or upload many at once using CSV.',
             side: 'bottom' 
           } 
         },

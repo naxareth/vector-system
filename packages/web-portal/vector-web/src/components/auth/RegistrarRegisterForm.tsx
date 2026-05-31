@@ -41,7 +41,18 @@ export default function RegistrarRegisterForm() {
     }
 
     try {
-      // 2. Verify the CAPTCHA token securely on the server
+      // 2. Validate that the email domain actually exists and can receive email
+      const emailCheckResponse = await fetch('/api/auth/validate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: validData.email }),
+      });
+      const emailCheckResult = await emailCheckResponse.json();
+      if (!emailCheckResponse.ok || !emailCheckResult.success) {
+        throw new Error(emailCheckResult.message || 'Invalid email address.');
+      }
+
+      // 3. Verify the CAPTCHA token securely on the server
       const captchaResponse = await fetch('/api/auth/verify-captcha', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -114,9 +125,10 @@ export default function RegistrarRegisterForm() {
       router.refresh();
       router.push(`/verify-email?email=${encodeURIComponent(validData.email)}`);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Registration Error:", err);
-      setServerError(err.message || 'Registration failed. Please try again.');
+      const errMsg = err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      setServerError(errMsg);
       // Reset Turnstile widget so the user can generate a fresh token
       turnstileRef.current?.reset();
       setTurnstileToken(null);
@@ -124,6 +136,7 @@ export default function RegistrarRegisterForm() {
   };
 
   return (
+    // eslint-disable-next-line react-hooks/refs
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {serverError && (
         <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200 flex items-center gap-2">
@@ -244,7 +257,7 @@ export default function RegistrarRegisterForm() {
         disabled={isSubmitting || !turnstileToken}
         className="w-full bg-[#011018] hover:bg-[#02202f] text-white font-semibold py-3 rounded-lg transition-all active:scale-[0.98] shadow-sm disabled:opacity-50"
       >
-        {isSubmitting ? 'Verifying...' : 'Create Registrar Account'}
+        {isSubmitting ? 'Verifying...' : 'Create Account'}
       </button>
     </form>
   );

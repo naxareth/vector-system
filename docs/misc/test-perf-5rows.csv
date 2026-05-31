@@ -1,0 +1,6 @@
+student_id,wallet_address,degree_name,major,gpa,honors,graduation_date,skill_tags
+1ecc09bd-6dfb-4e2d-8dd7-ef95c27e6e8a,0xbda5747bfd65f08deb54cb465eb87d40e51b197e,Bachelor of Science in Mechanical Engineering,Robotics and Mechatronics,1.35,Summa Cum Laude,2026-07-20,"CAD, MATLAB, SolidWorks, ROS"
+e7cef1bd-1f09-41ad-acab-667de9eadf40,0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc,Bachelor of Science in Computer Engineering,Embedded Systems,1.75,Dean's Lister,2026-07-20,"C++, Verilog, FPGA, RTOS"
+a3d1f29e-82c4-4b5a-9012-3e4f56a7b8c9,0xbda5747bfd65f08deb54cb465eb87d40e51b197e,Bachelor of Science in Information Technology,Web and Mobile Development,1.50,Magna Cum Laude,2026-07-20,"React, Node.js, Python, TypeScript"
+b4e20a3f-93d5-4c6b-a123-4f5067b8c9da,0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc,Bachelor of Science in Accountancy,Financial Management,1.25,Summa Cum Laude,2026-07-20,"Accounting, Auditing, Taxation, Financial Reporting"
+c5f31b40-a4e6-4d7c-b234-5061789cdaeb,0xbda5747bfd65f08deb54cb465eb87d40e51b197e,Bachelor of Science in Computer Science,Artificial Intelligence,1.60,Dean's Lister,2026-07-20,"Python, Machine Learning, Data Science, TensorFlow"

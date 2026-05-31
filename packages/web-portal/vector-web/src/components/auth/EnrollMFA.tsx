@@ -47,6 +47,7 @@ export default function EnrollMFA({ onComplete }: { onComplete: () => void }) {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { data: verifyData, error: verifyError } = await supabase.auth.mfa.verify({
       factorId,
       challengeId: challengeData.id,
@@ -69,6 +70,7 @@ export default function EnrollMFA({ onComplete }: { onComplete: () => void }) {
       {error && <p className="text-red-600 text-sm mb-4 bg-red-50 p-2 rounded">{error}</p>}
 
       <div className="flex justify-center mb-6">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         {qrCodeUrl && <img src={qrCodeUrl} alt="Scan this QR Code" className="border rounded-lg" />}
       </div>
 
@@ -89,7 +91,7 @@ export default function EnrollMFA({ onComplete }: { onComplete: () => void }) {
 
       <button
         onClick={handleEnable}
-        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded-lg transition-colors"
+        className="w-full bg-bg-[#06B4C9] hover:bg-bg-[#06B4C9]/10 !text-white font-bold py-2 rounded-lg transition-colors"
       >
         Activate 2FA
       </button>

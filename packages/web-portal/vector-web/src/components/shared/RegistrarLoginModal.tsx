@@ -141,7 +141,7 @@ export default function RegistrarLoginModal({ isOpen, onClose }: RegistrarLoginM
 
         {/* Register Link */}
         <p className="text-center text-sm text-gray-600 mt-6">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <a href="/register" className="text-purple-600 hover:text-purple-700 font-medium">
             Register
           </a>

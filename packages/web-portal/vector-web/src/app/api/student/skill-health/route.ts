@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
     // Sanitize: ensure strings only, deduplicate
     const sanitized: string[] = [...new Set(
-      skillNames.filter((s: any) => typeof s === 'string' && s.length > 0 && s.length < 100)
+      skillNames.filter((s: unknown) => typeof s === 'string' && s.length > 0 && s.length < 100)
     )];
 
     if (sanitized.length === 0) {

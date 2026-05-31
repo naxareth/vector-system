@@ -63,14 +63,14 @@ export interface CredentialInput {
     schema_url?: string;
     transaction_hash?: string;
     token_id?: string;
-    credential_data?: Record<string, any>;
+    credential_data?: Record<string, unknown>;
     // Sensitive fields that MUST be stripped
     private_notes?: string;
     user_id?: string;
     wallet_address?: string;
     email?: string;
     student_id?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export interface IpfsMetadata {
@@ -91,7 +91,7 @@ export interface IpfsMetadata {
     /** On-chain token ID */
     tokenId: string | null;
     /** Filtered credential data (sensitive fields removed) */
-    credentialSubject: Record<string, any>;
+    credentialSubject: Record<string, unknown>;
     /** ISO 8601 timestamp of metadata generation */
     generatedAt: string;
     /** Privacy notice */
@@ -106,10 +106,10 @@ export interface IpfsMetadata {
  * Recursively strip sensitive fields from any object.
  * Returns a deep copy — the original is never mutated.
  */
-export function stripSensitiveFields<T extends Record<string, any>>(
+export function stripSensitiveFields<T extends Record<string, unknown>>(
     data: T
-): Record<string, any> {
-    const result: Record<string, any> = {};
+): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(data)) {
         // Skip any key in the blocklist
@@ -119,12 +119,12 @@ export function stripSensitiveFields<T extends Record<string, any>>(
 
         // Recurse into nested objects (but not arrays of primitives)
         if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-            result[key] = stripSensitiveFields(value);
+            result[key] = stripSensitiveFields(value as Record<string, unknown>);
         } else if (Array.isArray(value)) {
             // For arrays, recurse into objects within the array
             result[key] = value.map((item) =>
                 item && typeof item === 'object' && !(item instanceof Date)
-                    ? stripSensitiveFields(item)
+                    ? stripSensitiveFields(item as Record<string, unknown>)
                     : item
             );
         } else {
@@ -179,7 +179,7 @@ export function buildIpfsMetadata(credential: CredentialInput): IpfsMetadata {
  * Call this as a last line of defense before pinning to IPFS.
  */
 export function validateIpfsPayload(
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
     _path: string = ''
 ): string[] {
     const violations: string[] = [];
@@ -192,11 +192,11 @@ export function validateIpfsPayload(
         }
 
         if (value && typeof value === 'object' && !Array.isArray(value)) {
-            violations.push(...validateIpfsPayload(value, fullPath));
+            violations.push(...validateIpfsPayload(value as Record<string, unknown>, fullPath));
         } else if (Array.isArray(value)) {
             value.forEach((item, idx) => {
                 if (item && typeof item === 'object') {
-                    violations.push(...validateIpfsPayload(item, `${fullPath}[${idx}]`));
+                    violations.push(...validateIpfsPayload(item as Record<string, unknown>, `${fullPath}[${idx}]`));
                 }
             });
         }

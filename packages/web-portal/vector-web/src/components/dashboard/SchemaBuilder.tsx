@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, Save, Loader2, AlertCircle, BookOpen, Award, Code, FileText } from 'lucide-react';
+import { Plus, Trash2, Save, Loader2, AlertCircle, BookOpen, Award, Code, FileText, Lock } from 'lucide-react';
+import HelpTip from '@/components/shared/HelpTip';
 
 interface SchemaField {
   id: string;
@@ -12,11 +13,11 @@ interface SchemaField {
 }
 
 // The skill_tags field is injected into every template — it's the source of truth
-// for market intelligence. Registrar must explicitly declare the marketable skills
+// for skill matching. Registrar must explicitly declare the marketable skills
 // the credential represents, separate from the credential title.
 const SKILL_TAGS_FIELD = {
   keyName: 'skill_tags',
-  displayName: 'Skill Tags (comma-separated)',
+  displayName: 'Skills (comma-separated)',
   type: 'string' as const,
   required: true,
 };
@@ -69,7 +70,7 @@ const PRESET_TEMPLATES = [
 
 export default function SchemaBuilder() {
   const [title, setTitle] = useState('');
-  const [fields, setFields] = useState<SchemaField[]>([]);
+  const [fields, setFields] = useState<SchemaField[]>([{ id: crypto.randomUUID(), ...SKILL_TAGS_FIELD }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -119,7 +120,7 @@ export default function SchemaBuilder() {
   };
 
   const generateJsonSchema = () => {
-    const schemaProperties: Record<string, any> = {};
+    const schemaProperties: Record<string, { type: string; title: string }> = {};
     const requiredFields: string[] = [];
 
     fields.forEach((field) => {
@@ -156,7 +157,7 @@ export default function SchemaBuilder() {
       return;
     }
     if (!fields.some(f => f.keyName === 'skill_tags')) {
-      setError("Every schema must include a 'Skill Tags' field for market intelligence.");
+      setError("Every template must include a 'Skills' field so students can be matched to opportunities.");
       return;
     }
 
@@ -176,26 +177,26 @@ export default function SchemaBuilder() {
       setTitle('');
       setFields([{ id: crypto.randomUUID(), ...SKILL_TAGS_FIELD }]);
       setActiveTemplate('custom');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to publish schema');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-5xl mx-auto">
-      <div className="mb-8 border-b pb-4">
-        <h2 className="text-2xl font-bold text-gray-900">Credential Template Builder</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Design the exact data structure for your new verifiable credential.
+    <div className="bg-white dark:bg-[#0E1220] p-6 rounded-xl shadow-sm border border-gray-100 dark:border-[#1E2536] max-w-5xl mx-auto">
+      <div className="mb-8 border-b dark:border-[#1E2536] pb-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Certificate Template Builder <HelpTip text="Templates define the structure of your certificates — what fields appear, what type of data each field accepts, and which are required. Once saved, templates become available in the 'Issue Certificate' and 'Bulk Upload' tabs. You can choose from presets or build a custom one from scratch." /></h2>
+        <p className="text-sm text-gray-500 dark:text-[#94A3B8] mt-1">
+          Choose what information appears on the certificate and how it&apos;s labeled.
         </p>
       </div>
 
       {/* Template Selector */}
       <div className="mb-8">
-        <label className="block text-sm font-semibold text-gray-900 mb-3">
-          Start from a preset or build from scratch
+        <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+          Choose a preset or start from scratch
         </label>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <button
@@ -203,13 +204,13 @@ export default function SchemaBuilder() {
             onClick={() => loadTemplate('custom')}
             className={`flex flex-col items-start p-4 border rounded-xl transition-all text-left ${
               activeTemplate === 'custom'
-                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 ring-1 ring-blue-500'
+                : 'border-gray-200 dark:border-[#283042] hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
             }`}
           >
-            <FileText className={`w-6 h-6 mb-2 ${activeTemplate === 'custom' ? 'text-blue-600' : 'text-gray-400'}`} />
-            <span className="font-semibold text-sm text-gray-900">Custom Schema</span>
-            <span className="text-xs text-gray-500 mt-1">Start with a blank slate</span>
+            <FileText className={`w-6 h-6 mb-2 ${activeTemplate === 'custom' ? 'text-blue-600' : 'text-gray-400 dark:text-[#64748B]'}`} />
+            <span className="font-semibold text-sm text-gray-900 dark:text-white">Custom Template</span>
+            <span className="text-xs text-gray-500 dark:text-[#94A3B8] mt-1">Start with a blank template</span>
           </button>
 
           {PRESET_TEMPLATES.map((preset) => {
@@ -222,13 +223,13 @@ export default function SchemaBuilder() {
                 onClick={() => loadTemplate(preset.id)}
                 className={`flex flex-col items-start p-4 border rounded-xl transition-all text-left ${
                   isActive
-                    ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 ring-1 ring-blue-500'
+                    : 'border-gray-200 dark:border-[#283042] hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
                 }`}
               >
-                <Icon className={`w-6 h-6 mb-2 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
-                <span className="font-semibold text-sm text-gray-900">{preset.name}</span>
-                <span className="text-xs text-gray-500 mt-1 line-clamp-2">{preset.description}</span>
+                <Icon className={`w-6 h-6 mb-2 ${isActive ? 'text-blue-600' : 'text-gray-400 dark:text-[#64748B]'}`} />
+                <span className="font-semibold text-sm text-gray-900 dark:text-white">{preset.name}</span>
+                <span className="text-xs text-gray-500 dark:text-[#94A3B8] mt-1 line-clamp-2">{preset.description}</span>
               </button>
             );
           })}
@@ -236,43 +237,43 @@ export default function SchemaBuilder() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Schema Title */}
-        <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
-          <label className="block text-sm font-semibold text-gray-900 mb-1">
-            Template Name (Public)
+        {/* Template Title */}
+        <div className="bg-gray-50 dark:bg-[#131825] p-6 rounded-xl border border-gray-100 dark:border-[#1E2536]">
+          <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
+            Template Name (visible on certificate) <HelpTip text="This is the main title that will appear on every certificate issued using this template. Students will see it on their dashboard. Use clear, official names like 'Bachelor of Science in Information Technology' or 'Full-Stack Web Development Bootcamp'." />
           </label>
-          <p className="text-xs text-gray-500 mb-3">This is the title shown on the student's credential detail page.</p>
+          <p className="text-xs text-gray-500 dark:text-[#94A3B8] mb-3">This title appears on the student&apos;s certificate details.</p>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g., Web Development Masterclass"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow bg-white"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-[#283042] rounded-lg focus:ring-2 focus:ring-[#06B4C9] focus:border-[#06B4C9] outline-none transition-shadow bg-white dark:bg-[#0E1220] dark:text-white"
             required
           />
         </div>
 
         {/* Dynamic Fields List */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between border-b pb-2">
+          <div className="flex items-center justify-between border-b dark:border-[#1E2536] pb-2">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Schema Fields</h3>
-              <p className="text-xs text-gray-500">Define the data points required to issue this credential.</p>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Template Fields <HelpTip text="Each field becomes a piece of information the registrar fills in when issuing a certificate. For example: GPA, Honours, Graduation Date, Program Name. The 'Skills' field is always required — it determines what skill tags appear on the student's profile. You can add, remove, and reorder fields as needed." /></h3>
+              <p className="text-xs text-gray-500 dark:text-[#94A3B8]">Choose the pieces of information to show on the certificate.</p>
             </div>
             <button
               type="button"
               onClick={addField}
-              className="flex items-center gap-2 text-sm bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
+              className="flex items-center gap-2 text-sm bg-gray-900 dark:bg-white/10 hover:bg-gray-800 dark:hover:bg-white/15 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
             >
               <Plus className="w-4 h-4" /> Add Field
             </button>
           </div>
 
           {fields.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl text-gray-400">
-              <FileText className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-              <p className="text-sm font-medium text-gray-600">No fields added yet.</p>
-              <p className="text-xs mt-1">Click "Add Field" or select a template above to start building.</p>
+            <div className="text-center py-12 bg-gray-50 dark:bg-[#131825] border-2 border-dashed border-gray-200 dark:border-[#283042] rounded-xl text-gray-400">
+              <FileText className="w-10 h-10 mx-auto mb-3 text-gray-300 dark:text-[#64748B]" />
+              <p className="text-sm font-medium text-gray-600 dark:text-[#94A3B8]">No fields added yet.</p>
+              <p className="text-xs mt-1">Click &quot;Add Field&quot; or pick a preset to start.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -283,8 +284,8 @@ export default function SchemaBuilder() {
                     key={field.id}
                     className={`flex items-start gap-4 p-4 rounded-xl border shadow-sm transition-colors group ${
                       isSkillTags
-                        ? 'bg-[#06B4C9]/10 border-[#06B4C9]'
-                        : 'bg-white border-gray-200 hover:border-blue-300'
+                        ? 'bg-accent-10 border-accent'
+                        : 'bg-white dark:bg-[#131825] border-gray-200 dark:border-[#283042] hover:border-blue-300'
                     }`}
                   >
                     <div className="pt-2 text-gray-400 font-mono text-xs w-6 text-center">
@@ -292,7 +293,9 @@ export default function SchemaBuilder() {
                     </div>
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4">
                       <div className="md:col-span-5">
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Display Name</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
+                          {isSkillTags ? <><Lock className="w-3 h-3 flex-shrink-0" /> Skills Field (Required)</> : 'What should this field be called?'}
+                        </label>
                         <input
                           type="text"
                           value={field.displayName}
@@ -303,41 +306,46 @@ export default function SchemaBuilder() {
                           readOnly={isSkillTags}
                           placeholder="e.g., Final Grade"
                           className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-md outline-none ${
-                            isSkillTags ? 'bg-[#06B4C9]/10 text-[#06B4C9] font-semibold cursor-not-allowed' : 'focus:ring-1 focus:ring-blue-500'
+                            isSkillTags ? 'bg-accent-10 text-accent font-semibold cursor-not-allowed' : 'focus:ring-1 focus:ring-accent'
                           }`}
                           required
                         />
                         {isSkillTags && (
-                          <p className="text-[10px] text-[#06B4C9] mt-1">
-                            Required for market intelligence — e.g. "React, Node.js, PostgreSQL"
+                          <p className="text-[10px] text-accent mt-1 flex items-start gap-1">
+                            This field is locked and required for specifying the skills earned by the student.
+                          </p>
+                        )}
+                        {!isSkillTags && (
+                          <p className="text-[10px] text-gray-400 mt-1">
+                            This is the label registrars will see when filling in the certificate form.
                           </p>
                         )}
                       </div>
                       <div className="md:col-span-4">
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Data Type</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Field Type <HelpTip size={12} text="Controls what kind of input this field accepts: 'Text' for names and descriptions, 'Number' for grades or hours, 'Date' for dates with a calendar picker, or 'Yes/No' for simple toggles like 'Passed with Distinction'." /></label>
                         <select
                           value={field.type}
-                          onChange={(e) => !isSkillTags && updateField(field.id, { type: e.target.value as any })}
+                          onChange={(e) => !isSkillTags && updateField(field.id, { type: e.target.value as SchemaField['type'] })}
                           disabled={isSkillTags}
                           className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white outline-none ${
                             isSkillTags ? 'opacity-60 cursor-not-allowed' : 'focus:ring-1 focus:ring-blue-500'
                           }`}
                         >
-                          <option value="string">Text (String)</option>
-                          <option value="number">Number</option>
-                          <option value="boolean">Yes/No (Boolean)</option>
-                          <option value="date">Date</option>
+                          <option value="string">Text (names, descriptions)</option>
+                          <option value="number">Number (grades, hours)</option>
+                          <option value="boolean">Yes / No (distinctions)</option>
+                          <option value="date">Date (with calendar picker)</option>
                         </select>
                       </div>
                       <div className="md:col-span-3 flex items-center pt-6">
                         <label className="flex items-center gap-2 text-sm text-gray-700">
-                          <input
-                            type="checkbox"
-                            checked={field.required}
-                            onChange={(e) => !isSkillTags && updateField(field.id, { required: e.target.checked })}
-                            disabled={isSkillTags}
-                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
+                            <input
+                              type="checkbox"
+                              checked={field.required}
+                              onChange={(e) => !isSkillTags && updateField(field.id, { required: e.target.checked })}
+                              disabled={isSkillTags}
+                              className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent"
+                            />
                           <span className="font-medium">Required</span>
                         </label>
                       </div>
@@ -364,7 +372,7 @@ export default function SchemaBuilder() {
 
         {/* Status Messages */}
         {error && (
-          <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-700 flex items-center gap-3 text-sm font-medium">
+            <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-700 flex items-center gap-3 text-sm font-medium">
             <AlertCircle className="w-5 h-5 flex-shrink-0" /> {error}
           </div>
         )}
@@ -373,7 +381,7 @@ export default function SchemaBuilder() {
             <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
               <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
             </div>
-            Template successfully registered to the W3C directory!
+            Template saved and available to issue certificates.
           </div>
         )}
 
@@ -381,10 +389,10 @@ export default function SchemaBuilder() {
           <button
             type="submit"
             disabled={isSubmitting || fields.length === 0}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-bold transition-all shadow-md hover:shadow-lg active:scale-95"
+            className="flex items-center gap-2 bg-[#06B4C9] text-white disabled:opacity-30 px-8 py-3 rounded-xl font-bold transition-all shadow-md hover:opacity-90 active:scale-95"
           >
             {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            Publish Schema Template
+            Save Template
           </button>
         </div>
       </form>

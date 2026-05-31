@@ -13,6 +13,7 @@ export async function POST(req: Request) {
     try {
       const body = await req.json();
       email = body?.email;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       // Empty body is fine
     }

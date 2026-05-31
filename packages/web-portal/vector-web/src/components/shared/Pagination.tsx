@@ -8,9 +8,9 @@ interface PaginationProps {
 }
 
 export default function Pagination({ currentPage, totalItems, itemsPerPage, onPageChange }: PaginationProps) {
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
 
-    if (totalPages <= 1) return null;
+    if (totalItems === 0) return null;
 
     const start = (currentPage - 1) * itemsPerPage + 1;
     const end = Math.min(currentPage * itemsPerPage, totalItems);
@@ -35,6 +35,7 @@ export default function Pagination({ currentPage, totalItems, itemsPerPage, onPa
             <div className="flex items-center gap-1">
                 {/* Prev */}
                 <button
+                    type="button"
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage === 1}
                     className="p-1.5 rounded-lg text-gray-400 dark:text-[#64748B] hover:bg-gray-100 dark:hover:bg-[#1E2536] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -50,6 +51,7 @@ export default function Pagination({ currentPage, totalItems, itemsPerPage, onPa
                     ) : (
                         <button
                             key={p}
+                            type="button"
                             onClick={() => onPageChange(p)}
                             className={`min-w-[32px] h-8 rounded-lg text-sm font-medium transition-colors ${p === currentPage
                                     ? 'bg-[#06B4C9] text-white'
@@ -63,6 +65,7 @@ export default function Pagination({ currentPage, totalItems, itemsPerPage, onPa
 
                 {/* Next */}
                 <button
+                    type="button"
                     onClick={() => onPageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
                     className="p-1.5 rounded-lg text-gray-400 dark:text-[#64748B] hover:bg-gray-100 dark:hover:bg-[#1E2536] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"

@@ -12,6 +12,7 @@ export default function HeroSection() {
   const [count3, setCount3] = useState(0);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoaded(true);
     // Animate counters
     const duration = 1800;

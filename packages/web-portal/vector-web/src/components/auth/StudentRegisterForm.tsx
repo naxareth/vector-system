@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { studentSchema, type StudentRegisterData } from '@/lib/schemas/auth';
 import { Eye, EyeOff } from 'lucide-react';
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
+import { generateStudentId } from '@/lib/utils/id';
 
 export default function StudentRegisterForm() {
   const router = useRouter();
@@ -40,7 +41,18 @@ export default function StudentRegisterForm() {
     }
 
     try {
-      // 2. Verify the CAPTCHA token securely on the server before creating the user
+      // 2. Validate that the email domain actually exists and can receive email
+      const emailCheckResponse = await fetch('/api/auth/validate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: validData.email }),
+      });
+      const emailCheckResult = await emailCheckResponse.json();
+      if (!emailCheckResponse.ok || !emailCheckResult.success) {
+        throw new Error(emailCheckResult.message || 'Invalid email address.');
+      }
+
+      // 3. Verify the CAPTCHA token securely on the server before creating the user
       const captchaResponse = await fetch('/api/auth/verify-captcha', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,7 +87,7 @@ export default function StudentRegisterForm() {
 
       // 4. Create Public Profile
       if (authData.user) {
-        const generatedStudentId = `03-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+        const generatedStudentId = generateStudentId();
 
         const { error: dbError } = await supabase
           .from('users')
@@ -102,9 +114,10 @@ export default function StudentRegisterForm() {
       router.refresh();
       router.push(`/verify-email?email=${encodeURIComponent(validData.email)}`);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Registration Error:", err);
-      setServerError(err.message || 'Registration failed. Please try again.');
+      const errMsg = err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      setServerError(errMsg);
       // Reset Turnstile widget so the user can generate a fresh token to try again
       turnstileRef.current?.reset();
       setTurnstileToken(null);
@@ -112,6 +125,7 @@ export default function StudentRegisterForm() {
   };
 
   return (
+    // eslint-disable-next-line react-hooks/refs
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
       {serverError && (
         <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg 

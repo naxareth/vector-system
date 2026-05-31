@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/db';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { genAI, GEMINI_MODEL } from '@/lib/gemini'; // 🛡️ Centralized Gemini (Checkpoint #2)
 import { z } from 'zod';
 
@@ -19,6 +20,20 @@ import { z } from 'zod';
 // Consumes 1 Gemini RPD per call. No caching — always fresh analysis.
 // 🛡️ SECURITY (Checkpoint #2): Uses centralized Gemini client from @/lib/gemini
 // ---------------------------------------------------------------------------
+
+type SkillInfo = {
+  id: string;
+  name: string;
+  verified: boolean;
+  tags?: string[];
+};
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type SkillStrength = {
+  strong: string[];
+  moderate: string[];
+  weak: string[];
+};
 
 const analyzeRequestSchema = z.object({
   snapshot: z.record(z.string(), z.any()),
@@ -51,7 +66,7 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   // 2. Parse + validate body
   // -------------------------------------------------------------------------
-  let body: any;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
@@ -72,17 +87,19 @@ export async function POST(req: NextRequest) {
   // 3. Enrich with skill_health_cache market data
   //    skill_tags are the canonical market keywords; fall back to skill names
   // -------------------------------------------------------------------------
-  const skills: { id: string; name: string; verified: boolean }[] =
-    snapshot.skills || [];
+  const skills: SkillInfo[] = snapshot.skills || [];
 
-  const skillNames = skills.map((s) => s.name).filter(Boolean);
+  // Flatten all unique skill names and tags for health lookups
+  const skillNames = Array.from(new Set(
+    skills.flatMap((s) => [s.name, ...(s.tags || [])])
+  )).filter(Boolean);
 
   let healthData: {
     skill_name: string;
     health_score: number | null;
     trend_label: string | null;
     job_count: number | null;
-    avg_salary: any;
+    avg_salary: { toNumber(): number } | null;
     confidence: string | null;
   }[] = [];
 
@@ -110,19 +127,32 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   const skillsContext = skills
     .map((s) => {
-      const health = healthData.find((h) => h.skill_name === s.name);
-      let line = `- ${s.name} (${s.verified ? 'Blockchain Verified' : 'Self-reported'})`;
-      if (health) {
-        line += ` → Health: ${health.health_score ?? 'N/A'}/100`;
-        line += `, Trend: ${health.trend_label ?? 'unknown'}`;
-        line += `, Open Jobs: ${health.job_count ?? 'N/A'}`;
-        if (health.avg_salary) {
-          const salary = Math.round(Number(health.avg_salary)).toLocaleString();
-          line += `, Avg Salary: $${salary}`;
+      const tags = s.tags || [];
+      const tagLine = tags.length > 0 ? ` [Technical Skills: ${tags.join(', ')}]` : '';
+      
+      let line = `- CREDENTIAL: "${s.name}"${tagLine} | Status: ${s.verified ? 'Blockchain Verified' : 'Self-reported'}`;
+      
+      // Look up health for the main name or its tags
+      const healthMatches = healthData.filter(h => 
+        h.skill_name === s.name || tags.includes(h.skill_name)
+      );
+
+      if (healthMatches.length > 0) {
+        // Use the best health score available in the match set
+        const bestHealth = healthMatches.reduce((prev, curr) => 
+          (curr.health_score || 0) > (prev.health_score || 0) ? curr : prev
+        );
+        
+        line += ` | Market Health: ${bestHealth.health_score ?? 'N/A'}/100`;
+        line += ` | Trend: ${bestHealth.trend_label ?? 'unknown'}`;
+        line += ` | Open Jobs: ${bestHealth.job_count ?? 'N/A'}`;
+        
+        if (bestHealth.avg_salary) {
+          const salary = Math.round(Number(bestHealth.avg_salary)).toLocaleString();
+          line += ` | Avg Salary: $${salary}`;
         }
-        line += ` (data confidence: ${health.confidence ?? 'low'})`;
       } else {
-        line += ' → No market data available';
+        line += ' | No live market data found';
       }
       return line;
     })
@@ -135,7 +165,7 @@ export async function POST(req: NextRequest) {
   const experienceCtx =
     Array.isArray(snapshot.experience) && snapshot.experience.length > 0
       ? `Work Experience: ${snapshot.experience
-        .map((e: any) =>
+        .map((e: { title?: string; company?: string }) =>
           [e.title, e.company].filter(Boolean).join(' at ')
         )
         .filter(Boolean)
@@ -144,21 +174,21 @@ export async function POST(req: NextRequest) {
   const projectsCtx =
     Array.isArray(snapshot.projects) && snapshot.projects.length > 0
       ? `Projects: ${snapshot.projects
-        .map((p: any) => p.title)
+        .map((p: { title?: string }) => p.title)
         .filter(Boolean)
         .join('; ')}`
       : '';
   const certsCtx =
     Array.isArray(snapshot.certifications) && snapshot.certifications.length > 0
       ? `Other Certifications: ${snapshot.certifications
-        .map((c: any) => c.name)
+        .map((c: { name?: string }) => c.name)
         .filter(Boolean)
         .join('; ')}`
       : '';
   const educationCtx =
     Array.isArray(snapshot.education) && snapshot.education.length > 0
       ? `Education: ${snapshot.education
-        .map((e: any) => [e.degree, e.school].filter(Boolean).join(' — '))
+        .map((e: { degree?: string; school?: string }) => [e.degree, e.school].filter(Boolean).join(' — '))
         .filter(Boolean)
         .join('; ')}`
       : '';
@@ -184,9 +214,9 @@ Return a single raw JSON object with EXACTLY this structure. No markdown, no cod
   "overallScore": <integer 0–100, holistic CVR strength based on skills, market alignment, and profile completeness>,
   "summary": "<2–3 sentence assessment of this student's profile strengths and primary opportunity area>",
   "skillStrength": {
-    "strong": ["<skill name>"],
-    "moderate": ["<skill name>"],
-    "weak": ["<skill name>"]
+    "strong": ["<technical skill name>"],
+    "moderate": ["<technical skill name>"],
+    "weak": ["<technical skill name>"]
   },
   "marketAlignment": {
     "score": <integer 0–100, how well their verified skills match current market demand>,
@@ -201,7 +231,7 @@ Return a single raw JSON object with EXACTLY this structure. No markdown, no cod
 }
 
 Rules:
-- skillStrength: classify each skill from the student's list into exactly one bucket. Base this on health_score (>= 70 = strong, 40–69 = moderate, < 40 = weak). If no market data, default to moderate.
+- skillStrength: Categorize ONLY the individual technical skills (e.g., "React", "Python", "SQL", "Frontend Development") found in the parentheses or tags. DO NOT use the credential names (like "College Degree" or "Bootcamp") as skills. Base the bucket on health_score (>= 70 = strong, 40–69 = moderate, < 40 = weak). If no market data, default to moderate.
 - missingKeywords: 3–6 high-demand skills/technologies that are ABSENT from their profile and would strengthen their market position given their existing skill set and career title.
 - recommendations: exactly 3, concrete and specific. Reference their actual skills and market data where relevant.
 - overallScore: penalise heavily for self-reported-only skills vs blockchain-verified, and for skills with declining trends.
@@ -218,9 +248,10 @@ Rules:
     // Strip any accidental markdown fences
     const cleaned = raw.replace(/^```(?:json)?|```$/gm, '').trim();
 
-    let parsed: any;
+    let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(cleaned);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (parseErr) {
       console.error('[cvr/analyze] JSON parse failed. Raw response:', raw);
       return NextResponse.json(
@@ -230,7 +261,7 @@ Rules:
     }
 
     return NextResponse.json({ analysis: parsed });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[cvr/analyze] Gemini error:', err);
     return NextResponse.json(
       { error: 'Analysis failed. Please try again later.' },

@@ -40,7 +40,7 @@ export default function LoginPage() {
 
             <button
               className="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg hover:translate-y-[-2px] active:translate-y-[0px] transition-all duration-200 flex items-center justify-center gap-2 group-hover:gap-3"
-              aria-label="Connect Wallet for Student Access"
+              aria-label="Sign In for Student Access"
             >
               Sign In
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

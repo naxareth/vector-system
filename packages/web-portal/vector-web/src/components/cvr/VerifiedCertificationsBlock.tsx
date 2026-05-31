@@ -1,4 +1,6 @@
 'use client';
+import { useState } from 'react';
+import Pagination from '@/components/shared/Pagination';
 
 interface VerifiedCert {
   id: string;
@@ -11,6 +13,7 @@ interface CertificationFormItem {
   issuer: string;
   date: string;
   verified: boolean;
+  id?: string;
 }
 
 interface VerifiedCertificationsBlockProps {
@@ -24,7 +27,16 @@ export default function VerifiedCertificationsBlock({
   addedCertifications,
   onAdd,
 }: VerifiedCertificationsBlockProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 4;
+
   if (availableCertifications.length === 0) return null;
+
+  const totalPages = Math.ceil(availableCertifications.length / ITEMS_PER_PAGE);
+  const paginatedCerts = availableCertifications.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="pt-6 border-t border-gray-200">
@@ -35,9 +47,9 @@ export default function VerifiedCertificationsBlock({
         </span>
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {availableCertifications.map((cert) => {
+        {paginatedCerts.map((cert) => {
           const isAdded = addedCertifications.some(
-            (c) => c.name === cert.skill_name && c.verified
+            (c) => c.id === cert.id
           );
           return (
             <div
@@ -49,7 +61,12 @@ export default function VerifiedCertificationsBlock({
               }`}
             >
               <div>
-                <h3 className="font-bold text-gray-800">{cert.skill_name}</h3>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {cert.skill_name}
+                  <span className="text-gray-400 font-normal ml-1">
+                    (#{cert.id.split('-')[0]})
+                  </span>
+                </h3>
                 <p className="text-xs text-gray-500">
                   Issued: {new Date(cert.issued_at).toLocaleDateString()}
                 </p>
@@ -70,6 +87,17 @@ export default function VerifiedCertificationsBlock({
           );
         })}
       </div>
+      
+      {totalPages > 1 && (
+        <div className="mt-6 border-t border-gray-100 dark:border-[#1E2536] pt-2">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={availableCertifications.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
     </div>
   );
 }

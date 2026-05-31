@@ -1,57 +1,75 @@
-# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
+# 🔗 VECTOR Blockchain Core
 
-This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
+This package contains the smart contracts, deployment scripts, and test suites for the **VECTOR** decentralized credentialing platform.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+---
 
-## Project Overview
+## 📜 VectorToken (ERC-1155)
 
-This example project includes:
+The `VectorToken` contract is a specialized implementation of the ERC-1155 standard, designed for soulbound-style academic and professional credentials.
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+### Key Features
+- **Access Control:** Uses OpenZeppelin `AccessControl`. The `REGISTRAR_ROLE` is required for minting and revoking.
+- **W3C DID Support:** Automatically generates Decentralized Identifiers (DIDs) for students (e.g., `did:polygon:amoy:0x...`).
+- **Dynamic Minting:** Supports both individual (`mintSkill`) and optimized `batchMintSkills`.
+- **Credential Revocation:** Allows registrars to invalidate tokens if a credential was issued in error or for disciplinary reasons.
+- **Custom URI Logic:** Points to the VECTOR Web Portal API for dynamic metadata resolution.
 
-## Usage
+---
 
-### Running Tests
+## 🧪 Testing & Quality Assurance
 
-To run all the tests in the project, execute the following command:
-
-```shell
+### Unit Tests
+The contract is covered by a comprehensive suite of Hardhat/Chai tests.
+```bash
 npx hardhat test
 ```
+*Note: Includes tests for deployment, role management, minting (single/batch), URI accuracy, and revocation.*
 
-You can also selectively run the Solidity or `node:test` tests:
+### Fuzz & Edge Case Tests
+Located in `test/FuzzEdge.test.js`, these tests ensure robustness against:
+- Zero-address minting
+- Array length mismatches in batch operations
+- Unauthorized access attempts
+- Revocation of non-existent balances
 
-```shell
-npx hardhat test solidity
-npx hardhat test nodejs
+---
+
+## 📊 Gas Benchmark
+
+We prioritize gas efficiency on the Polygon network. Batch minting is significantly more cost-effective for institutional users.
+- **Individual Mint:** ~52,000 gas
+- **Batch Mint (10):** ~310,000 gas (vs ~520,000 if done individually)
+- **Batch Mint (50):** ~1,350,000 gas (vs ~2,600,000 if done individually)
+
+For a detailed analysis, see [GAS_REPORT.md](./GAS_REPORT.md).
+
+---
+
+## 🚀 Deployment
+
+The contract is designed for the **Polygon Amoy Testnet**.
+
+### Configuration
+Ensure your `.env` contains:
+- `PRIVATE_KEY`: Deployer's private key.
+- `POLYGONSCAN_API_KEY`: For contract verification.
+- `AMOY_RPC_URL`: Polygon Amoy RPC endpoint.
+
+### Commands
+```bash
+# Compile contracts
+npx hardhat compile
+
+# Deploy to Amoy
+npx hardhat run scripts/deploy.js --network amoy
 ```
 
-### Make a deployment to Sepolia
+---
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+## 📍 Contract Addresses (Amoy)
+- **VectorToken:** `0xb7FEac8Bc7C8330768e1a65BAd15760888806950` (Sample Deployment)
 
-To run the deployment to a local chain:
+---
 
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
-```
-
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
-
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
-
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
-
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
-
-After setting the variable, you can run the deployment with the Sepolia network:
-
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+© 2026 VECTOR Blockchain Team

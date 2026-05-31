@@ -20,7 +20,7 @@ export default function PersonalDetailsSection({
   onChange,
 }: PersonalDetailsSectionProps) {
   const inputClass = (field: string) =>
-    `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+    `w-full px-3 py-2 text-sm text-gray-900 border rounded-lg focus:outline-none focus:ring-2 placeholder:text-gray-400 ${
       errors[field]
         ? 'border-red-500 focus:ring-red-500'
         : 'border-gray-300 focus:ring-[#06B4C9]'
@@ -79,7 +79,7 @@ export default function PersonalDetailsSection({
               type="tel"
               value={formData.phone}
               onChange={(e) => onChange('phone', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06B4C9] text-gray-900"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#06B4C9] placeholder:text-gray-400"
               placeholder="+63 912 345 6789"
             />
           </div>
@@ -123,11 +123,16 @@ export default function PersonalDetailsSection({
           </p>
           <textarea
             value={formData.summary}
-            onChange={(e) => onChange('summary', e.target.value)}
+            onChange={(e) => onChange('summary', e.target.value.slice(0, 500))}
             rows={4}
+            maxLength={500}
+            style={{ resize: 'none' }}
             className={inputClass('summary')}
             placeholder="e.g., Diligent Computer Science student with a passion for blockchain technology..."
           />
+          <p className={`text-xs mt-1 text-right ${(formData.summary?.length ?? 0) >= 500 ? 'text-red-500' : 'text-gray-400'}`}>
+            {formData.summary?.length ?? 0}/500
+          </p>
           {errors.summary && <p className="text-xs text-red-500 mt-1">{errors.summary}</p>}
         </div>
       </div>

@@ -31,7 +31,7 @@ function truncateAddress(addr: string): string {
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // -------------------------------------------------------------------------
   // 🛡️ Rate Limiting (Checkpoint #2)
@@ -130,13 +130,13 @@ export async function GET(
       const balance: bigint = await contract.balanceOf(wallet_address, BigInt(tokenId));
 
       onChain = {
-        verified: balance > 0n,
+        verified: balance > BigInt(0),
         balance: Number(balance),
         tokenId,
         error: null,
       };
-    } catch (err: any) {
-      console.error('[verify] On-chain check failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[verify] On-chain check failed:', err instanceof Error ? err.message : err);
       // Non-fatal: return DB data with chain error flagged
       onChain = {
         verified: false,

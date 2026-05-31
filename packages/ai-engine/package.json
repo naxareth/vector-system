@@ -9,7 +9,8 @@
     "start": "ts-node src/index.ts",
     "ingest": "ts-node src/scripts/ingest-job-data.ts",
     "daily-update": "ts-node src/scripts/daily-update.ts",
-    "daily-update:full": "ts-node src/scripts/daily-update.ts --with-gemini"
+    "daily-update:full": "ts-node src/scripts/daily-update.ts --with-gemini",
+    "test:ai": "ts-node test/ai-test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

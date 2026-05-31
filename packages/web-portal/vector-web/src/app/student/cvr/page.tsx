@@ -1,15 +1,19 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ethers } from 'ethers';
 import { z } from 'zod';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import CVRSuccessModal from '@/components/dashboard/CVRSuccessModal';
 import CVRAnalysisPanel from '@/components/cvr/CVRAnalysisPanel'; // Phase 12
 import CVRPreviewModal from '@/components/cvr/CVRPreviewModal';
+import HelpTip from '@/components/shared/HelpTip';
+import Pagination from '@/components/shared/Pagination';
 import {
   PersonalDetailsSection,
   EducationSection,
@@ -21,6 +25,8 @@ import {
   TemplateSelector,
   type SkillItem,
 } from '@/components/cvr/CVRFormSections';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { CVRData, CVREducation, CVRExperience, CVRProject, CVRCertification, CVRAward } from '@/lib/schemas/cvr';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -70,7 +76,7 @@ type FormData = {
   education: { degree: string; school: string; location: string; year: string; honors: string }[];
   experience: { title: string; company: string; dates: string; description: string }[];
   projects: { title: string; description: string; technologies: string; role: string }[];
-  certifications: { name: string; issuer: string; date: string; verified: boolean }[];
+  certifications: { name: string; issuer: string; date: string; verified: boolean; id?: string }[];
   awards: { title: string; description: string }[];
 };
 
@@ -79,15 +85,15 @@ type CVRHistoryItem = {
   generated_at: string;
   template: string | null;
   credential_ids: string[];
-  snapshot: any;
+  snapshot: CVRData | string | null;
 };
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-const sanitizeArray = (arr: any[]) =>
+const sanitizeArray = (arr: Record<string, unknown>[]) =>
   arr.filter((item) =>
-    Object.values(item).some((v: any) => v !== null && v !== undefined && String(v).trim() !== '')
+    Object.values(item).some((v: unknown) => v !== null && v !== undefined && String(v).trim() !== '')
   );
 
 function formatDateTime(iso: string) {
@@ -118,20 +124,26 @@ export default function CVRPage() {
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
 
   // Available verified credentials to pull into CVR
-  const [availableCertifications, setAvailableCertifications] = useState<any[]>([]);
+  const [availableCertifications, setAvailableCertifications] = useState<{ id: string; skill_name: string; issued_at: string }[]>([]);
 
   // CVR History
   const [cvrHistory, setCvrHistory] = useState<CVRHistoryItem[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const HISTORY_ITEMS_PER_PAGE = 4;
 
   // Generated state
   const [isGenerated, setIsGenerated] = useState(false);
-  const [generatedData, setGeneratedData] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [generatedData, setGeneratedData] = useState<CVRData | null>(null);
 
   // Preview state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<CVRData | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [draftBanner, setDraftBanner] = useState(false);
+  const dbFormDataRef = useRef<typeof formData | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -151,21 +163,41 @@ export default function CVRPage() {
   // ---------------------------------------------------------------------------
   // Array helpers (generic section add/remove/update)
   // ---------------------------------------------------------------------------
-  const addItem = (section: keyof FormData, blank: any) =>
-    setFormData((prev) => ({ ...prev, [section]: [...(prev[section] as any[]), blank] }));
+  const addItem = (section: keyof FormData, blank: unknown) =>
+    setFormData((prev) => ({ ...prev, [section]: [...(prev[section] as unknown[]), blank] }));
 
   const removeItem = (section: keyof FormData, index: number) =>
     setFormData((prev) => ({
       ...prev,
-      [section]: (prev[section] as any[]).filter((_, i) => i !== index),
+      [section]: (prev[section] as unknown[]).filter((_, i) => i !== index),
     }));
 
   const updateItem = (section: keyof FormData, index: number, field: string, value: string) =>
     setFormData((prev) => {
-      const next = [...(prev[section] as any[])];
+      const next = [...(prev[section] as Record<string, unknown>[])];
       next[index] = { ...next[index], [field]: value };
       return { ...prev, [section]: next };
     });
+
+  // ---------------------------------------------------------------------------
+  // Auto-save draft to localStorage (debounced, skips during initial load)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (loading) return;
+    const timer = setTimeout(() => {
+      localStorage.setItem('cvr_form_draft', JSON.stringify(formData));
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [formData, loading]);
+
+  // Save immediately when the tab/window is closed
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!loading) localStorage.setItem('cvr_form_draft', JSON.stringify(formData));
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [formData, loading]);
 
   // ---------------------------------------------------------------------------
   // Field change + error clear
@@ -196,27 +228,69 @@ export default function CVRPage() {
           .eq('id', session.user.id)
           .maybeSingle();
 
-        setFormData((prev) => ({
-          ...prev,
+        const dbData = {
           fullName: userRecord?.full_name || '',
           email: session.user.email || '',
           phone: profileRecord?.phone || '',
           title: profileRecord?.major || '',
           summary: profileRecord?.bio || '',
           portfolio: profileRecord?.linkedin_url || '',
-        }));
+        };
+        dbFormDataRef.current = dbData as typeof formData;
+        setFormData((prev) => ({ ...prev, ...dbData }));
 
-        if (userRecord?.wallet_address) await fetchVerifiedSkills(userRecord.wallet_address);
+        // Wallet balance check for skills is now handled dynamically via credentials db
 
         const { data: certs } = await supabase
           .from('verified_credentials')
           .select('*')
-          .eq('user_id', session.user.id);
+          .eq('user_id', session.user.id)
+          .eq('revoked', false);
 
-        if (certs) setAvailableCertifications(certs);
+        if (certs) {
+          setAvailableCertifications(certs);
+          
+          // Extract verified skills dynamically from the skill_tags of verified credentials
+          const foundSkills: SkillItem[] = [];
+          const seenSkills = new Set<string>();
+
+          certs.forEach((cert: Record<string, unknown>) => {
+            if (cert.skill_tags && Array.isArray(cert.skill_tags)) {
+              cert.skill_tags.forEach((skillName: string) => {
+                const normalized = skillName.trim();
+                // Avoid duplicates
+                if (normalized && !seenSkills.has(normalized.toLowerCase())) {
+                  seenSkills.add(normalized.toLowerCase());
+                  foundSkills.push({
+                    id: `verified-${normalized.toLowerCase().replace(/\s+/g, '-')}`,
+                    name: normalized,
+                    verified: true
+                  });
+                }
+              });
+            }
+          });
+          
+          setAvailableSkills(foundSkills);
+          setSelectedSkillIds(foundSkills.map((s) => s.id));
+        }
 
         // Load CVR history
+        // eslint-disable-next-line react-hooks/immutability
         await fetchCVRHistory(session.user.id);
+
+        // Restore draft if user had unsaved work and not discarded
+        const draftDiscarded = localStorage.getItem('cvr_form_draft_discarded');
+        const savedDraft = localStorage.getItem('cvr_form_draft');
+        if (savedDraft && !draftDiscarded) {
+          try {
+            const draft = JSON.parse(savedDraft);
+            setFormData(draft);
+            setDraftBanner(true);
+          } catch {
+            localStorage.removeItem('cvr_form_draft');
+          }
+        }
       } catch (error) {
         console.error('CVR Data Error:', error);
       } finally {
@@ -238,7 +312,10 @@ export default function CVRPage() {
         .eq('user_id', userId)
         .order('generated_at', { ascending: false });
 
-      if (data) setCvrHistory(data);
+      if (data) {
+        setCvrHistory(data);
+        setHistoryPage(1); // Reset page on new fetch
+      }
     } catch (err) {
       console.error('CVR history fetch error:', err);
     } finally {
@@ -247,32 +324,6 @@ export default function CVRPage() {
   };
 
   // ---------------------------------------------------------------------------
-  // Blockchain skill fetch
-  // ---------------------------------------------------------------------------
-  const fetchVerifiedSkills = async (walletAddress: string) => {
-    try {
-      const provider =
-        typeof window !== 'undefined' && (window as any).ethereum
-          ? new ethers.BrowserProvider((window as any).ethereum, 'any')
-          : new ethers.JsonRpcProvider('https://rpc-amoy.polygon.technology/');
-
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
-      const foundSkills: SkillItem[] = [];
-
-      for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
-        if (typeof skillId !== 'number') continue;
-        try {
-          const balance = await contract.balanceOf(walletAddress, skillId);
-          if (balance > 0) foundSkills.push({ id: `chain-${skillId}`, name: skillName, verified: true });
-        } catch { /* ignore read errors */ }
-      }
-
-      setAvailableSkills(foundSkills);
-      setSelectedSkillIds(foundSkills.map((s) => s.id));
-    } catch (error) {
-      console.error('Blockchain Scan Failed:', error);
-    }
-  };
 
   // ---------------------------------------------------------------------------
   // Skills handlers
@@ -290,18 +341,19 @@ export default function CVRPage() {
   // ---------------------------------------------------------------------------
   // Verified cert → CVR certifications
   // ---------------------------------------------------------------------------
-  const handleAddVerifiedCertification = (cert: any) => {
-    const exists = formData.certifications.some((c) => c.name === cert.skill_name && c.verified);
+  const handleAddVerifiedCertification = (cert: { id: string; skill_name: string; issued_at: string }) => {
+    const exists = formData.certifications.some((c) => c.id === cert.id);
     if (exists) return;
     setFormData((prev) => ({
       ...prev,
       certifications: [
         ...prev.certifications,
         {
-          name: cert.skill_name,
+          name: `${cert.skill_name} (#${cert.id.split('-')[0]})`,
           issuer: 'Vector University (Blockchain Verified)',
           date: new Date(cert.issued_at).toLocaleDateString(),
           verified: true,
+          id: cert.id,
         },
       ],
     }));
@@ -311,7 +363,7 @@ export default function CVRPage() {
   // Copy verify link
   // ---------------------------------------------------------------------------
   const handleCopyLink = (id: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
     navigator.clipboard.writeText(`${baseUrl}/verify/cvr/${id}`);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
@@ -330,7 +382,7 @@ export default function CVRPage() {
       )
       .map((c) => c.id);
 
-    const snapshot: any = {
+    const snapshot: CVRData = {
       generatedAt: new Date().toISOString(),
       template: selectedTemplate,
       color: selectedColor,
@@ -344,7 +396,7 @@ export default function CVRPage() {
     if (formData.title) snapshot.title = formData.title;
     if (formData.summary) snapshot.summary = formData.summary;
 
-    const cleaned = (arr: any[]) => sanitizeArray(arr);
+    const cleaned = (arr: Record<string, unknown>[]) => sanitizeArray(arr);
     if (cleaned(formData.education).length) snapshot.education = cleaned(formData.education);
     if (cleaned(formData.experience).length) snapshot.experience = cleaned(formData.experience);
     if (cleaned(formData.projects).length) snapshot.projects = cleaned(formData.projects);
@@ -407,7 +459,7 @@ export default function CVRPage() {
         console.warn('[CVR] Export API unreachable — falling back to local UUID', err);
       }
 
-      const credentialId = cvrId || credentialIds[0] || crypto.randomUUID();
+      const credentialId = (cvrId || credentialIds[0] || crypto.randomUUID()) as string;
 
       const cvrData = {
         ...snapshot,
@@ -417,6 +469,7 @@ export default function CVRPage() {
 
       localStorage.setItem('sampleCVRData', JSON.stringify(cvrData));
       localStorage.setItem('pendingCVR', 'true');
+      localStorage.removeItem('cvr_form_draft'); // clear draft once successfully generated
 
       setGeneratedData(cvrData);
       setIsGenerated(true);
@@ -455,13 +508,14 @@ export default function CVRPage() {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight leading-tight mb-1">
           {isGenerated ? 'Credential Verified Resume (CVR)' : 'Credential Verified Resume'}
+          <HelpTip text="A CVR is a resume where your certificates are linked to tamper-proof records, so employers can instantly verify they're real." />
         </h1>
-        <p className="text-sm md:text-base text-gray-500">
+        <p className="text-sm text-gray-400 font-normal">
           {isGenerated
-            ? 'Your blockchain-verified resume preview'
-            : 'Create your blockchain-verified resume with verified skills'}
+            ? 'Your verified resume is ready to share with employers'
+            : 'Build a resume backed by your verified certificates'}
         </p>
       </div>
 
@@ -480,14 +534,14 @@ export default function CVRPage() {
             <div className="mb-6 bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div>
-                  <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+                  <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
                     <svg className="w-4 h-4 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    Your CVR History
+                    Your CVR History <HelpTip size={14} text="Every resume you generate is saved permanently. Share the latest link with employers so they can verify your credentials." />
                   </h2>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Each export is permanent and immutable. Share the latest link with employers.
+                  <p className="text-xs text-gray-400 font-normal mt-0.5">
+                    Each version is saved permanently. Share the latest link with employers.
                   </p>
                 </div>
                 <span className="text-xs font-medium text-[#06B4C9] bg-[#06B4C9]/10 border border-[#06B4C9]/20 px-3 py-1 rounded-full">
@@ -496,8 +550,11 @@ export default function CVRPage() {
               </div>
 
               <div className="divide-y divide-gray-50">
-                {cvrHistory.map((cvr, index) => {
-                  const isLatest = index === 0;
+                {cvrHistory
+                  .slice((historyPage - 1) * HISTORY_ITEMS_PER_PAGE, historyPage * HISTORY_ITEMS_PER_PAGE)
+                  .map((cvr, idx) => {
+                  const globalIndex = (historyPage - 1) * HISTORY_ITEMS_PER_PAGE + idx;
+                  const isLatest = globalIndex === 0;
                   const snapshot = typeof cvr.snapshot === 'string'
                     ? JSON.parse(cvr.snapshot)
                     : cvr.snapshot;
@@ -513,7 +570,7 @@ export default function CVRPage() {
                         <div className={`mt-1.5 flex-shrink-0 w-2 h-2 rounded-full ${isLatest ? 'bg-emerald-500' : 'bg-gray-300'}`} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-gray-800">
+                            <span className="text-sm font-semibold text-gray-900">
                               {formatDateTime(cvr.generated_at)}
                             </span>
                             {isLatest ? (
@@ -526,7 +583,7 @@ export default function CVRPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-gray-400 mt-0.5 capitalize">
+                          <p className="text-xs text-gray-400 font-normal mt-0.5 capitalize">
                             {cvr.template || 'professional'} template
                             {certCount > 0 && ` · ${certCount} verified credential${certCount !== 1 ? 's' : ''}`}
                             {skillCount > 0 && ` · ${skillCount} skill${skillCount !== 1 ? 's' : ''}`}
@@ -538,7 +595,7 @@ export default function CVRPage() {
                       {/* Actions */}
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <a
-                          href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify/cvr/${cvr.id}`}
+                          href={`${process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')}/verify/cvr/${cvr.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-[#06B4C9] hover:text-[#06B4C9] hover:underline flex items-center gap-1"
@@ -565,6 +622,44 @@ export default function CVRPage() {
                   );
                 })}
               </div>
+              
+              {Math.ceil(cvrHistory.length / HISTORY_ITEMS_PER_PAGE) > 1 && (
+                <div className="border-t border-gray-100 bg-gray-50/50">
+                  <Pagination
+                    currentPage={historyPage}
+                    totalItems={cvrHistory.length}
+                    itemsPerPage={HISTORY_ITEMS_PER_PAGE}
+                    onPageChange={setHistoryPage}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Draft restored banner */}
+          {draftBanner && (
+            <div className="mb-4 flex items-center justify-between gap-4 bg-[#06B4C9]/10 border border-[#06B4C9]/30 text-[#06B4C9] text-sm px-4 py-3 rounded-xl">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <span>Draft restored &mdash; your unsaved changes have been recovered.</span>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDraftBanner(false)}
+                  className="px-3 py-1 bg-[#06B4C9] text-white text-xs font-semibold rounded-lg hover:bg-[#06B4C9]/80 transition-colors"
+                >Keep</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem('cvr_form_draft');
+                    localStorage.setItem('cvr_form_draft_discarded', 'true');
+                    if (dbFormDataRef.current) setFormData((prev) => ({ ...prev, ...dbFormDataRef.current }));
+                    setDraftBanner(false);
+                  }}
+                  className="px-3 py-1 border border-[#06B4C9]/40 text-[#06B4C9] text-xs font-semibold rounded-lg hover:bg-[#06B4C9]/10 transition-colors"
+                >Discard</button>
+              </div>
             </div>
           )}
 
@@ -581,8 +676,8 @@ export default function CVRPage() {
                 onRemove={(i) => removeItem('education', i)}
                 onUpdate={(i, f, v) => updateItem('education', i, f, v)}
               />
-              <EducationSection
-                items={formData.experience as any}
+              <ExperienceSection
+                items={formData.experience}
                 onAdd={() => addItem('experience', { title: '', company: '', dates: '', description: '' })}
                 onRemove={(i) => removeItem('experience', i)}
                 onUpdate={(i, f, v) => updateItem('experience', i, f, v)}

@@ -74,6 +74,21 @@ contract VectorToken is ERC1155, AccessControl {
         return hasRole(REGISTRAR_ROLE, account);
     }
     
+    // ========== REVOCATION / BURNING ==========
+    event SkillRevoked(address indexed student, uint256 tokenId, uint256 amount);
+
+    /**
+     * @dev Revokes a credential by burning the token. Only callable by a registrar.
+     * Emits a SkillRevoked event for off-chain indexing.
+     */
+    function revokeSkill(address student, uint256 tokenId, uint256 amount) 
+        public 
+        onlyRole(REGISTRAR_ROLE) 
+    {
+        _burn(student, tokenId, amount);
+        emit SkillRevoked(student, tokenId, amount);
+    }
+
     // ========== W3C METADATA & UTILITIES ==========
     
     /**

@@ -19,13 +19,6 @@ const TOUR_STEPS: TourStep[] = [
     position: 'bottom',
   },
   {
-    target: '#tour-wallet',
-    title: 'Your Digital Wallet',
-    description: 'This is your digital identity. Your verified credentials are tied to your account — keep it secure.',
-    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12V7H5a2 2 0 010-4h14v4" /><path strokeLinecap="round" strokeLinejoin="round" d="M3 5v14a2 2 0 002 2h16v-5" /><path strokeLinecap="round" strokeLinejoin="round" d="M18 12a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" /></svg>,
-    position: 'bottom',
-  },
-  {
     target: '#tour-stats',
     title: 'Your Performance at a Glance',
     description: 'Track your verified skills count and market relevance score. These update in real-time based on verified data and AI analysis.',
@@ -61,6 +54,7 @@ export default function DashboardTour() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     const hasSeenTour = localStorage.getItem('vector_tour_v2');
     if (hasSeenTour) return;
@@ -84,6 +78,7 @@ export default function DashboardTour() {
   }, [currentStep]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     updateTargetRect();
     const handleResize = () => updateTargetRect();
     window.addEventListener('resize', handleResize);

@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
+import HelpTip from '@/components/shared/HelpTip';
+import Pagination from '@/components/shared/Pagination';
 
 // --- Types (mirrors market-insights/route.ts) ---
 
@@ -78,21 +80,50 @@ function SalaryBar({ salary }: { salary: SalaryInsights }) {
   const fmt = (n: number | null) =>
     n != null ? `$${(n / 1000).toFixed(0)}k` : '—';
 
+  const max = salary.max ?? 1;
+  const min = salary.min ?? 0;
+  const avg = salary.avg ?? 0;
+
+  // Percentage positions (clamp between 0–100)
+  const minPct = Math.min(100, Math.max(0, (min / max) * 100));
+  const avgPct = Math.min(98, Math.max(2, (avg / max) * 100));
+
   return (
     <div className="w-full">
-      <div className="flex justify-between text-xs text-gray-500 mb-1">
-        <span>{fmt(salary.min)}</span>
-        <span className="font-semibold text-gray-800">avg {fmt(salary.avg)}</span>
-        <span>{fmt(salary.max)}</span>
-      </div>
-      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+      {/* Bar with avg tick + floating badge */}
+      <div className="relative w-full mb-1" style={{ paddingTop: '28px' }}>
+        {/* Avg pill badge — floats above the tick */}
         <div
-          className="h-full bg-gradient-to-r from-[#06B4C9]/70 to-[#06B4C9] rounded-full"
-          style={{
-            marginLeft: `${((salary.min ?? 0) / (salary.max ?? 1)) * 40}%`,
-            width: '60%',
-          }}
-        />
+          className="absolute top-0 -translate-x-1/2 bg-[#06B4C9] text-white text-[11px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap shadow-sm"
+          style={{ left: `${avgPct}%` }}
+        >
+          avg {fmt(avg)}
+        </div>
+
+        {/* Track */}
+        <div className="relative h-3 w-full bg-gray-100 rounded-full overflow-visible">
+          {/* Filled portion: min → avg */}
+          <div
+            className="absolute top-0 h-full bg-gradient-to-r from-[#06B4C9]/60 to-[#06B4C9] rounded-full"
+            style={{ left: `${minPct}%`, width: `${avgPct - minPct}%` }}
+          />
+          {/* Remainder: avg → max (lighter) */}
+          <div
+            className="absolute top-0 h-full bg-[#06B4C9]/15 rounded-r-full"
+            style={{ left: `${avgPct}%`, width: `${100 - avgPct}%` }}
+          />
+          {/* Avg tick marker */}
+          <div
+            className="absolute -top-1 -translate-x-1/2 w-0.5 h-5 bg-[#06B4C9] rounded-full"
+            style={{ left: `${avgPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Min / Max labels */}
+      <div className="flex justify-between text-xs text-gray-400 mt-1">
+        <span>{fmt(min)}</span>
+        <span>{fmt(max)}</span>
       </div>
     </div>
   );
@@ -186,6 +217,8 @@ export default function MarketInsightsPanel({ userId }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   useEffect(() => {
     if (!userId) return;
@@ -239,13 +272,17 @@ export default function MarketInsightsPanel({ userId }: Props) {
 
   const withData = insights.filter(s => s.latest_job_count > 0);
   const noData = insights.filter(s => s.latest_job_count === 0);
+  
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const totalPages = Math.ceil(withData.length / ITEMS_PER_PAGE);
+  const paginatedData = withData.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Rich Market Intelligence</h2>
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-1">Rich Market Intelligence <HelpTip text="Real salary data and job demand pulled from job aggregators for each of your skills." size={14} /></h2>
           <p className="text-xs text-gray-500">Salary & regional demand for your skills</p>
         </div>
         <span className="text-xs text-gray-400">
@@ -268,8 +305,8 @@ export default function MarketInsightsPanel({ userId }: Props) {
           </div>
         )}
 
-        {withData.map((skill, i) => {
-          const color = colors[i % colors.length];
+        {paginatedData.map((skill, i) => {
+          const color = colors[(i + (page - 1) * ITEMS_PER_PAGE) % colors.length];
           const isOpen = expanded === skill.skill_name;
 
           return (
@@ -311,16 +348,16 @@ export default function MarketInsightsPanel({ userId }: Props) {
               {isOpen && (
                 <div className="px-6 pb-5 pt-1 bg-gray-50 border-t border-gray-100 space-y-4">
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                      Salary Range
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                      Salary Range <HelpTip text="The minimum, average, and maximum salaries from real job postings — not guaranteed, but reflects current market rates." size={11} />
                     </p>
                     <SalaryBar salary={skill.salary} />
                   </div>
 
                   {skill.top_locations.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                        Top Hiring Locations
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        Top Hiring Locations <HelpTip text="Cities or regions with the most job postings for this skill." size={11} />
                       </p>
                       <LocationBars locations={skill.top_locations} color={color} />
                     </div>
@@ -341,6 +378,17 @@ export default function MarketInsightsPanel({ userId }: Props) {
             </div>
           );
         })}
+
+        {withData.length > ITEMS_PER_PAGE && (
+          <div className="p-4 border-t border-gray-100">
+            <Pagination 
+              currentPage={page} 
+              totalItems={withData.length} 
+              itemsPerPage={ITEMS_PER_PAGE} 
+              onPageChange={setPage} 
+            />
+          </div>
+        )}
 
         {noData.length > 0 && (
           <div className="px-6 py-3">

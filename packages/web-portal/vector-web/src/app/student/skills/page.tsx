@@ -1,10 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
+import { fetchWalletSkillNames } from '@/lib/blockchain';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Pagination from '@/components/shared/Pagination';
+import HelpTip from '@/components/shared/HelpTip';
 import Link from 'next/link';
 
 interface RawCredential {
@@ -93,7 +93,7 @@ function SkillCardItem({ card, health }: { card: SkillCard; health: SkillHealth 
           {card.source === 'university' ? (
             <span className="inline-flex items-center gap-1 text-[10px] text-[#06B4C9] bg-[#06B4C9]/10 px-2 py-0.5 rounded-full border border-[#06B4C9]/20 font-semibold shrink-0">University</span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 font-semibold shrink-0">On-Chain</span>
+            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 font-semibold shrink-0">On-Chain <HelpTip size={10} text="This skill was verified directly on the blockchain, not through a university record." /></span>
           )}
         </div>
 
@@ -131,6 +131,7 @@ export default function SkillsPage() {
   const [credentialsLoading, setCredentialsLoading] = useState(true);
   const [healthMap, setHealthMap] = useState<Map<string, SkillHealth>>(new Map());
   const [healthLoading, setHealthLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [userWallet, setUserWallet] = useState<string | null>(null);
 
   useEffect(() => {
@@ -148,7 +149,7 @@ export default function SkillsPage() {
         const dbRes = await fetch('/api/student/credentials');
         if (dbRes.ok) {
           const dbCreds = await dbRes.json();
-          dbCreds.forEach((c: any) => {
+          dbCreds.forEach((c: { id: string; skill_name: string; skill_tags?: string[]; issued_at?: string; transaction_hash?: string }) => {
             found.push({
               id: c.id,
               skill_name: c.skill_name,
@@ -162,27 +163,20 @@ export default function SkillsPage() {
           });
         }
 
-        if (profile?.wallet_address && ethers.isAddress(profile.wallet_address)) {
+        if (profile?.wallet_address) {
           try {
-            const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
-            const code = await provider.getCode(CONTRACT_ADDRESS);
-            if (code !== "0x") {
-              const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
-              const processedIds = new Set<number>();
-              const dbNames = found.map(c => c.skill_name);
-              for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
-                if (typeof skillId !== 'number' || processedIds.has(skillId)) continue;
-                try {
-                  const balance = await contract.balanceOf(profile.wallet_address, skillId);
-                  if (balance > 0) {
-                    processedIds.add(skillId);
-                    if (!dbNames.includes(skillName)) {
-                      found.push({ id: `bc-${skillId}`, skill_name: skillName, skill_tags: [skillName], source: 'blockchain' });
-                    }
-                  }
-                } catch (e) { console.warn(`Error scanning skill ${skillName}:`, e); }
+            const dbNames = found.map(c => c.skill_name.toLowerCase());
+            const walletSkills = await fetchWalletSkillNames(profile.wallet_address);
+            walletSkills.forEach((skillName, index) => {
+              if (!dbNames.includes(skillName.toLowerCase())) {
+                found.push({
+                  id: `bc-${skillName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`,
+                  skill_name: skillName,
+                  skill_tags: [skillName],
+                  source: 'blockchain'
+                });
               }
-            }
+            });
           } catch (err) { console.warn('Blockchain scan failed:', err); }
         }
 
@@ -215,9 +209,17 @@ export default function SkillsPage() {
     const fetchHealth = async () => {
       setHealthLoading(true);
       try {
+        // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+        const csrfToken = typeof document !== 'undefined' 
+          ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+          : '';
+
         const res = await fetch('/api/student/skill-health', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken || ''
+          },
           body: JSON.stringify({ skillNames: skillCards.map(c => c.skillName) }),
         });
         if (res.ok) {
@@ -245,8 +247,8 @@ export default function SkillsPage() {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Skills</h1>
-        <p className="text-sm text-gray-500">Your verified credentials and market health</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Skills <HelpTip text="All skills extracted from your certificates, with live job-market demand tracking." /></h1>
+        <p className="text-sm text-gray-500">Your verified credentials and how they&apos;re trending in the job market</p>
       </div>
 
       {credentialsLoading && (
@@ -281,8 +283,8 @@ export default function SkillsPage() {
 
       {!credentialsLoading && skillCards.length > 0 && (
         <div className="space-y-8">
-          <div className="flex items-center gap-4 text-sm text-gray-500">
-            <span><span className="font-bold text-gray-900">{skillCards.length}</span> skill{skillCards.length !== 1 ? 's' : ''}</span>
+          <div className="flex items-center text-sm text-gray-500">
+            <span><span className="font-bold text-gray-900">{skillCards.length}</span> skill{skillCards.length !== 1 ? 's' :''}</span>
             <span className="text-gray-300">·</span>
             <span>from <span className="font-bold text-gray-900">{credentials.length}</span> credential{credentials.length !== 1 ? 's' : ''}</span>
             {healthLoading && (

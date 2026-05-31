@@ -68,18 +68,18 @@ export async function POST(req: Request) {
     // Build rich context string for each skill
     const marketContextList = latestPerSkill
       .map((record) => {
-        const meta = (record.metadata as any) || {};
+        const meta = (record.metadata as Record<string, unknown>) || {};
 
         // Job count line — always present
         let line = `- ${record.skill_name}: ${record.job_count} active job postings`;
 
         // Salary enrichment — from Adzuna metadata shape:
         // { average_salary, salary: { min, max, avg, currency }, ... }
-        const salary = meta.salary || {};
-        const avgSalary = salary.avg || meta.average_salary;
-        const minSalary = salary.min;
-        const maxSalary = salary.max;
-        const currency = salary.currency || 'USD';
+        const salary = (meta.salary as Record<string, unknown>) || {};
+        const avgSalary = (salary.avg || meta.average_salary) as number | undefined;
+        const minSalary = salary.min as number | undefined;
+        const maxSalary = salary.max as number | undefined;
+        const currency = (salary.currency as string) || 'USD';
 
         if (avgSalary) {
           const avg = Math.round(avgSalary).toLocaleString();
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
 
         // Top locations enrichment — from metadata shape:
         // { top_locations: [{ location, count }] }
-        const locations: { location: string; count: number }[] = meta.top_locations || [];
+        const locations: { location: string; count: number }[] = (meta.top_locations as { location: string; count: number }[]) || [];
         if (locations.length > 0) {
           const topCities = locations
             .slice(0, 3)
@@ -145,8 +145,9 @@ export async function POST(req: Request) {
     const response = result.response.text();
 
     return NextResponse.json({ reply: response });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Chat Error:', error);
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 });
+    const errMsg = error instanceof Error ? error.message : 'Server Error';
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }

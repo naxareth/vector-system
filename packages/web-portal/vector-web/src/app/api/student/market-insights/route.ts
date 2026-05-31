@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
@@ -59,7 +60,7 @@ export async function GET(req: Request) {
     const [verified, selfReported] = await Promise.all([
       prisma.verified_credentials.findMany({
         where: { user_id: userId },
-        select: { skill_name: true },
+        select: { skill_name: true, skill_tags: true },
       }),
       prisma.self_reported_skills.findMany({
         where: { user_id: userId },
@@ -69,7 +70,9 @@ export async function GET(req: Request) {
 
     const allSkills = Array.from(
       new Set([
-        ...verified.map(c => c.skill_name),
+        ...verified.flatMap(c => 
+          (Array.isArray(c.skill_tags) && c.skill_tags.length > 0) ? c.skill_tags : [c.skill_name]
+        ),
         ...selfReported.map(s => s.skill_name),
       ])
     );

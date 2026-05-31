@@ -3,120 +3,239 @@
     "id": 1,
     "type": "academic_degree",
     "input": "Bachelor of Science in Information Technology",
-    "expected": ["Database Management", "System Administration", "Networking", "IT Support", "Software Development"]
+    "expected": [
+      "Database Management",
+      "System Administration",
+      "Networking",
+      "IT Support",
+      "Software Development"
+    ]
   },
   {
     "id": 2,
     "type": "academic_degree",
     "input": "Bachelor of Science in Accountancy",
-    "expected": ["Accounting", "Auditing", "Taxation", "Financial Reporting", "Financial Analysis"]
+    "expected": [
+      "Accounting",
+      "Auditing",
+      "Taxation",
+      "Financial Reporting",
+      "Financial Analysis"
+    ]
   },
   {
     "id": 3,
     "type": "academic_degree",
     "input": "Bachelor of Science in Computer Science",
-    "expected": ["Programming", "Data Structures", "Algorithms", "Software Development", "Problem Solving"]
+    "expected": [
+      "Programming",
+      "Data Structures",
+      "Algorithms",
+      "Software Development",
+      "Computer Architecture"
+    ]
   },
   {
     "id": 4,
     "type": "academic_degree",
     "input": "Bachelor of Science in Business Administration major in Financial Management",
-    "expected": ["Financial Analysis", "Financial Management", "Business Management", "Accounting", "Strategic Planning"]
+    "expected": [
+      "Financial Analysis",
+      "Financial Management",
+      "Investment Management",
+      "Corporate Finance",
+      "Business Administration"
+    ]
   },
   {
     "id": 5,
     "type": "academic_degree",
     "input": "Bachelor of Science in Criminology",
-    "expected": ["Criminal Justice", "Research Methods", "Criminology", "Legal Studies"]
+    "expected": [
+      "Criminal Justice",
+      "Forensic Science",
+      "Criminology",
+      "Legal Procedures",
+      "Investigative Techniques"
+    ]
   },
   {
     "id": 6,
     "type": "bootcamp_cert",
     "input": "Full-Stack Web Development Bootcamp",
-    "expected": ["Web Development", "Frontend Development", "Backend Development", "Database Management", "API Development", "JavaScript"]
+    "expected": [
+      "Web Development",
+      "Frontend Development",
+      "Backend Development",
+      "Database Management",
+      "API Development",
+      "JavaScript"
+    ]
   },
   {
     "id": 7,
     "type": "bootcamp_cert",
     "input": "AWS Cloud Practitioner Bootcamp",
-    "expected": ["AWS", "Cloud Computing", "Cloud Security", "Cloud Architecture", "Cloud Deployment"]
+    "expected": [
+      "AWS",
+      "Cloud Computing",
+      "Cloud Security",
+      "Cloud Architecture",
+      "Scalability"
+    ]
   },
   {
     "id": 8,
     "type": "bootcamp_cert",
     "input": "UI/UX Design Intensive Bootcamp",
-    "expected": ["UI/UX Design", "Prototyping", "User Research", "Interaction Design", "Design Thinking", "Usability Testing"]
+    "expected": [
+      "UI/UX Design",
+      "Prototyping",
+      "User Research",
+      "Wireframing",
+      "Usability Testing"
+    ]
   },
   {
     "id": 9,
     "type": "bootcamp_cert",
     "input": "Cybersecurity Fundamentals Bootcamp",
-    "expected": ["Cybersecurity", "Network Security", "Information Security", "Threat Analysis", "Penetration Testing", "Vulnerability Assessment"]
+    "expected": [
+      "Cybersecurity",
+      "Network Security",
+      "Information Security",
+      "Threat Analysis",
+      "Incident Response"
+    ]
   },
   {
     "id": 10,
     "type": "bootcamp_cert",
     "input": "Python",
-    "expected": ["Python", "Programming", "Scripting"]
+    "expected": [
+      "Python",
+      "Programming",
+      "Scripting"
+    ]
   },
   {
     "id": 11,
     "type": "event_badge",
     "input": "Regional Hackathon 2026",
-    "expected": ["Problem Solving", "Programming", "Teamwork", "Prototyping", "Software Development"]
+    "expected": [
+      "Problem Solving",
+      "Programming",
+      "Teamwork",
+      "Prototyping",
+      "Software Development"
+    ]
   },
   {
     "id": 12,
     "type": "event_badge",
     "input": "National Cybersecurity CTF Competition 2025",
-    "expected": ["Cybersecurity", "Penetration Testing", "Cryptography", "Problem Solving", "Ethical Hacking"]
+    "expected": [
+      "Cybersecurity",
+      "Network Security",
+      "Cryptography",
+      "Problem Solving",
+      "Penetration Testing"
+    ]
   },
   {
     "id": 13,
     "type": "event_badge",
     "input": "University Data Science Summit — Best Presenter Award",
-    "expected": ["Data Science", "Public Speaking", "Presentation Skills", "Data Visualization", "Research"]
+    "expected": [
+      "Data Science",
+      "Public Speaking",
+      "Presentation Skills",
+      "Data Visualization",
+      "Research"
+    ]
   },
   {
     "id": 14,
     "type": "event_badge",
     "input": "Fintech Innovation Challenge 2025 — Finalist",
-    "expected": ["Fintech", "Innovation", "Business Strategy", "Problem Solving", "Presentation Skills"]
+    "expected": [
+      "Financial Technology",
+      "Innovation",
+      "Business Strategy",
+      "Problem Solving",
+      "Prototyping"
+    ]
   },
   {
     "id": 15,
     "type": "government_cert",
     "input": "TESDA National Certificate II in Computer Systems Servicing",
-    "expected": ["Computer Hardware Repair", "Network Configuration", "Operating System Installation", "Troubleshooting", "Preventive Maintenance"]
+    "expected": [
+      "Computer Hardware Repair",
+      "Network Configuration",
+      "Operating System Installation",
+      "Troubleshooting",
+      "Preventive Maintenance"
+    ]
   },
   {
     "id": 16,
     "type": "government_cert",
     "input": "TESDA National Certificate III in Bookkeeping",
-    "expected": ["Bookkeeping", "Accounting Principles", "Financial Record Keeping", "Financial Reporting", "Reconciliation"]
+    "expected": [
+      "Bookkeeping",
+      "Accounting",
+      "Financial Record Keeping",
+      "Financial Reporting",
+      "Payroll"
+    ]
   },
   {
     "id": 17,
     "type": "government_cert",
     "input": "TESDA National Certificate II in Bread and Pastry Production",
-    "expected": ["Baking", "Food Safety", "Pastry Making", "Food Preparation", "Quality Control", "Kitchen Operations"]
+    "expected": [
+      "Baking",
+      "Food Safety",
+      "Pastry Making",
+      "Bread Making",
+      "Kitchen Operations"
+    ]
   },
   {
     "id": 18,
     "type": "government_cert",
     "input": "TESDA National Certificate II in Electrical Installation and Maintenance",
-    "expected": ["Electrical Installation", "Electrical Maintenance", "Electrical Safety", "Troubleshooting", "Safety Procedures"]
+    "expected": [
+      "Electrical Installation",
+      "Electrical Maintenance",
+      "Electrical Wiring",
+      "Troubleshooting",
+      "Electrical Safety"
+    ]
   },
   {
     "id": 19,
     "type": "government_cert",
     "input": "DICT Digital Literacy Certificate",
-    "expected": ["Digital Literacy", "Computer Fundamentals", "Internet Navigation", "Productivity Software", "Digital Communication"]
+    "expected": [
+      "Digital Literacy",
+      "Computer Fundamentals",
+      "Online Safety",
+      "Internet Navigation",
+      "Productivity Software"
+    ]
   },
   {
     "id": 20,
     "type": "government_cert",
     "input": "DICT Cybersecurity Essentials Certification",
-    "expected": ["Cybersecurity", "Network Security", "Information Security", "Risk Management", "Threat Detection"]
+    "expected": [
+      "Cybersecurity",
+      "Network Security",
+      "Information Security",
+      "Risk Management",
+      "Incident Response"
+    ]
   }
 ]

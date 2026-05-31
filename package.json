@@ -5,6 +5,7 @@
   "description": "A decentralized micro-credentialing system with predictive career analytics.",
   "workspaces": [
     "packages/*",
+    "packages/web-portal/*",
     "apps/*"
   ],
   "scripts": {

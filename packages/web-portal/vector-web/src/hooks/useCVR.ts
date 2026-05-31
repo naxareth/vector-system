@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
-import { resumeSchema, SkillItem } from '@/lib/schemas/cvr';
+import { fetchWalletSkillNames } from '@/lib/blockchain';
+import { resumeSchema, SkillItem, CVRData, CVREducation, CVRExperience, CVRProject, CVRCertification, CVRAward } from '@/lib/schemas/cvr';
+
+// Type for the dynamic section fields
+type CVRFormSection = CVREducation | CVRExperience | CVRProject | CVRCertification | CVRAward;
 
 export function useCVR() {
   const router = useRouter();
@@ -12,12 +14,12 @@ export function useCVR() {
   // Data States
   const [availableSkills, setAvailableSkills] = useState<SkillItem[]>([]);
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
-  const [availableCertifications, setAvailableCertifications] = useState<any[]>([]);
+  const [availableCertifications, setAvailableCertifications] = useState<Record<string, unknown>[]>([]);
   const [customSkill, setCustomSkill] = useState('');
   
   // UI States
   const [isGenerated, setIsGenerated] = useState(false);
-  const [generatedData, setGeneratedData] = useState<any>(null);
+  const [generatedData, setGeneratedData] = useState<CVRData | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   // Form Data State (Exact match to your original)
@@ -29,11 +31,11 @@ export function useCVR() {
     linkedin: '',
     title: '',
     summary: '',
-    education: [] as any[],
-    experience: [] as any[],
-    projects: [] as any[],
-    certifications: [] as any[],
-    awards: [] as any[],
+    education: [] as CVREducation[],
+    experience: [] as CVRExperience[],
+    projects: [] as CVRProject[],
+    certifications: [] as CVRCertification[],
+    awards: [] as CVRAward[],
   });
 
   // --- Fetching Logic ---
@@ -69,6 +71,7 @@ export function useCVR() {
         }));
 
         if (userRecord?.wallet_address) {
+          // eslint-disable-next-line react-hooks/immutability
           await fetchVerifiedSkills(userRecord.wallet_address);
         }
 
@@ -90,19 +93,11 @@ export function useCVR() {
 
   const fetchVerifiedSkills = async (walletAddress: string) => {
     try {
-      const provider = new ethers.BrowserProvider((window as any).ethereum, "any");
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
-      const foundSkills: SkillItem[] = [];
-
-      for (const [skillName, skillId] of Object.entries(SKILL_MAP)) {
-        if (typeof skillId !== 'number') continue;
-        try {
-          const balance = await contract.balanceOf(walletAddress, skillId);
-          if (balance > 0) {
-            foundSkills.push({ id: `chain-${skillId}`, name: skillName, verified: true });
-          }
-        } catch (e) { /* Ignore */ }
-      }
+      const foundSkills: SkillItem[] = (await fetchWalletSkillNames(walletAddress)).map((skillName, index) => ({
+        id: `chain-${skillName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`,
+        name: skillName,
+        verified: true,
+      }));
       setAvailableSkills(foundSkills);
       setSelectedSkillIds(foundSkills.map(s => s.id));
     } catch (error) {
@@ -119,21 +114,21 @@ export function useCVR() {
   };
 
   const updateItem = (section: keyof typeof formData, index: number, field: string, value: string) => {
-    setFormData((prev: any) => {
-      const newItems = [...prev[section]];
+    setFormData((prev: typeof formData) => {
+      const newItems = [...prev[section]] as Record<string, unknown>[]; // Safe cast to array for mutation
       newItems[index] = { ...newItems[index], [field]: value };
       return { ...prev, [section]: newItems };
     });
   };
 
   const removeItem = (section: keyof typeof formData, index: number) => {
-    setFormData((prev: any) => ({
-      ...prev, [section]: prev[section].filter((_: any, i: number) => i !== index)
+    setFormData((prev: typeof formData) => ({
+      ...prev, [section]: (prev[section] as unknown[]).filter((_, i: number) => i !== index)
     }));
   };
 
-  const addItem = (section: keyof typeof formData, item: any) => {
-    setFormData((prev: any) => ({ ...prev, [section]: [...prev[section], item] }));
+  const addItem = (section: keyof typeof formData, item: CVRFormSection) => {
+    setFormData((prev: typeof formData) => ({ ...prev, [section]: [...(prev[section] as unknown[]), item] }));
   };
 
   // Skill Handlers
@@ -150,8 +145,8 @@ export function useCVR() {
     }
   };
 
-  const handleAddVerifiedCertification = (cert: any) => {
-    const exists = formData.certifications.some((c: any) => c.name === cert.skill_name && c.verified);
+  const handleAddVerifiedCertification = (cert: { skill_name: string; issued_at: string }) => {
+    const exists = formData.certifications.some((c: CVRCertification) => c.name === cert.skill_name && c.verified);
     if (exists) return;
     addItem('certifications', {
       name: cert.skill_name,
@@ -177,15 +172,15 @@ export function useCVR() {
     }
 
     const finalSkills = availableSkills.filter(s => selectedSkillIds.includes(s.id));
-    const sanitizeArray = (arr: any[]) => arr.filter(item => Object.values(item).some((v: any) => v !== null && v !== undefined && String(v).trim() !== ''));
+    const sanitizeArray = (arr: Record<string, unknown>[]) => arr.filter(item => Object.values(item).some((v: unknown) => v !== null && v !== undefined && String(v).trim() !== ''));
 
     const cvrData = {
         ...formData,
-        education: sanitizeArray(formData.education),
-        experience: sanitizeArray(formData.experience),
-        projects: sanitizeArray(formData.projects),
-        certifications: sanitizeArray(formData.certifications),
-        awards: sanitizeArray(formData.awards),
+        education: sanitizeArray(formData.education as Record<string, unknown>[]),
+        experience: sanitizeArray(formData.experience as Record<string, unknown>[]),
+        projects: sanitizeArray(formData.projects as Record<string, unknown>[]),
+        certifications: sanitizeArray(formData.certifications as Record<string, unknown>[]),
+        awards: sanitizeArray(formData.awards as Record<string, unknown>[]),
         skills: finalSkills,
         generatedAt: new Date().toISOString(),
         template: selectedTemplate,

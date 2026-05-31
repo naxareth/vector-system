@@ -11,7 +11,7 @@ interface AuditLogEntry {
   description: string;
   actor: { full_name: string; email: string } | null;
   target: { full_name: string; email: string } | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 export default function AuditLogsPage() {
@@ -32,19 +32,20 @@ export default function AuditLogsPage() {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (data) setLogs(data as any);
+    if (data) setLogs(data as unknown as AuditLogEntry[]);
     if (error) console.error("Error fetching logs:", error);
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchLogs(); }, []);
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'ROLE_CHANGE': return 'bg-[#06B4C9]/10 text-[#06B4C9] border-[#06B4C9]/20';
-      case 'USER_VERIFIED': return 'bg-green-100 text-green-700 border-green-200';
-      case 'ACCOUNT_SUSPENDED': return 'bg-red-100 text-red-700 border-red-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'ROLE_CHANGE': return 'bg-[#06B4C9]/10 text-[#06B4C9] border-[#06B4C9]/20 dark:bg-[#06B4C9]/10 dark:text-[#06B4C9]';
+      case 'USER_VERIFIED': return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20';
+      case 'ACCOUNT_SUSPENDED': return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-500/10 dark:text-gray-400 dark:border-gray-500/20';
     }
   };
 
@@ -70,16 +71,16 @@ export default function AuditLogsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
+                  <tr className="bg-gray-50 dark:bg-[#0E1220] text-gray-500 dark:text-slate-500 text-xs uppercase tracking-wider border-b border-gray-100 dark:border-[#1E2536]">
                     <th className="px-6 py-4 font-semibold">Timestamp</th>
                     <th className="px-6 py-4 font-semibold">Action</th>
-                    <th className="px-6 py-4 font-semibold">Administrator (Actor)</th>
+                    <th className="px-6 py-4 font-semibold">Administrator</th>
                     <th className="px-6 py-4 font-semibold">Details</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-[#1E2536]">
+                <tbody className="divide-y divide-gray-100 dark:divide-[#1E2536]">
                   {logs.slice((logPage - 1) * LOGS_PER_PAGE, logPage * LOGS_PER_PAGE).map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-[#1E2536] transition-colors">
+                    <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-[#94A3B8] whitespace-nowrap">
                         <span className="font-mono text-xs">{new Date(log.created_at).toISOString().split('T')[0]}</span>
                         <br />

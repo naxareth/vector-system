@@ -58,8 +58,9 @@ export async function POST(req: Request) {
       message: `User ${targetUserId} is now ${newRole} (Active)`
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Critical API Error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const errMsg = err instanceof Error ? err.message : 'Internal Server Error';
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }

@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ 
         status: 'error', 
         message: 'Invalid request schema',
-        errors: result.error.errors 
+        errors: result.error.issues 
       }, { status: 400 });
     }
 
@@ -69,7 +69,9 @@ export async function POST(req: Request) {
         ]
       },
       include: {
-        verified_credentials: true,
+        verified_credentials: {
+          where: { revoked: false }
+        },
         self_reported_skills: true
       }
     });
@@ -77,22 +79,26 @@ export async function POST(req: Request) {
     const dbCredentials = student?.verified_credentials || [];
 
     // --- PHASE 5: AI Dynamic Schema Extraction ---
+    // Only extract via AI if the credential lacks explicit skill_tags
     const dynamicSkillsPromises = dbCredentials
       .filter(cred => 
         cred.schema_url && 
         cred.credential_data && 
-        !cred.schema_url.includes('undefined')
+        !cred.schema_url.includes('undefined') &&
+        (!Array.isArray(cred.skill_tags) || cred.skill_tags.length === 0)
       )
       .map(cred => {
         let absoluteSchemaUrl = cred.schema_url!;
         
         if (absoluteSchemaUrl.startsWith('/')) {
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          const host = req.headers.get('host');
+          const protocol = req.headers.get('x-forwarded-proto') || 'http';
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : 'http://localhost:3000');
           absoluteSchemaUrl = `${baseUrl}${absoluteSchemaUrl}`;
         }
 
         return extractSkillsFromCredential(
-          cred.credential_data as Record<string, any>, 
+          cred.credential_data as Record<string, unknown>, 
           absoluteSchemaUrl
         );
       });
@@ -109,7 +115,7 @@ export async function POST(req: Request) {
     );
     const selfReportedNames = student?.self_reported_skills.map(s => s.skill_name) || [];
     
-    let allSkills = Array.from(new Set([
+    const allSkills = Array.from(new Set([
       ...skillsOverride,
       ...verifiedNames,
       ...selfReportedNames,
@@ -139,9 +145,9 @@ export async function POST(req: Request) {
       },
       orderBy: { recorded_at: 'asc' }
     });
-    const chartDataMap: Record<string, any> = {};
+    const chartDataMap: Record<string, Record<string, string | number>> = {};
     marketHistoryRaw.forEach(record => {
-      const dateKey = new Date(record.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dateKey = new Date(record.recorded_at ?? Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       if (!chartDataMap[dateKey]) chartDataMap[dateKey] = { date: dateKey };
       chartDataMap[dateKey][record.skill_name] = record.job_count;
     });
@@ -209,10 +215,37 @@ export async function POST(req: Request) {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
+    // 5. Enrich each skillHealth item with trendSlope for the frontend
+    // We enforce a realistic market distribution by comparing skills relatively.
+    // The Gemini AI tends to be overly optimistic and label everything "growing".
+    const sortedScoreObjects = [...(analysisResult?.skillHealth || [])].sort((a: { healthScore: number }, b: { healthScore: number }) => a.healthScore - b.healthScore);
+    const p25Index = Math.max(0, Math.floor(sortedScoreObjects.length * 0.25) - 1);
+    const p66Index = Math.min(sortedScoreObjects.length - 1, Math.floor(sortedScoreObjects.length * 0.66));
+    const p25Score = sortedScoreObjects[p25Index]?.healthScore ?? 40;
+    const p66Score = sortedScoreObjects[p66Index]?.healthScore ?? 70;
+
+    const enrichedSkillHealth = (analysisResult?.skillHealth || []).map((s: { healthScore: number; trend: string; skillName: string }) => {
+      let actualTrend = 'stable';
+      if (sortedScoreObjects.length > 3) {
+        if (s.healthScore <= p25Score) actualTrend = 'declining';
+        else if (s.healthScore >= p66Score) actualTrend = 'growing';
+      } else {
+        if (s.healthScore < 50) actualTrend = 'declining';
+        else if (s.healthScore > 70) actualTrend = 'growing';
+      }
+
+      return {
+        ...s,
+        trend: actualTrend,
+        trendSlope: deriveTrendSlope(actualTrend, s.healthScore),
+      };
+    });
+
     return NextResponse.json({
       status: 'success',
       data: {
         ...analysisResult,
+        skillHealth: enrichedSkillHealth,
         history: Object.values(chartDataMap),
         credentials: dbCredentials 
       }

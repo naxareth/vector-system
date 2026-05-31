@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import HelpTip from '@/components/shared/HelpTip';
 
 interface CredentialCardProps {
   id: string; 
@@ -8,7 +9,8 @@ interface CredentialCardProps {
   issueDate: string;
   marketRelevance: number;
   verified: boolean;
-  credentialData?: Record<string, any>; // ✅ New prop for dynamic W3C payload
+  credentialData?: Record<string, unknown>; // ✅ New prop for dynamic W3C payload
+  certificateNumber?: string; // differentiates duplicates
 }
 
 export default function CredentialCard({
@@ -19,6 +21,7 @@ export default function CredentialCard({
   marketRelevance,
   verified,
   credentialData,
+  certificateNumber,
 }: CredentialCardProps) {
 
   // Helper to format JSON keys nicely (e.g., "hours_completed" -> "Hours Completed")
@@ -49,8 +52,15 @@ export default function CredentialCard({
           {title}
         </h3>
 
-        {/* Issue Date */}
-        <p className="text-sm text-gray-500 mb-4 relative z-10">Issued: {issueDate}</p>
+        {/* Issue Date & Cert Number */}
+        <div className="flex justify-between items-center mb-4 relative z-10">
+          <p className="text-sm text-gray-500">Issued: {issueDate}</p>
+          {certificateNumber && (
+            <p className="text-[10px] font-mono text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100" title="Certificate Number">
+              #{certificateNumber}
+            </p>
+          )}
+        </div>
 
         {/* ✅ DYNAMIC FIELDS RENDERER */}
         {credentialData && Object.keys(credentialData).length > 0 && (
@@ -74,7 +84,7 @@ export default function CredentialCard({
         {/* Footer */}
         <div className="mt-auto pt-4 border-t border-gray-50 flex items-end justify-between relative z-10">
           <div>
-            <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-tight">Market Relevance</p>
+            <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-tight">Market Relevance <HelpTip size={11} text="How in-demand this skill is with employers right now, based on live job market data." /></p>
             <div className="flex items-center gap-2">
               <span className="text-2xl font-black text-gray-900 group-hover:text-[#06B4C9] transition-colors">
                 {marketRelevance}%

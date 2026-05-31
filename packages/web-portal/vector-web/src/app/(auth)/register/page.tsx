@@ -13,9 +13,7 @@ export default function RegisterPage() {
         <div className="px-10 py-12 md:px-14 lg:px-16 flex flex-col justify-center">
           {/* Logo + branding */}
           <Link href="/" className="inline-flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-[#011018] rounded-full flex items-center justify-center">
-              <span className="text-[#06B4C9] font-bold text-sm">V</span>
-            </div>
+            <Image src="/logo/VectorLogo.png" alt="Vector Logo" width={40} height={40} className="rounded-full" style={{ width: 'auto', height: 'auto' }} />
             <span className="text-xl font-bold text-gray-900">Vector</span>
           </Link>
 
@@ -33,12 +31,7 @@ export default function RegisterPage() {
             </Link>
           </p>
 
-          <p className="text-xs text-gray-400 text-center mt-4">
-            Registering your institution?{' '}
-            <Link href="/registrar-register" className="font-semibold text-[#06B4C9] hover:underline">
-              Register as a Registrar
-            </Link>
-          </p>
+          {/* Registrar CTA removed from student registration */}
         </div>
 
         {/* ── Right column: accent image panel ── */}
@@ -47,6 +40,7 @@ export default function RegisterPage() {
             src={mockupImg}
             alt="Vector platform preview"
             fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-contain p-2 drop-shadow-2xl"
             priority
           />

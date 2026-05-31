@@ -18,7 +18,7 @@ type Role = typeof ROLES[number];
 
 const ROLE_LABELS: Record<Role, string> = {
   student: 'Student',
-  registrar: 'Registrar',
+  registrar: 'Issuer',
   super_admin: 'Super Admin',
 };
 
@@ -29,16 +29,30 @@ const ROLE_COLORS: Record<string, string> = {
   pending_verification: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-400',
 };
 
+interface ConfirmModalState {
+  isOpen: boolean;
+  action: 'suspend' | 'restore' | 'delete' | 'role-change' | null;
+  userId: string | null;
+  userName: string | null;
+  newRole?: string;
+  message: string;
+}
+
 export default function AdminDashboard() {
   const [allUsers, setAllUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<'pending' | 'directory'>('pending');
-  const [pendingPage, setPendingPage] = useState(1);
   const [dirPage, setDirPage] = useState(1);
-  const ROWS_PER_PAGE = 10;
+  const [modal, setModal] = useState<ConfirmModalState>({
+    isOpen: false,
+    action: null,
+    userId: null,
+    userName: null,
+    message: '',
+  });
+  const ROWS_PER_PAGE = 8;
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -52,10 +66,10 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers();
   }, []);
 
-  const pendingUsers = allUsers.filter((u) => u.status === 'pending_verification');
   const directoryUsers = allUsers.filter((u) => {
     const matchesSearch =
       !searchQuery ||
@@ -65,23 +79,44 @@ export default function AdminDashboard() {
     return matchesSearch && matchesRole;
   });
 
-  const paginatedPending = pendingUsers.slice((pendingPage - 1) * ROWS_PER_PAGE, pendingPage * ROWS_PER_PAGE);
   const paginatedDir = directoryUsers.slice((dirPage - 1) * ROWS_PER_PAGE, dirPage * ROWS_PER_PAGE);
 
   // Reset pages on filter/search changes
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setDirPage(1); }, [searchQuery, filterRole]);
 
-  const handleRoleChange = async (userId: string, newRole: string, userName: string) => {
+  const handleRoleChange = (userId: string, newRole: string, userName: string) => {
     const currentUser = allUsers.find((u) => u.id === userId);
     if (currentUser?.role === newRole) return;
 
-    if (!confirm(`Change ${userName}'s role to ${ROLE_LABELS[newRole as Role] || newRole}? This action will be audited.`)) return;
+    setModal({
+      isOpen: true,
+      action: 'role-change',
+      userId,
+      userName,
+      newRole,
+      message: `Change ${userName}'s role to ${ROLE_LABELS[newRole as Role] || newRole}? This change will take effect immediately and will be recorded in the activity log.`,
+    });
+  };
+
+  const handleRoleChangeConfirm = async () => {
+    const { userId, newRole } = modal;
+    if (!userId || !newRole) return;
 
     setProcessingId(userId);
+    setModal({ isOpen: false, action: null, userId: null, userName: null, message: '' });
     try {
+      // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       const res = await fetch('/api/admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ targetUserId: userId, newRole }),
       });
 
@@ -91,22 +126,113 @@ export default function AdminDashboard() {
       }
 
       await fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      alert(`Failed to update role: ${error.message}`);
+      alert(`Failed to update role: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setProcessingId(null);
     }
   };
 
+  const handleArchiveUser = (userId: string, userName: string, currentStatus: string) => {
+    const isSuspended = currentStatus === 'suspended';
+    const actionType = isSuspended ? 'restore' : 'suspend';
+    const message = `${isSuspended ? 'Restore' : 'Suspend'} ${userName}? ${isSuspended ? 'They will regain access.' : 'They will lose access until restored.'}`;
+
+    setModal({
+      isOpen: true,
+      action: actionType as 'suspend' | 'restore',
+      userId,
+      userName,
+      message,
+    });
+  };
+
+  const handleArchiveUserConfirm = async () => {
+    const { userId, action } = modal;
+    if (!userId || (action !== 'suspend' && action !== 'restore')) return;
+
+    setProcessingId(userId);
+    setModal({ isOpen: false, action: null, userId: null, userName: null, message: '' });
+    try {
+      // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
+      const res = await fetch('/api/admin/manage-users', {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
+        body: JSON.stringify({ targetUserId: userId, action }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || `Failed to ${action}`);
+      await fetchUsers();
+    } catch (error: unknown) {
+      alert(`Failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDeleteUser = (userId: string, userName: string) => {
+    setModal({
+      isOpen: true,
+      action: 'delete',
+      userId,
+      userName,
+      message: `Permanently delete ${userName} and all their credentials? This CANNOT be undone. All certificates, skills, and notifications will be deleted.`,
+    });
+  };
+
+  const handleDeleteUserConfirm = async () => {
+    const { userId } = modal;
+    if (!userId) return;
+
+    setProcessingId(userId);
+    setModal({ isOpen: false, action: null, userId: null, userName: null, message: '' });
+    try {
+      // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
+      const res = await fetch('/api/admin/manage-users', {
+        method: 'DELETE',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
+        body: JSON.stringify({ targetUserId: userId }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete');
+      await fetchUsers();
+    } catch (error: unknown) {
+      alert(`Failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleQuickApprove = async (userId: string, newRole: 'registrar' | 'student') => {
-    if (!confirm(`Approve this user as ${newRole.toUpperCase()}? This action will be audited.`)) return;
+    if (!confirm(`Approve this user as a ${ROLE_LABELS[newRole as Role] || newRole}? They will receive access immediately.`)) return;
 
     setProcessingId(userId);
     try {
+      // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       const res = await fetch('/api/admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ targetUserId: userId, newRole }),
       });
 
@@ -120,101 +246,74 @@ export default function AdminDashboard() {
     }
   };
 
+  // Calculate stats
+  const totalUsers = allUsers.length;
+  const activeUsers = allUsers.filter(u => u.status === 'active').length;
+  const inactiveUsers = allUsers.filter(u => u.status !== 'active').length;
+  const registrars = allUsers.filter(u => u.role === 'registrar').length;
+  const activePercentage = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0;
+
   return (
     <AdminLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="mb-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">User Management</h1>
-          <p className="text-gray-500 dark:text-[#94A3B8]">Approve pending accounts and manage user roles. All changes are audited.</p>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">User Management</h1>
+          <p className="text-gray-500 dark:text-[#94A3B8] mt-1">Approve new accounts and manage existing user roles.</p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex gap-1 bg-gray-100 dark:bg-[#1E2536] p-1 rounded-lg w-fit">
-          <button
-            onClick={() => setActiveTab('pending')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'pending'
-              ? 'bg-white dark:bg-[#131825] shadow-sm text-[#06B4C9]'
-              : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'
-              }`}
-          >
-            Pending
-            {pendingUsers.length > 0 && (
-              <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                {pendingUsers.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('directory')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'directory'
-              ? 'bg-white dark:bg-[#131825] shadow-sm text-[#06B4C9]'
-              : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'
-              }`}
-          >
-            All Users ({allUsers.length})
-          </button>
-        </div>
-
-        {/* ── Pending Tab ── */}
-        {activeTab === 'pending' && (
-          <div className="bg-white dark:bg-[#131825] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1E2536] overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220] flex justify-between items-center">
-              <span className="font-semibold text-gray-700 dark:text-[#E2E8F0]">Verification Queue ({pendingUsers.length})</span>
-              <button onClick={fetchUsers} className="text-sm text-[#06B4C9] hover:text-[#06B4C9]/70 font-medium">Refresh</button>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Total Users */}
+          <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 bg-blue-100 dark:bg-blue-500/10 rounded-lg flex items-center justify-center">
+                <svg className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Total Users</p>
             </div>
-
-            {loading ? (
-              <div className="p-8 text-center text-gray-500 dark:text-[#94A3B8]">Loading requests...</div>
-            ) : pendingUsers.length === 0 ? (
-              <div className="p-12 text-center flex flex-col items-center">
-                <div className="w-16 h-16 bg-green-50 dark:bg-emerald-500/10 text-green-500 dark:text-emerald-400 rounded-full flex items-center justify-center mb-4">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">All caught up!</h3>
-                <p className="text-gray-500 dark:text-[#94A3B8]">No pending verification requests.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100 dark:divide-[#1E2536]">
-                {paginatedPending.map((user) => (
-                  <div key={user.id} className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-[#1E2536] transition-colors">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 bg-[#06B4C9]/10 text-[#06B4C9] rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                        {user.full_name ? user.full_name[0] : '?'}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 dark:text-white truncate">{user.full_name || 'Unknown'}</p>
-                        <p className="text-sm text-gray-500 dark:text-[#94A3B8] truncate">{user.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {processingId === user.id ? (
-                        <span className="text-sm text-gray-500 animate-pulse">Processing...</span>
-                      ) : (
-                        <>
-                          <button onClick={() => handleQuickApprove(user.id, 'registrar')} className="px-3 py-1.5 bg-[#06B4C9] text-white text-sm font-medium rounded-lg hover:bg-[#06B4C9]/80 transition-all">
-                            Approve Registrar
-                          </button>
-                          <button onClick={() => handleQuickApprove(user.id, 'student')} className="px-3 py-1.5 bg-white dark:bg-[#1E2536] border border-gray-300 dark:border-[#283042] text-gray-700 dark:text-[#E2E8F0] text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-[#283042] transition-all">
-                            Approve Student
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {pendingUsers.length > 0 && (
-              <div className="px-6 py-2 border-t border-gray-100 dark:border-[#1E2536]">
-                <Pagination currentPage={pendingPage} totalItems={pendingUsers.length} itemsPerPage={ROWS_PER_PAGE} onPageChange={setPendingPage} />
-              </div>
-            )}
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalUsers}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">+3 this week</p>
           </div>
-        )}
 
-        {/* ── Directory Tab ── */}
-        {activeTab === 'directory' && (
-          <div className="bg-white dark:bg-[#131825] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1E2536] overflow-hidden">
+          {/* Active Users */}
+          <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 bg-green-100 dark:bg-green-500/10 rounded-lg flex items-center justify-center">
+                <svg className="w-4.5 h-4.5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Active</p>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{activeUsers}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{activePercentage}% of total</p>
+          </div>
+
+          {/* Inactive Users */}
+          <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                <svg className="w-4.5 h-4.5 text-gray-500 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Inactive</p>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{inactiveUsers}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Users not active</p>
+          </div>
+
+          {/* Registrars */}
+          <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 bg-[#06B4C9]/10 rounded-lg flex items-center justify-center">
+                <svg className="w-4.5 h-4.5 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Credential Issuers</p>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{registrars}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Issuers Accounts</p>
+          </div>
+        </div>
+
+        {/* Users Table */}
+        <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] overflow-hidden">
             {/* Search & Filter Bar */}
             <div className="px-6 py-4 border-b border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220] flex flex-col sm:flex-row gap-3">
               <input
@@ -227,13 +326,12 @@ export default function AdminDashboard() {
               <select
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-[#283042] rounded-lg bg-white dark:bg-[#131825] text-gray-700 dark:text-[#E2E8F0] text-sm focus:ring-2 focus:ring-[#06B4C9] outline-none"
+                className="px-3 py-2 border border-gray-300 dark:border-[#283042] rounded-lg bg-white dark:bg-[#131825] text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-[#06B4C9] outline-none"
               >
-                <option value="all">All Roles</option>
+                <option value="all" className="bg-white dark:bg-[#131825] text-gray-900 dark:text-white">All Roles</option>
                 {ROLES.map((r) => (
-                  <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                  <option key={r} value={r} className="bg-white dark:bg-[#131825] text-gray-900 dark:text-white">{ROLE_LABELS[r]}</option>
                 ))}
-                <option value="pending_verification">Pending</option>
               </select>
               <button onClick={fetchUsers} className="px-4 py-2 text-sm text-[#06B4C9] hover:text-[#06B4C9]/70 font-medium border border-gray-300 dark:border-[#283042] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1E2536]">
                 Refresh
@@ -253,7 +351,8 @@ export default function AdminDashboard() {
                       <th className="px-6 py-3 font-semibold">Status</th>
                       <th className="px-6 py-3 font-semibold">Current Role</th>
                       <th className="px-6 py-3 font-semibold">Joined</th>
-                      <th className="px-6 py-3 font-semibold text-right">Change Role</th>
+                      <th className="px-6 py-3 font-semibold">Change Role</th>
+                      <th className="px-6 py-3 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-[#1E2536]">
@@ -285,19 +384,45 @@ export default function AdminDashboard() {
                         <td className="px-6 py-4 text-sm text-gray-600 dark:text-[#94A3B8] whitespace-nowrap">
                           {new Date(user.created_at).toLocaleDateString()}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4">
                           {processingId === user.id ? (
                             <span className="text-sm text-gray-500 animate-pulse">Saving...</span>
                           ) : (
                             <select
                               value={user.role}
                               onChange={(e) => handleRoleChange(user.id, e.target.value, user.full_name)}
-                              className="px-2 py-1.5 border border-gray-300 dark:border-[#283042] rounded-lg bg-white dark:bg-[#1E2536] text-gray-700 dark:text-[#E2E8F0] text-sm focus:ring-2 focus:ring-[#06B4C9] outline-none cursor-pointer"
+                              className="px-2 py-1.5 border border-gray-300 dark:border-[#283042] rounded-lg bg-white dark:bg-[#131825] text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-[#06B4C9] outline-none cursor-pointer"
                             >
                               {ROLES.map((r) => (
-                                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                                <option key={r} value={r} className="bg-white dark:bg-[#131825] text-gray-900 dark:text-white">
+                                  {ROLE_LABELS[r]}
+                                </option>
                               ))}
                             </select>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {processingId === user.id ? (
+                            <span className="text-sm text-gray-500 animate-pulse">...</span>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleArchiveUser(user.id, user.full_name, user.status)}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                                  user.status === 'suspended'
+                                    ? 'border-green-200 text-green-700 hover:bg-green-50 dark:border-green-500/30 dark:text-green-400 dark:hover:bg-green-500/10'
+                                    : 'border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-500/30 dark:text-amber-400 dark:hover:bg-amber-500/10'
+                                }`}
+                              >
+                                {user.status === 'suspended' ? 'Restore' : 'Suspend'}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user.id, user.full_name)}
+                                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10 transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -307,11 +432,56 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            <div className="px-6 py-2 border-t border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220] flex items-center justify-between">
-              <p className="text-xs text-gray-400 dark:text-[#64748B]">
-                {directoryUsers.length} of {allUsers.length} users • Role changes are audited
-              </p>
-              <Pagination currentPage={dirPage} totalItems={directoryUsers.length} itemsPerPage={ROWS_PER_PAGE} onPageChange={setDirPage} />
+          <div className="px-6 py-2 border-t border-gray-100 dark:border-[#1E2536] bg-gray-50 dark:bg-[#0E1220] flex items-center justify-between">
+            <p className="text-xs text-gray-400 dark:text-[#64748B]">
+              Showing {directoryUsers.length} of {allUsers.length} users
+            </p>
+            <Pagination currentPage={dirPage} totalItems={directoryUsers.length} itemsPerPage={ROWS_PER_PAGE} onPageChange={setDirPage} />
+          </div>
+        </div>
+
+        {/* Confirmation Modal */}
+        {modal.isOpen && (
+          <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-[#131825] rounded-2xl border border-gray-200 dark:border-[#1E2536] max-w-sm w-full shadow-lg">
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-[#1E2536]">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {modal.action === 'role-change' && 'Change User Role'}
+                  {modal.action === 'suspend' && 'Suspend User'}
+                  {modal.action === 'restore' && 'Restore User'}
+                  {modal.action === 'delete' && 'Delete User'}
+                </h3>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-4">
+                <p className="text-sm text-gray-700 dark:text-slate-300">{modal.message}</p>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-100 dark:border-[#1E2536] flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setModal({ isOpen: false, action: null, userId: null, userName: null, message: '' })}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 border border-gray-300 dark:border-[#283042] rounded-lg hover:bg-gray-50 dark:hover:bg-[#1E2536] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (modal.action === 'role-change') handleRoleChangeConfirm();
+                    else if (modal.action === 'suspend' || modal.action === 'restore') handleArchiveUserConfirm();
+                    else if (modal.action === 'delete') handleDeleteUserConfirm();
+                  }}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+                    modal.action === 'delete'
+                      ? 'bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700'
+                      : 'bg-[#06B4C9] hover:bg-[#04A0B5] dark:bg-[#06B4C9] dark:hover:bg-[#04A0B5]'
+                  }`}
+                >
+                  {modal.action === 'delete' ? 'Delete' : 'Confirm'}
+                </button>
+              </div>
             </div>
           </div>
         )}

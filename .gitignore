@@ -10,3 +10,12 @@ packages/blockchain-core/typechain-types/
 # Node
 node_modules/
 npm-debug.log*
+
+# Next.js
+.next/
+
+# Lint/Debug Artifacts
+*.lint.txt
+lint-*.txt
+eslint_output.json
+tree.txt

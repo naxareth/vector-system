@@ -36,6 +36,7 @@ export default function SystemMetricsDashboard() {
 
       setLogs(data.logs);
       setMetrics(data.metrics);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -44,6 +45,7 @@ export default function SystemMetricsDashboard() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLogs();
     // Auto-refresh every 30 seconds to monitor live traffic
     const interval = setInterval(fetchLogs, 30000);

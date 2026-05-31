@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabaseClient';
 import SessionTimeout from '../shared/SessionTimeout';
 
@@ -17,6 +17,14 @@ interface UserProfile {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
+  return (
+    <ThemeProvider>
+      <AdminShell>{children}</AdminShell>
+    </ThemeProvider>
+  );
+}
+
+function AdminShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,6 +77,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return name.slice(0, 2).toUpperCase();
   };
 
+  const { theme, toggleTheme } = useTheme();
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0B0F19]">
@@ -81,7 +91,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <ThemeProvider>
       <div className="min-h-screen bg-gray-50 dark:bg-[#0B0F19] flex">
         <SessionTimeout />
 
@@ -108,6 +117,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 Verify Users
+              </Link>
+              <Link
+                href="/admin/analytics"
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${pathname === '/admin/analytics' ? 'text-white bg-[#06B4C9]' : 'text-[#94A3B8] hover:text-white hover:bg-[#1E2536]'}`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                Analytics
               </Link>
               <Link
                 href="/admin/audit-logs"
@@ -158,11 +175,34 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <span className="text-lg font-bold text-gray-900 dark:text-white">VECTOR Admin</span>
                 </div>
               </div>
-              <div className="flex items-center gap-4 ml-auto">
+              <div className="flex items-center gap-2 ml-auto">
+                {/* Date */}
+                <div className="hidden md:flex items-center gap-1.5 mr-1">
+                  <svg className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span className="text-xs text-gray-500 dark:text-slate-500 whitespace-nowrap">
+                    {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+
+                <div className="h-5 w-px bg-gray-200 dark:bg-[#1E2536] hidden md:block mx-1" />
+
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#06B4C9]/10 rounded-full border border-[#06B4C9]/20">
                   <div className="w-2 h-2 rounded-full bg-[#06B4C9] animate-pulse"></div>
                   <span className="text-xs font-semibold text-[#06B4C9] uppercase tracking-wide">System Secure</span>
                 </div>
+
+                {/* Theme toggle */}
+                <button
+                  onClick={toggleTheme}
+                  title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  className="p-2 rounded-lg text-gray-500 dark:text-[#94A3B8] hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-white transition-colors"
+                >
+                  {theme === 'dark' ? (
+                    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                  ) : (
+                    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                  )}
+                </button>
               </div>
             </div>
           </header>
@@ -183,6 +223,5 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         )}
       </div>
-    </ThemeProvider>
   );
 }

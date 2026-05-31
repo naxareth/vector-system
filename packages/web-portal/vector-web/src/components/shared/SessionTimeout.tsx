@@ -10,6 +10,7 @@ const WARNING_DURATION = 60 * 1000;     // Show warning 60 seconds before logout
 
 export default function SessionTimeout() {
   const router = useRouter();
+  // eslint-disable-next-line react-hooks/purity
   const [lastActivity, setLastActivity] = useState(Date.now());
   const [showWarning, setShowWarning] = useState(false);
   const [isExpired, setIsExpired] = useState(false); // 🆕 New State for "Logged Out" view
@@ -111,7 +112,7 @@ export default function SessionTimeout() {
   if (showWarning) {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
-        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-purple-100">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-[#06B4C9]">
           <div className="flex flex-col items-center text-center">
             <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-4">
               <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,7 +135,7 @@ export default function SessionTimeout() {
               </button>
               <button 
                 onClick={stayLoggedIn}
-                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 font-medium shadow-sm transition-colors"
+                className="flex-1 px-4 py-2 bg-[#06B4C9] !text-white rounded-xl hover:bg-[#06B4C9]/90 font-medium shadow-sm transition-colors"
               >
                 Stay Active
               </button>

@@ -27,7 +27,7 @@ function truncateAddress(addr: string): string {
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // -------------------------------------------------------------------------
   // 🛡️ Rate Limiting (Checkpoint #2)
@@ -110,7 +110,7 @@ export async function GET(
   // -------------------------------------------------------------------------
   // 3. Fetch verified_credentials in this CVR
   // -------------------------------------------------------------------------
-  let credentials: any[] = [];
+  let credentials: { id: string; skill_name: string; token_id: string; transaction_hash: string | null; issued_at: Date | null; certificate_number: string | null; batch: { batch_name: string | null; registrar: { full_name: string | null } | null } | null }[] = [];
   if (cvrExport.credential_ids && cvrExport.credential_ids.length > 0) {
     try {
       credentials = await prisma.verified_credentials.findMany({
@@ -151,7 +151,7 @@ export async function GET(
           const provider = new ethers.JsonRpcProvider(POLYGON_AMOY_RPC);
           const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
           const balance: bigint = await contract.balanceOf(walletAddress, BigInt(cred.token_id));
-          onChain = { verified: balance > 0n, balance: Number(balance), error: null };
+          onChain = { verified: balance > BigInt(0), balance: Number(balance), error: null };
         } catch {
           onChain = { verified: false, balance: null, error: 'Could not reach Polygon Amoy RPC.' };
         }
