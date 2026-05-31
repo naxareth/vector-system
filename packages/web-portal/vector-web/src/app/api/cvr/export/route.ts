@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
   let body: {
     template: string;
     credential_ids: string[];
-    snapshot: Record<string, unknown>;
+    snapshot: Prisma.InputJsonValue;
   };
 
   try {

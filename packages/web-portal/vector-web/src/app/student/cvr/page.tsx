@@ -124,7 +124,7 @@ export default function CVRPage() {
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
 
   // Available verified credentials to pull into CVR
-  const [availableCertifications, setAvailableCertifications] = useState<Record<string, unknown>[]>([]);
+  const [availableCertifications, setAvailableCertifications] = useState<{ id: string; skill_name: string; issued_at: string }[]>([]);
 
   // CVR History
   const [cvrHistory, setCvrHistory] = useState<CVRHistoryItem[]>([]);
@@ -341,7 +341,7 @@ export default function CVRPage() {
   // ---------------------------------------------------------------------------
   // Verified cert → CVR certifications
   // ---------------------------------------------------------------------------
-  const handleAddVerifiedCertification = (cert: Record<string, unknown>) => {
+  const handleAddVerifiedCertification = (cert: { id: string; skill_name: string; issued_at: string }) => {
     const exists = formData.certifications.some((c) => c.id === cert.id);
     if (exists) return;
     setFormData((prev) => ({
@@ -459,7 +459,7 @@ export default function CVRPage() {
         console.warn('[CVR] Export API unreachable — falling back to local UUID', err);
       }
 
-      const credentialId = cvrId || credentialIds[0] || crypto.randomUUID();
+      const credentialId = (cvrId || credentialIds[0] || crypto.randomUUID()) as string;
 
       const cvrData = {
         ...snapshot,

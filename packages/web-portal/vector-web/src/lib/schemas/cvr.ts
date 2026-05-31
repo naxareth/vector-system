@@ -59,6 +59,7 @@ export const resumeSchema = z.object({
 export type CVRFormData = z.infer<typeof resumeSchema>;
 
 export interface CVRData extends Partial<CVRFormData> {
+  generatedAt?: string;
   color?: string;
   template?: string;
   credentialId?: string;

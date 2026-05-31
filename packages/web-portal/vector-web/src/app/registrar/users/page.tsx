@@ -275,7 +275,7 @@ export default function ManageUsers() {
       tx = await contract.revokeSkill(selectedUser?.wallet_address, credential.token_id, 1);
       
       setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Waiting for blockchain confirmation...' }));
-      await tx.wait();
+      await tx?.wait();
 
       setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Updating database records...' }));
       await finishDatabaseRevocation(credential, tx?.hash);

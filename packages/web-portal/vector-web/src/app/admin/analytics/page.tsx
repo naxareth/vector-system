@@ -82,13 +82,16 @@ export default function AdminAnalyticsPage() {
           .limit(10);
 
         if (logs) {
-          setRecentActivity(logs.map((log: { id: string; action_type: string; description: string; created_at: string; actor?: { full_name: string } | null }) => ({
-            id: log.id,
-            type: log.action_type === 'CREDENTIAL_ISSUED' ? 'credential' : log.action_type === 'ROLE_CHANGE' ? 'role_change' : 'signup',
-            description: log.description,
-            timestamp: log.created_at,
-            actor: log.actor?.full_name || 'System',
-          })));
+          setRecentActivity(logs.map((log: { id: string; action_type: string; description: string; created_at: string; actor?: { full_name: string } | { full_name: string }[] | null }) => {
+            const actorObj = Array.isArray(log.actor) ? log.actor[0] : log.actor;
+            return {
+              id: log.id,
+              type: log.action_type === 'CREDENTIAL_ISSUED' ? 'credential' : log.action_type === 'ROLE_CHANGE' ? 'role_change' : 'signup',
+              description: log.description,
+              timestamp: log.created_at,
+              actor: actorObj?.full_name || 'System',
+            };
+          }));
         }
       } catch (err) {
         console.error('Error fetching analytics:', err);
