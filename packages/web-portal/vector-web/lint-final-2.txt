@@ -1,0 +1,175 @@
+
+> vector-web@0.1.0 lint
+> eslint
+
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/(auth)/verify-email/page.tsx
+  149:40  error  Parsing error: Expression expected
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/dashboard/page.tsx
+  405:148  error  Parsing error: Expression expected
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/explore-courses/page.tsx
+  459:17  error  Comments inside children section of tag should be placed inside braces                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react/jsx-no-comment-textnodes
+  461:12  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/explore-courses/page.tsx:461:12
+  459 |           </div>
+  460 |           // eslint-disable-next-line react-hooks/static-components
+> 461 |           <Pagination />
+      |            ^^^^^^^^^^ This component is created during render
+  462 |         </>
+  463 |       )}
+  464 |     </DashboardLayout>
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/student/explore-courses/page.tsx:283:3
+  281 |
+  282 |   // Simple pagination control
+> 283 |   function Pagination() {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^
+> 284 |     if (totalPages <= 1) return null;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 285 |     return (
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 305 |     );
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 306 |   }
+      | ^^^^ The component is created during render here
+  307 |
+  308 |   return (
+  309 |     <DashboardLayout>  react-hooks/static-components
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/verify/[id]/page.tsx
+  125:118  error    Comments inside children section of tag should be placed inside braces                                                                                                                                                                                                                   react/jsx-no-comment-textnodes
+  127:11   error    Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages                                                                                                                                    @next/next/no-html-link-for-pages
+  305:46   error    Comments inside children section of tag should be placed inside braces                                                                                                                                                                                                                   react/jsx-no-comment-textnodes
+  307:17   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/app/verify/cvr/[id]/page.tsx
+  129:111  error    Comments inside children section of tag should be placed inside braces                                                                                                                                                                                                                   react/jsx-no-comment-textnodes
+  131:11   error    Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages                                                                                                                                    @next/next/no-html-link-for-pages
+  374:46   error    Comments inside children section of tag should be placed inside braces                                                                                                                                                                                                                   react/jsx-no-comment-textnodes
+  376:17   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/auth/EnrollMFA.tsx
+  72:49  error    Comments inside children section of tag should be placed inside braces                                                                                                                                                                                                                   react/jsx-no-comment-textnodes
+  74:23  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx
+  123:75   error    Comments inside children section of tag should be placed inside braces                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react/jsx-no-comment-textnodes
+  125:9    warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @next/next/no-img-element
+  217:105  error    Comments inside children section of tag should be placed inside braces                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react/jsx-no-comment-textnodes
+  219:17   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @next/next/no-img-element
+  451:29   error    Comments inside children section of tag should be placed inside braces                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react/jsx-no-comment-textnodes
+  453:38   error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:453:38
+  451 |                       </div>
+  452 |                       // eslint-disable-next-line react-hooks/static-components
+> 453 |                       {qrDataUrl && <QRBlock />}
+      |                                      ^^^^^^^ This component is created during render
+  454 |                     </div>
+  455 |                   )}
+  456 |                 </div>
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:121:19
+  119 |
+  120 |   // Shared QR block used in all three ghost templates
+> 121 |   const QRBlock = () =>
+      |                   ^^^^^
+> 122 |     qrDataUrl ? (
+      | ^^^^^^^^^^^^^^^^^
+> 123 |       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      …
+      | ^^^^^^^^^^^^^^^^^
+> 138 |       </div>
+      | ^^^^^^^^^^^^^^^^^
+> 139 |     ) : null;
+      | ^^^^^^^^^^^^^ The component is created during render here
+  140 |
+  141 |   return (
+  142 |     <>  react-hooks/static-components
+  610:27   error    Comments inside children section of tag should be placed inside braces                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react/jsx-no-comment-textnodes
+  612:36   error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:612:36
+  610 |                     </div>
+  611 |                     // eslint-disable-next-line react-hooks/static-components
+> 612 |                     {qrDataUrl && <QRBlock />}
+      |                                    ^^^^^^^ This component is created during render
+  613 |                   </div>
+  614 |                 )}
+  615 |               </div>
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:121:19
+  119 |
+  120 |   // Shared QR block used in all three ghost templates
+> 121 |   const QRBlock = () =>
+      |                   ^^^^^
+> 122 |     qrDataUrl ? (
+      | ^^^^^^^^^^^^^^^^^
+> 123 |       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      …
+      | ^^^^^^^^^^^^^^^^^
+> 138 |       </div>
+      | ^^^^^^^^^^^^^^^^^
+> 139 |     ) : null;
+      | ^^^^^^^^^^^^^ The component is created during render here
+  140 |
+  141 |   return (
+  142 |     <>                react-hooks/static-components
+  788:27   error    Comments inside children section of tag should be placed inside braces                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react/jsx-no-comment-textnodes
+  790:36   error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:790:36
+  788 |                     </div>
+  789 |                     // eslint-disable-next-line react-hooks/static-components
+> 790 |                     {qrDataUrl && <QRBlock />}
+      |                                    ^^^^^^^ This component is created during render
+  791 |                   </div>
+  792 |                 )}
+  793 |               </div>
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/ExportCVRModal.tsx:121:19
+  119 |
+  120 |   // Shared QR block used in all three ghost templates
+> 121 |   const QRBlock = () =>
+      |                   ^^^^^
+> 122 |     qrDataUrl ? (
+      | ^^^^^^^^^^^^^^^^^
+> 123 |       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      …
+      | ^^^^^^^^^^^^^^^^^
+> 138 |       </div>
+      | ^^^^^^^^^^^^^^^^^
+> 139 |     ) : null;
+      | ^^^^^^^^^^^^^ The component is created during render here
+  140 |
+  141 |   return (
+  142 |     <>                react-hooks/static-components
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/dashboard/SchemaBuilder.tsx
+  276:49  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  276:59  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/home/naxareth/Documents/vector-system/packages/web-portal/vector-web/src/components/shared/RegistrarLoginModal.tsx
+  144:38  error  Parsing error: Expression expected
+
+✖ 27 problems (22 errors, 5 warnings)
+
+npm error Lifecycle script `lint` failed with error:
+npm error code 1
+npm error path /home/naxareth/Documents/vector-system/packages/web-portal/vector-web
+npm error workspace vector-web@0.1.0
+npm error location /home/naxareth/Documents/vector-system/packages/web-portal/vector-web
+npm error command failed
+npm error command sh -c eslint

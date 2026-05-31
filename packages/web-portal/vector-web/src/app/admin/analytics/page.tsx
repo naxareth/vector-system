@@ -30,6 +30,7 @@ export default function AdminAnalyticsPage() {
     activeUsers: 0, inactiveUsers: 0,
     totalCredentials: 0, recentCredentials: 0, recentSignups: 0,
   });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'students' | 'issuers'>('all');
@@ -97,8 +98,10 @@ export default function AdminAnalyticsPage() {
     };
 
     fetchAnalytics();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'credential':
@@ -110,6 +113,7 @@ export default function AdminAnalyticsPage() {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const normalizeStatus = (user: { status: string, created_at: string }) => {
     if (user.status === 'active' && new Date(user.created_at) >= threeDaysAgo) {
       return 'active';

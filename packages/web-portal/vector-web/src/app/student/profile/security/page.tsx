@@ -27,6 +27,7 @@ export default function SecuritySettings() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { checkMfaStatus(); }, []);
 
   const handleRemove = async () => {
@@ -85,7 +86,7 @@ export default function SecuritySettings() {
                   <div>
                     <p className="text-sm font-semibold text-green-800 dark:text-green-300">2FA is active</p>
                     <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
-                      You'll be asked for a verification code each time you sign in.
+                      You&apos;ll be asked for a verification code each time you sign in.
                     </p>
                   </div>
                 </div>

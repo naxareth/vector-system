@@ -13,6 +13,7 @@ export function ChallengeMFA({ factorId, onVerified, onCancel }: { factorId: str
     setError('');
 
     // Challenge + Verify in one step helper
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { data, error } = await supabase.auth.mfa.challengeAndVerify({
       factorId,
       code,

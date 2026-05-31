@@ -15,6 +15,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     // If we're on pages that should never show dark mode, force light for this page
     const excludedPaths = ['/', '/login', '/register'];

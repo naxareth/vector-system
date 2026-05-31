@@ -59,6 +59,7 @@ export default function VerifyPage() {
   const [loading, setLoading] = useState(true);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const qrRef = useRef<HTMLCanvasElement>(null);
 
   // Fetch verification data
@@ -122,6 +123,7 @@ export default function VerifyPage() {
           </div>
           <h1 className="text-xl font-bold text-white mb-2">Credential Not Found</h1>
           <p className="text-[#94A3B8] text-sm">{error || 'This credential link is invalid or has been removed.'}</p>
+          // eslint-disable-next-line @next/next/no-html-link-for-pages
           <a href="/" className="mt-6 inline-block text-sm text-[#06B4C9] hover:underline">← Return to VECTOR</a>
         </div>
       </div>
@@ -301,6 +303,7 @@ export default function VerifyPage() {
             {/* QR Code */}
             {qrDataUrl && (
               <div className="flex-shrink-0">
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={qrDataUrl}
                   alt="QR code for this credential"

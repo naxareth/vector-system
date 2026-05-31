@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest, type NextFetchEvent } from 'next/server';
 import { logSystemTraffic } from '@/lib/logger';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { validateCsrfToken, generateCsrfToken } from '@/lib/csrf';
 
 const PROTECTED_PATHS = ['/registrar', '/student', '/admin', '/api/admin'];

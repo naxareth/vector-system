@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/db';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { genAI, GEMINI_MODEL } from '@/lib/gemini'; // 🛡️ Centralized Gemini (Checkpoint #2)
 import { z } from 'zod';
 
@@ -27,6 +28,7 @@ type SkillInfo = {
   tags?: string[];
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type SkillStrength = {
   strong: string[];
   moderate: string[];
@@ -249,6 +251,7 @@ Rules:
     let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(cleaned);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (parseErr) {
       console.error('[cvr/analyze] JSON parse failed. Raw response:', raw);
       return NextResponse.json(

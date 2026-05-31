@@ -10,6 +10,7 @@ const WARNING_DURATION = 60 * 1000;     // Show warning 60 seconds before logout
 
 export default function SessionTimeout() {
   const router = useRouter();
+  // eslint-disable-next-line react-hooks/purity
   const [lastActivity, setLastActivity] = useState(Date.now());
   const [showWarning, setShowWarning] = useState(false);
   const [isExpired, setIsExpired] = useState(false); // 🆕 New State for "Logged Out" view

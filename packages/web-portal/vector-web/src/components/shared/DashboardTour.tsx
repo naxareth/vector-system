@@ -54,6 +54,7 @@ export default function DashboardTour() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     const hasSeenTour = localStorage.getItem('vector_tour_v2');
     if (hasSeenTour) return;
@@ -77,6 +78,7 @@ export default function DashboardTour() {
   }, [currentStep]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     updateTargetRect();
     const handleResize = () => updateTargetRect();
     window.addEventListener('resize', handleResize);

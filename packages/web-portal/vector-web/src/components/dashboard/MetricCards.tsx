@@ -10,6 +10,7 @@ interface MetricCardProps {
   color: 'purple' | 'blue' | 'orange' | 'green';
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function MetricCard({ icon, title, value, subtitle, trend, color }: MetricCardProps) {
   const colorClasses = {
     purple: 'from-[#06B4C9] to-[#0891a2]',

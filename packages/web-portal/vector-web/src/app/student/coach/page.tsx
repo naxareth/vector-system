@@ -38,6 +38,7 @@ export default function CoachPage() {
   const router = useRouter();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [userId, setUserId] = useState<string>('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [studentId, setStudentId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
@@ -553,6 +554,7 @@ export default function CoachPage() {
             {(() => {
               const rising = skillsList.filter(s => s.trend === 'growing');
               const SKILLS_PER_PAGE = 8;
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               const totalRisingPages = Math.ceil(rising.length / SKILLS_PER_PAGE);
               const risingSlice = rising.slice((risingPage - 1) * SKILLS_PER_PAGE, risingPage * SKILLS_PER_PAGE);
               return rising.length > 0 ? (
@@ -597,6 +599,7 @@ export default function CoachPage() {
             {(() => {
               const declining = skillsList.filter(s => s.trend === 'declining');
               const SKILLS_PER_PAGE = 8;
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               const totalDecliningPages = Math.ceil(declining.length / SKILLS_PER_PAGE);
               const decliningSlice = declining.slice((decliningPage - 1) * SKILLS_PER_PAGE, decliningPage * SKILLS_PER_PAGE);
               return declining.length > 0 ? (

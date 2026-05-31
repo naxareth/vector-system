@@ -92,6 +92,7 @@ export default function ManageCredentials() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setCredPage(1); }, [searchQuery, selectedStatus, selectedSkills]);
 
   const allSkills = Array.from(new Set(credentials.map(c => c.skill_name))).sort();

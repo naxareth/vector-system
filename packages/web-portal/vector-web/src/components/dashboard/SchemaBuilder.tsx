@@ -189,7 +189,7 @@ export default function SchemaBuilder() {
       <div className="mb-8 border-b dark:border-[#1E2536] pb-4">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Certificate Template Builder <HelpTip text="Templates define the structure of your certificates — what fields appear, what type of data each field accepts, and which are required. Once saved, templates become available in the 'Issue Certificate' and 'Bulk Upload' tabs. You can choose from presets or build a custom one from scratch." /></h2>
         <p className="text-sm text-gray-500 dark:text-[#94A3B8] mt-1">
-          Choose what information appears on the certificate and how it's labeled.
+          Choose what information appears on the certificate and how it&apos;s labeled.
         </p>
       </div>
 
@@ -242,7 +242,7 @@ export default function SchemaBuilder() {
           <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
             Template Name (visible on certificate) <HelpTip text="This is the main title that will appear on every certificate issued using this template. Students will see it on their dashboard. Use clear, official names like 'Bachelor of Science in Information Technology' or 'Full-Stack Web Development Bootcamp'." />
           </label>
-          <p className="text-xs text-gray-500 dark:text-[#94A3B8] mb-3">This title appears on the student's certificate details.</p>
+          <p className="text-xs text-gray-500 dark:text-[#94A3B8] mb-3">This title appears on the student&apos;s certificate details.</p>
           <input
             type="text"
             value={title}

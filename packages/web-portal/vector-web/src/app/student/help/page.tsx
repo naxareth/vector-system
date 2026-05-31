@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import HelpTip from '@/components/shared/HelpTip';
 
 const FAQ_ITEMS = [

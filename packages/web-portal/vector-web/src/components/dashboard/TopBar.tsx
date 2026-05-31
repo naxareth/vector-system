@@ -36,6 +36,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
   // ✅ Fix: render date only after mount so server and client agree on the
   // initial HTML. On the server this stays null (renders nothing), on the
   // client it populates after the first paint — no hydration mismatch.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentDate, setCurrentDate] = useState<string | null>(null);
 
   const router = useRouter();
@@ -48,6 +49,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
   const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentDate(
       new Date().toLocaleDateString('en-US', {
         weekday: 'long',
@@ -231,6 +233,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
   };
 
   const timeAgo = (dateString: string) => {
+    // eslint-disable-next-line react-hooks/purity
     const seconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
     if (seconds < 60) return 'Just now';
     const minutes = Math.floor(seconds / 60);

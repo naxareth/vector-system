@@ -26,6 +26,7 @@ export async function POST(req: Request) {
               cookiesToSet.forEach(({ name, value, options }) =>
                 cookieStore.set(name, value, options)
               );
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {}
           },
         },

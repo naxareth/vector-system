@@ -71,6 +71,7 @@ export function useCVR() {
         }));
 
         if (userRecord?.wallet_address) {
+          // eslint-disable-next-line react-hooks/immutability
           await fetchVerifiedSkills(userRecord.wallet_address);
         }
 

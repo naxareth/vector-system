@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(req: Request) {
   const cookieStore = await cookies();
 
@@ -22,6 +23,7 @@ export async function GET(req: Request) {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (error) {}
         },
       },

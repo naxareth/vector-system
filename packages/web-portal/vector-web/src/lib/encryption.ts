@@ -19,6 +19,7 @@ export const decryptData = (ciphertext: string): string => {
   try {
     const bytes = AES.decrypt(ciphertext, SECRET_KEY);
     return bytes.toString(encUtf8);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     console.error("Decryption failed");
     return '';

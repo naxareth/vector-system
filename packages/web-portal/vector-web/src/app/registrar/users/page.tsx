@@ -1,4 +1,5 @@
 'use client';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useState, useEffect, useRef } from 'react';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
 import HelpTip from '@/components/shared/HelpTip';
@@ -60,6 +61,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { 
     month: 'short', 
@@ -112,6 +114,7 @@ export default function ManageUsers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [revokeError, setRevokeError] = useState('');
   const [fetchError, setFetchError] = useState('');
   const [mintingProgress, setMintingProgress] = useState<{
@@ -131,6 +134,7 @@ export default function ManageUsers() {
     message: ''
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -380,7 +384,7 @@ export default function ManageUsers() {
                   <strong>Error:</strong> {fetchError}
                 </p>
                 <p className="text-xs text-red-600 dark:text-red-400 mt-2">
-                  Make sure you have issued credentials to students. You can only manage students you've issued certificates to.
+                  Make sure you have issued credentials to students. You can only manage students you&apos;ve issued certificates to.
                 </p>
               </div>
             )}

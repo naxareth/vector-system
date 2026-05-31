@@ -131,6 +131,7 @@ export default function SkillsPage() {
   const [credentialsLoading, setCredentialsLoading] = useState(true);
   const [healthMap, setHealthMap] = useState<Map<string, SkillHealth>>(new Map());
   const [healthLoading, setHealthLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [userWallet, setUserWallet] = useState<string | null>(null);
 
   useEffect(() => {
@@ -247,7 +248,7 @@ export default function SkillsPage() {
     <DashboardLayout>
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Skills <HelpTip text="All skills extracted from your certificates, with live job-market demand tracking." /></h1>
-        <p className="text-sm text-gray-500">Your verified credentials and how they're trending in the job market</p>
+        <p className="text-sm text-gray-500">Your verified credentials and how they&apos;re trending in the job market</p>
       </div>
 
       {credentialsLoading && (

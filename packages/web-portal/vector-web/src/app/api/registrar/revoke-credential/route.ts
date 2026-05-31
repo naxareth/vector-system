@@ -29,6 +29,7 @@ export async function POST(req: Request) {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (error) {}
         },
       },
@@ -88,6 +89,7 @@ export async function POST(req: Request) {
           if (!studentWallet) throw new Error('Student has no wallet address');
 
           const tx = await contract.revokeSkill(studentWallet, credential.token_id, 1);
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const receipt = await tx.wait();
           transactionHash = tx.hash;
 

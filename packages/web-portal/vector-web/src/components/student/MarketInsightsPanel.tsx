@@ -273,6 +273,7 @@ export default function MarketInsightsPanel({ userId }: Props) {
   const withData = insights.filter(s => s.latest_job_count > 0);
   const noData = insights.filter(s => s.latest_job_count === 0);
   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const totalPages = Math.ceil(withData.length / ITEMS_PER_PAGE);
   const paginatedData = withData.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 

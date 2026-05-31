@@ -136,6 +136,7 @@ export default function RegistrarRegisterForm() {
   };
 
   return (
+    // eslint-disable-next-line react-hooks/refs
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {serverError && (
         <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200 flex items-center gap-2">

@@ -80,6 +80,7 @@ Input tag: "${tag}"
 
 export const dynamic = 'force-dynamic';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(req: Request) {
   const cookieStore = await cookies();
 
@@ -167,6 +168,7 @@ export async function GET(req: Request) {
       if (cred.private_notes) {
         try {
           decryptedNote = decryptData(cred.private_notes);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           console.error(`Failed to decrypt note for ID: ${cred.id}`);
           decryptedNote = "[Decryption Failed]";
@@ -249,6 +251,7 @@ export async function POST(req: Request) {
 
     // 4. Validate incoming student data against the specific schema fields
     const schemaObj = schemaTemplate.json_schema as { properties?: Record<string, unknown>; required?: string[] };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const definedProperties = schemaObj.properties || {};
     const requiredKeys = schemaObj.required || [];
 

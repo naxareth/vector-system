@@ -165,6 +165,7 @@ export default function StudentDashboard() {
             cachedData = parsed.data;
           }
         }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) { /* ignore parsing errors */ }
 
       let analysisJson;
@@ -202,6 +203,7 @@ export default function StudentDashboard() {
               credentialCount: dbCreds.length,
               data: analysisJson
             }));
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (e) { /* ignore quota errors */ }
         }
       }
@@ -400,7 +402,7 @@ export default function StudentDashboard() {
                   Welcome back, {user?.full_name?.split(' ')[0] || 'Student'}!
                 </h1>
                 <p className="text-white text-sm md:text-base mb-3">
-                  You've earned <span className="font-bold text-white">{allCredentials.length}</span> credential{allCredentials.length !== 1 ? 's' : ''} this month!
+                  You&apos;ve earned <span className="font-bold text-white">{allCredentials.length}</span> credential{allCredentials.length !== 1 ? 's' : ''} this month!
                 </p>
                 <div className="flex items-center gap-3">
                   {loading ? (
@@ -704,6 +706,7 @@ export default function StudentDashboard() {
                   return (
                     <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all overflow-hidden">
                       <div className="relative flex-shrink-0 w-24 h-20 rounded-lg overflow-hidden border border-gray-200 bg-slate-100">
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={getCourseImageSrc(courseTitle, rec.provider, rec.link)}
                           alt={`${courseTitle} course thumbnail`}

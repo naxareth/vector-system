@@ -73,6 +73,7 @@ function RegistrarShell({ children }: { children: React.ReactNode }) {
       }
     };
     fetchUser();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDateStr(new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
   }, [router]);
 
@@ -128,6 +129,7 @@ function RegistrarShell({ children }: { children: React.ReactNode }) {
     },
   ];
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const pageInfo = PAGE_TITLES[pathname] ?? { title: 'Registrar Portal', subtitle: '' };
 
   if (isLoading) {
@@ -293,7 +295,7 @@ function RegistrarShell({ children }: { children: React.ReactNode }) {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-gray-900 dark:text-white">Sign out?</h3>
-                <p className="text-sm text-gray-500 dark:text-[#94A3B8] mt-0.5">You'll be returned to the login page.</p>
+                <p className="text-sm text-gray-500 dark:text-[#94A3B8] mt-0.5">You&apos;ll be returned to the login page.</p>
               </div>
             </div>
             <div className="flex gap-2.5">

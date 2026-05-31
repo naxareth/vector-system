@@ -55,6 +55,7 @@ export default function ProfilePage() {
 
   // 2FA status for security tab
   const [mfa2faEnabled, setMfa2faEnabled] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [mfa2faFactorId, setMfa2faFactorId] = useState<string | null>(null); 
 
   const [formData, setFormData] = useState<ProfileData>({
@@ -587,7 +588,7 @@ export default function ProfilePage() {
 
                 <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
                   <h2 className="text-base font-semibold text-gray-900 mb-1 flex items-center gap-1">Active Sessions <HelpTip text="Devices or browsers where you're currently logged in. You can see and manage them here." size={14} /></h2>
-                  <p className="text-xs text-gray-500 mb-4">Manage devices where you're currently logged in</p>
+                  <p className="text-xs text-gray-500 mb-4">Manage devices where you&apos;re currently logged in</p>
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                       <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>

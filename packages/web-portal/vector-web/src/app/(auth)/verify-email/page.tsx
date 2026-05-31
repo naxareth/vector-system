@@ -146,7 +146,7 @@ function VerifyEmailForm() {
 
       <div className="text-center mt-6">
         <p className="text-sm text-gray-600">
-          Didn't receive the code?{' '}
+          Didn&apos;t receive the code?{' '}
           <button onClick={handleResend} type="button" className="text-[#06B4C9] font-semibold hover:underline outline-none">
             Resend
           </button>

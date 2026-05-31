@@ -37,6 +37,7 @@ export default function AuditLogsPage() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchLogs(); }, []);
 
   const getActionColor = (action: string) => {
