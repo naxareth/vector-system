@@ -1,6 +1,6 @@
 import { getMarketData } from '../data/market-provider';
 import { extractSkillsFromCredential } from '../nlp/skill-extractor';
-import { genAI } from '../nlp/gemini-client';
+import { generateText } from '../nlp/ai-provider';
 import { createClient } from '@supabase/supabase-js';
 import pLimit from 'p-limit';
 import dotenv from 'dotenv';
@@ -13,8 +13,8 @@ const manualKeyword = args.find(arg => arg.startsWith('--keyword='))?.split('=')
 // ---------------------------------------------------------------------------
 // --with-gemini flag
 //
-// By default the daily cron runs WITHOUT any Gemini calls so it never hits
-// the free-tier RPD quota (20 req/day). Gemini is only used for:
+// By default the daily cron runs WITHOUT any AI provider calls so it never hits
+// provider rate limits. AI is only used for:
 //   1. W3C credential skill extraction (extractSkillsFromCredential)
 //   2. Related skill expansion (expandToRelatedSkills)
 //
@@ -28,9 +28,9 @@ const manualKeyword = args.find(arg => arg.startsWith('--keyword='))?.split('=')
 const withGemini = args.includes('--with-gemini');
 
 if (withGemini) {
-  console.log('🤖 Gemini mode: ENABLED (W3C sync + skill expansion will run)');
+  console.log('🤖 AI provider mode: ENABLED (W3C sync + skill expansion will run)');
 } else {
-  console.log('⚡ Gemini mode: DISABLED (Adzuna-only run — no quota consumed)');
+  console.log('⚡ AI provider mode: DISABLED (Adzuna-only run — no quota consumed)');
 }
 
 const supabase = createClient(
@@ -50,7 +50,7 @@ const CONCURRENCY_LIMIT = 3;
 const INTER_TASK_DELAY_MS = 500;
 
 /**
- * Asks Gemini to suggest related job-market skills for a given extracted skill.
+ * Asks the AI provider to suggest related job-market skills for a given extracted skill.
  * e.g. "React" → ["Vue.js", "Angular", "Svelte", "Next.js", "TypeScript"]
  *
  * This gives the AI a broader market picture — not just what students have,
@@ -60,8 +60,6 @@ const INTER_TASK_DELAY_MS = 500;
  */
 async function expandToRelatedSkills(skill: string): Promise<string[]> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-
     const prompt = `
       You are a job market analyst for a tech credentialing platform.
       
@@ -79,32 +77,31 @@ async function expandToRelatedSkills(skill: string): Promise<string[]> {
       Example for "React": {"related": ["Vue.js", "TypeScript", "Next.js", "Angular", "Svelte"]}
     `;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().replace(/```json|```/g, '').trim();
+    const text = (await generateText(prompt)).replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(text);
     return parsed.related || [];
   } catch (err) {
-    console.error(`   ⚠️  Gemini expansion failed for "${skill}":`, err);
+    console.error(`   ⚠️  AI expansion failed for "${skill}":`, err);
     return [];
   }
 }
 
 /**
- * PHASE 5 — W3C Skill Sync + Gemini Expansion
+ * PHASE 5 — W3C Skill Sync + AI Expansion
  *
- * Step 1: Extract constituent skills from W3C credentials via Gemini + JSON-LD schema
- * Step 2: For each extracted skill, ask Gemini to suggest related market skills
+ * Step 1: Extract constituent skills from W3C credentials via the AI provider + JSON-LD schema
+ * Step 2: For each extracted skill, ask the AI provider to suggest related market skills
  * Step 3: Upsert all new skills into monitored_keywords
  *
  * Result: The market tracker automatically widens its scope as new credential
  * types are issued — no manual intervention required.
  *
- * NOTE: This section runs serially — Gemini calls are chained per-credential and
+ * NOTE: This section runs serially — AI provider calls are chained per-credential and
  * per-skill. p-limit is intentionally NOT applied here; the W3C sync is a one-shot
- * setup pass, not a high-volume loop. Parallelizing it would risk Gemini quota errors.
+ * setup pass, not a high-volume loop. Parallelizing it would risk provider quota errors.
  *
  * QUOTA NOTE: Only runs when --with-gemini is passed. Each credential costs
- * 1 Gemini call for extraction + 1 per extracted skill for expansion.
+ * 1 AI provider call for extraction + 1 per extracted skill for expansion.
  * Run this at most weekly to stay within free tier limits.
  */
 async function syncExtractedSkillsToMonitored(): Promise<void> {
@@ -165,7 +162,7 @@ async function syncExtractedSkillsToMonitored(): Promise<void> {
         console.log(`   ✨ "${cred.skill_name}" → extracted: ${novelDirect.join(', ')}`);
       }
 
-      // Step 2: Gemini expansion — find related market skills for each extracted skill
+      // Step 2: AI provider expansion — find related market skills for each extracted skill
       // Run for all extracted skills (not just novel ones) to catch related gaps
       for (const skill of extracted) {
         const related = await expandToRelatedSkills(skill);
@@ -203,7 +200,7 @@ async function syncExtractedSkillsToMonitored(): Promise<void> {
   } else {
     const extracted = toUpsert.filter(r => r.category === 'w3c-extracted').length;
     const expanded = toUpsert.filter(r => r.category === 'auto-expanded').length;
-    console.log(`   📥 Synced ${toUpsert.length} new skill(s): ${extracted} from W3C extraction, ${expanded} from Gemini expansion`);
+    console.log(`   📥 Synced ${toUpsert.length} new skill(s): ${extracted} from W3C extraction, ${expanded} from AI expansion`);
   }
 }
 
@@ -276,7 +273,7 @@ async function runDailyUpdate() {
     skillsToTrack = [manualKeyword];
   } else {
     // W3C sync — only runs when --with-gemini flag is present
-    // Skipped on standard daily runs to preserve free-tier Gemini quota
+    // Skipped on standard daily runs to preserve free-tier AI provider quota
     if (withGemini) {
       await syncExtractedSkillsToMonitored();
     } else {

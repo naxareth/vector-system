@@ -9,11 +9,36 @@
  * Secret environment variables that MUST be present on the server
  * and MUST NEVER appear in any NEXT_PUBLIC_* variable.
  */
-const REQUIRED_SECRETS = [
-    'GEMINI_API_KEY',
+const BASE_REQUIRED_SECRETS = [
     'SUPABASE_SERVICE_ROLE_KEY',
     'ENCRYPTION_KEY',
 ] as const;
+
+type AIProvider = 'gemini' | 'groq' | 'ollama';
+
+function resolveAIProvider(errors: string[]): AIProvider {
+    const raw = (process.env.AI_PROVIDER || 'gemini').toLowerCase();
+    if (raw === 'gemini' || raw === 'groq' || raw === 'ollama') {
+        return raw;
+    }
+    errors.push(
+        `INVALID: "AI_PROVIDER" must be one of gemini | groq | ollama (got "${raw}").`
+    );
+    return 'gemini';
+}
+
+function providerSecrets(provider: AIProvider): string[] {
+    switch (provider) {
+        case 'gemini':
+            return ['GEMINI_API_KEY'];
+        case 'groq':
+            return ['GROQ_API_KEY'];
+        case 'ollama':
+            return [];
+        default:
+            return [];
+    }
+}
 
 /**
  * Validate that all critical secrets are present and not leaked to the client.
@@ -23,9 +48,11 @@ const REQUIRED_SECRETS = [
  */
 export function validateSecretEnvVars(): void {
     const errors: string[] = [];
+    const provider = resolveAIProvider(errors);
+    const requiredSecrets = [...BASE_REQUIRED_SECRETS, ...providerSecrets(provider)];
 
     // 1. Check that each required secret is present and non-empty
-    for (const key of REQUIRED_SECRETS) {
+    for (const key of requiredSecrets) {
         const value = process.env[key];
         if (!value || value.trim().length === 0) {
             errors.push(`MISSING: "${key}" is not set in environment variables.`);
@@ -34,7 +61,7 @@ export function validateSecretEnvVars(): void {
 
     // 2. Check that no secret is accidentally exposed as a NEXT_PUBLIC_* variable
     //    (NEXT_PUBLIC_* vars are bundled into the client JS at build time)
-    for (const key of REQUIRED_SECRETS) {
+    for (const key of requiredSecrets) {
         const publicKey = `NEXT_PUBLIC_${key}`;
         if (process.env[publicKey]) {
             errors.push(

@@ -2,23 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/db';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { genAI, GEMINI_MODEL } from '@/lib/gemini'; // 🛡️ Centralized Gemini (Checkpoint #2)
+import { generateText } from '@/lib/ai-provider'; // 🛡️ Centralized AI provider (Checkpoint #2)
 import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
 // POST /api/cvr/analyze
 //
 // Authenticated endpoint. Accepts a CVR snapshot, enriches it with
-// skill_health_cache market data, and returns structured Gemini feedback:
+// skill_health_cache market data, and returns structured AI provider feedback:
 //   - overallScore, summary
 //   - skillStrength (strong / moderate / weak buckets)
 //   - marketAlignment (score + insight)
 //   - missingKeywords (3–6 high-demand gaps)
 //   - recommendations (3 actionable next steps)
 //
-// Consumes 1 Gemini RPD per call. No caching — always fresh analysis.
-// 🛡️ SECURITY (Checkpoint #2): Uses centralized Gemini client from @/lib/gemini
+// Consumes 1 AI provider call per request. No caching — always fresh analysis.
+// 🛡️ SECURITY (Checkpoint #2): Uses centralized AI provider from @/lib/ai-provider
 // ---------------------------------------------------------------------------
 
 type SkillInfo = {
@@ -123,7 +122,7 @@ export async function POST(req: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 4. Build Gemini prompt context
+  // 4. Build AI prompt context
   // -------------------------------------------------------------------------
   const skillsContext = skills
     .map((s) => {
@@ -238,12 +237,10 @@ Rules:
 `;
 
   // -------------------------------------------------------------------------
-  // 5. Call Gemini and parse structured response
+  // 5. Call AI provider and parse structured response
   // -------------------------------------------------------------------------
   try {
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text().trim();
+    const raw = (await generateText(prompt)).trim();
 
     // Strip any accidental markdown fences
     const cleaned = raw.replace(/^```(?:json)?|```$/gm, '').trim();
@@ -262,7 +259,7 @@ Rules:
 
     return NextResponse.json({ analysis: parsed });
   } catch (err: unknown) {
-    console.error('[cvr/analyze] Gemini error:', err);
+    console.error('[cvr/analyze] AI provider error:', err);
     return NextResponse.json(
       { error: 'Analysis failed. Please try again later.' },
       { status: 500 }
