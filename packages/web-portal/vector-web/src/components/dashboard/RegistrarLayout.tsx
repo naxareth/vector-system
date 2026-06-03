@@ -20,7 +20,7 @@ interface UserProfile {
 
 /* ── Page title map ─────────────────────────────────────────────────────── */
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
-  '/registrar/dashboard': { title: 'Issue Certificate', subtitle: 'Create and sign new blockchain credentials' },
+  '/registrar/dashboard': { title: 'Issue Certificate', subtitle: 'Create and issue new verified credentials' },
   '/registrar/students':  { title: 'Issued Records', subtitle: 'View and track all certificates you\'ve issued' },
   '/registrar/users':     { title: 'All Users', subtitle: 'View user profiles and manage their credentials' },
   '/registrar/help':      { title: 'Help & Support', subtitle: 'Guides, FAQs, and contact information' },

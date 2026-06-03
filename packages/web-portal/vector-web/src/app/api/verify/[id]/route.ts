@@ -7,7 +7,7 @@ import { verifyRateLimiter } from '@/lib/rate-limiter'; // 🛡️ Checkpoint #2
 //
 // Public endpoint — no auth required. Resolves a credential UUID to:
 //   1. DB record (skill, student identity, issuer, dates)
-//   2. On-chain verification against Polygon Amoy (token balance check)
+//   2. Database verification (revocation check)
 //
 // 🛡️ SECURITY (Checkpoint #2):
 //   - Rate limited: 10 requests/minute per IP
@@ -136,8 +136,7 @@ export async function GET(
       student: {
         fullName: credential.student.full_name ?? 'Unknown',
         // 🛡️ studentId removed — not included in response
-        // 🛡️ walletAddress truncated for privacy
-        walletAddress: wallet_address ? truncateAddress(wallet_address) : null,
+        walletAddress: credential.student.wallet_address ? truncateAddress(credential.student.wallet_address) : null,
       },
       issuedBy: {
         batchName: credential.batch?.batch_name ?? null,

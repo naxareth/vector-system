@@ -184,16 +184,7 @@ export default function ManageUsers() {
 
   const handleRevokeCredential = async (credential: UserCredential) => {
     if (!selectedUser) return;
-    
-    if (!selectedUser.wallet_address) {
-      setMintingProgress({
-        isOpen: true,
-        progress: 0,
-        status: 'error',
-        message: 'This student does not have a connected wallet. Cannot perform blockchain revocation.'
-      });
-      return;
-    }
+
 
     // Replace native confirm() with custom modal confirmation
     setMintingProgress({
@@ -653,20 +644,6 @@ export default function ManageUsers() {
                     className="h-full bg-[#06B4C9] transition-all duration-500 ease-out"
                     style={{ width: `${mintingProgress.progress}%` }}
                   />
-                </div>
-              )}
-
-              {mintingProgress.txHash && (
-                <div className="mb-8 p-3 rounded-lg bg-gray-50 dark:bg-[#131825] border border-gray-100 dark:border-[#1E2536]">
-                  <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">On-Chain Transaction</p>
-                  <a 
-                    href={`https://amoy.polygonscan.com/tx/${mintingProgress.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-[#06B4C9] font-mono hover:underline break-all"
-                  >
-                    {mintingProgress.txHash}
-                  </a>
                 </div>
               )}
 

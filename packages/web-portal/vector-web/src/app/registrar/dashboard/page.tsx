@@ -575,7 +575,7 @@ export default function RegistrarDashboard() {
                                   credential_data: credentialData,
                                   private_notes: '',
                                   certificate_number: `BATCH-${Date.now()}-${idx + 1}`,
-                                  token_id: tokenIds ? tokenIds[idx]?.toString() : Math.floor(Math.random() * 1000000).toString(),
+                                  token_id: Math.floor(Math.random() * 1000000).toString(),
                                   transaction_hash: null,
                                 }),
                               });
@@ -654,7 +654,7 @@ export default function RegistrarDashboard() {
                         </div>
                         {s.wallet_address ?
                           <span className="text-[10px] bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 px-2 py-1 rounded font-bold">Wallet Ready ✓</span>
-                          : <span className="text-[10px] bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400 px-2 py-1 rounded font-bold">No Wallet <HelpTip size={12} text="This student hasn't connected a digital wallet (MetaMask) yet. They'll need to set one up from their dashboard before you can issue them a blockchain-verified certificate. You can still prepare the certificate, but the final step requires a wallet." /></span>
+                          : <span className="text-[10px] bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400 px-2 py-1 rounded font-bold">No Wallet <HelpTip size={12} text="This student hasn't connected a digital wallet yet. You can still prepare and issue the certificate directly to their account." /></span>
                         }
                       </div>
                     ))}
