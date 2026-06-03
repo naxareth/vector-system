@@ -23,8 +23,6 @@ import CredentialCard from '@/components/dashboard/CredentialCard';
 import RecentActivity, { ActivityItem } from '@/components/dashboard/RecentActivity';
 import Link from 'next/link';
 import HelpTip from '@/components/shared/HelpTip';
-import { ethers } from 'ethers';
-import { fetchWalletSkillNames } from '@/lib/blockchain';
 import studentIllustration from './student.png';
 import { generateStudentId } from '@/lib/utils/id';
 
@@ -104,7 +102,6 @@ export default function StudentDashboard() {
 
   const [allCredentials, setAllCredentials] = useState<CredentialItem[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [isWalletConnecting, setIsWalletConnecting] = useState(false);
 
   const capitalizeWords = (text: string) => {
     return text
@@ -116,41 +113,11 @@ export default function StudentDashboard() {
   const refreshPipeline = async (walletAddress: string, identifier: string) => {
     try {
       const newActivities: ActivityItem[] = [];
-      const blockchainCreds: CredentialItem[] = [];
       const foundSkills: string[] = [];
 
       const dbRes = await fetch('/api/student/credentials');
       const dbCreds = dbRes.ok ? await dbRes.json() : [];
 
-      if (walletAddress) {
-        newActivities.push({
-          id: 'wallet-conn',
-          type: 'info',
-          title: 'Wallet Connected',
-          description: `Active: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`,
-          time: 'Active'
-        });
-
-        const walletSkills = await fetchWalletSkillNames(walletAddress);
-        walletSkills.forEach((skillName, index) => {
-          foundSkills.push(skillName);
-          blockchainCreds.push({
-            id: `bc-${skillName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`,
-            title: skillName,
-            category: 'Blockchain Verified',
-            issueDate: 'Verified On-Chain',
-            marketRelevance: 85,
-            verified: true,
-          });
-          newActivities.push({
-            id: `cred-${skillName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-            type: 'success',
-            title: 'Skill Verified',
-            description: `${skillName} confirmed on Polygon`,
-            time: 'On-Chain'
-          });
-        });
-      }
 
       // --- PERFORMANCE Caching Layer ---
       const CACHE_KEY = `vector_ai_analysis_v2_${identifier}`;
@@ -239,10 +206,6 @@ export default function StudentDashboard() {
         });
       });
 
-      blockchainCreds.forEach(bc => {
-        const alreadyExists = mergedCreds.some(mc => mc.title.toLowerCase() === bc.title.toLowerCase());
-        if (!alreadyExists) mergedCreds.push(bc);
-      });
 
       setAllCredentials(mergedCreds);
       setActivities(prev => {
@@ -264,29 +227,6 @@ export default function StudentDashboard() {
     }
   };
 
-  const connectWallet = async () => {
-    if (typeof window === 'undefined' || !(window as unknown as { ethereum?: object }).ethereum) {
-      window.open('https://metamask.io/download/', '_blank');
-      return;
-    }
-    setIsWalletConnecting(true);
-    try {
-      const provider = new ethers.BrowserProvider((window as unknown as { ethereum: ethers.Eip1193Provider }).ethereum);
-      const accounts = await provider.send("eth_requestAccounts", []);
-      const address = accounts[0].toLowerCase();
-
-      if (user?.id) {
-        await supabase.from('users').update({ wallet_address: address }).eq('id', user.id);
-        setUser(prev => prev ? ({ ...prev, wallet_address: address }) : null);
-        await refreshPipeline(address, user.student_id || user.id);
-      }
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : 'Unknown error';
-      alert("Failed to connect wallet: " + errMsg);
-    } finally {
-      setIsWalletConnecting(false);
-    }
-  };
 
   useEffect(() => {
     const initDashboard = async () => {
@@ -413,40 +353,8 @@ export default function StudentDashboard() {
                       </svg>
                       Loading...
                     </span>
-                  ) : user?.wallet_address ? (
-                    <span id="tour-wallet" className="flex items-center gap-2 text-sm bg-gray-900/10 px-3 py-2 rounded-lg border border-gray-900">
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 12V7H5a2 2 0 010-4h14v4" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v14a2 2 0 002 2h16v-5" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 12a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" />
-                      </svg>
-                      <span className="font-medium text-white">Wallet:</span>
-                      <span className="font-mono text-white">{`${user.wallet_address.slice(0,6)}...${user.wallet_address.slice(-4)}`}</span>
-                      <button
-                        type="button"
-                        onClick={() => navigator.clipboard.writeText(user.wallet_address || '')}
-                        className="p-1 rounded hover:bg-white/10 text-white"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2" />
-                          <rect x="8" y="8" width="12" height="12" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
-                        </svg>
-                      </button>
-                    </span>
                   ) : (
                     <div className="flex items-center gap-3">
-                      <button
-                        onClick={connectWallet}
-                        disabled={isWalletConnecting}
-                        className="flex items-center gap-2 text-sm font-semibold bg-white text-[#048898] px-5 py-2.5 rounded-lg shadow-md hover:bg-gray-100 hover:shadow-lg transition-all border border-white/80 disabled:opacity-60"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12V7H5a2 2 0 010-4h14v4" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v14a2 2 0 002 2h16v-5" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M18 12a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" />
-                        </svg>
-                        {isWalletConnecting ? 'Connecting...' : 'Connect Wallet'}
-                      </button>
                       <a href="/student/help" className="flex items-center gap-1 text-xs font-medium text-white/90 bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg transition-colors">
                         Need help?
                       </a>
@@ -473,7 +381,7 @@ export default function StudentDashboard() {
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-medium text-gray-500 mb-1">
-                    Verified Skills <HelpTip text="Skills confirmed by your university and recorded permanently on the network." />
+                    Verified Skills <HelpTip text="Skills confirmed by your university and recorded permanently." />
                   </h3>
                   <p className="text-3xl font-bold text-gray-900 mb-3">{allCredentials.length}</p>
                   <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${allCredentials.length > 2 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
@@ -577,7 +485,7 @@ export default function StudentDashboard() {
                   </svg>
                 </div>
                 <p className="text-sm text-gray-500 mb-2">No skill analytics available yet</p>
-                <p className="text-xs text-gray-400">Connect your wallet and upload credentials to see performance trends</p>
+                <p className="text-xs text-gray-400">Add credentials to see performance trends</p>
               </div>
             )}
           </div>
@@ -632,14 +540,13 @@ export default function StudentDashboard() {
             <div className="relative pt-1 mb-4">
               <div className="flex mb-2 items-center justify-between">
                 <span className="text-xs font-semibold py-1 px-2 uppercase rounded-full text-[#06B4C9] bg-[#06B4C9]/10">
-                  {user?.wallet_address && (hasPendingCVR || hasCVRExport) && profileComplete ? 'Complete' : 'In Progress'}
+                  {(hasPendingCVR || hasCVRExport) && profileComplete ? 'Complete' : 'In Progress'}
                 </span>
                 <span className="text-xs font-semibold text-[#06B4C9]">
                   {(() => {
                     let score = 0;
-                    if (user?.wallet_address) score += 33;
-                    if (hasPendingCVR || hasCVRExport) score += 33;
-                    if (profileComplete) score += 34;
+                    if (hasPendingCVR || hasCVRExport) score += 50;
+                    if (profileComplete) score += 50;
                     return `${score}%`;
                   })()}
                 </span>
@@ -649,9 +556,8 @@ export default function StudentDashboard() {
                   style={{ 
                     width: (() => {
                       let score = 0;
-                      if (user?.wallet_address) score += 33;
-                      if (hasPendingCVR || hasCVRExport) score += 33;
-                      if (profileComplete) score += 34;
+                      if (hasPendingCVR || hasCVRExport) score += 50;
+                      if (profileComplete) score += 50;
                       return `${score}%`;
                     })() 
                   }}
@@ -660,12 +566,7 @@ export default function StudentDashboard() {
               </div>
             </div>
             <ul className="space-y-3 mb-6">
-              <li className="flex items-center text-sm text-gray-600">
-                {user?.wallet_address
-                  ? <span className="text-green-500 font-bold mr-2">✓</span>
-                  : <span className="text-gray-300 mr-2">○</span>}
-                Connect Wallet <HelpTip size={13} text="A digital wallet (like MetaMask) stores your certificates securely on the blockchain so employers can verify them." />
-              </li>
+
               <li className="flex items-center text-sm text-gray-600">
                 {hasPendingCVR || hasCVRExport
                   ? <span className="text-green-500 font-bold mr-2">✓</span>

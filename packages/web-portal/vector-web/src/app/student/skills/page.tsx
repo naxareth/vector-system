@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { fetchWalletSkillNames } from '@/lib/blockchain';
+
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Pagination from '@/components/shared/Pagination';
 import HelpTip from '@/components/shared/HelpTip';
@@ -13,14 +13,14 @@ interface RawCredential {
   skill_tags: string[];
   issued_at?: string;
   transaction_hash?: string;
-  source: 'university' | 'blockchain';
+  source: 'university';
 }
 
 interface SkillCard {
   skillName: string;
   parentCredentialId: string;
   parentCredentialTitle: string;
-  source: 'university' | 'blockchain';
+  source: 'university';
 }
 
 interface SkillHealth {
@@ -90,11 +90,7 @@ function SkillCardItem({ card, health }: { card: SkillCard; health: SkillHealth 
             <h3 className="text-sm font-bold text-gray-900 group-hover:text-[#06B4C9] transition-colors truncate">{card.skillName}</h3>
             <p className="text-xs text-gray-400 mt-0.5 truncate">via {card.parentCredentialTitle}</p>
           </div>
-          {card.source === 'university' ? (
-            <span className="inline-flex items-center gap-1 text-[10px] text-[#06B4C9] bg-[#06B4C9]/10 px-2 py-0.5 rounded-full border border-[#06B4C9]/20 font-semibold shrink-0">University</span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 font-semibold shrink-0">On-Chain <HelpTip size={10} text="This skill was verified directly on the blockchain, not through a university record." /></span>
-          )}
+          <span className="inline-flex items-center gap-1 text-[10px] text-[#06B4C9] bg-[#06B4C9]/10 px-2 py-0.5 rounded-full border border-[#06B4C9]/20 font-semibold shrink-0">University</span>
         </div>
 
         <div className="flex items-center justify-between mb-2">
@@ -131,18 +127,13 @@ export default function SkillsPage() {
   const [credentialsLoading, setCredentialsLoading] = useState(true);
   const [healthMap, setHealthMap] = useState<Map<string, SkillHealth>>(new Map());
   const [healthLoading, setHealthLoading] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [userWallet, setUserWallet] = useState<string | null>(null);
-
   useEffect(() => {
     const fetchCredentials = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { setCredentialsLoading(false); return; }
 
-        const { data: profile } = await supabase
-          .from('users').select('wallet_address, student_id').eq('id', session.user.id).single();
-        setUserWallet(profile?.wallet_address || null);
+
 
         const found: RawCredential[] = [];
 
@@ -163,22 +154,7 @@ export default function SkillsPage() {
           });
         }
 
-        if (profile?.wallet_address) {
-          try {
-            const dbNames = found.map(c => c.skill_name.toLowerCase());
-            const walletSkills = await fetchWalletSkillNames(profile.wallet_address);
-            walletSkills.forEach((skillName, index) => {
-              if (!dbNames.includes(skillName.toLowerCase())) {
-                found.push({
-                  id: `bc-${skillName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`,
-                  skill_name: skillName,
-                  skill_tags: [skillName],
-                  source: 'blockchain'
-                });
-              }
-            });
-          } catch (err) { console.warn('Blockchain scan failed:', err); }
-        }
+
 
         setCredentials(found);
 
@@ -234,15 +210,10 @@ export default function SkillsPage() {
     fetchHealth();
   }, [skillCards]);
 
-  const universityCards = skillCards.filter(c => c.source === 'university');
-  const blockchainCards = skillCards.filter(c => c.source === 'blockchain');
-
-  const [uniPage, setUniPage] = useState(1);
-  const [bcPage, setBcPage] = useState(1);
+  const [cardsPage, setCardsPage] = useState(1);
   const CARDS_PER_PAGE = 6;
 
-  const paginatedUni = universityCards.slice((uniPage - 1) * CARDS_PER_PAGE, uniPage * CARDS_PER_PAGE);
-  const paginatedBc = blockchainCards.slice((bcPage - 1) * CARDS_PER_PAGE, bcPage * CARDS_PER_PAGE);
+  const paginatedCards = skillCards.slice((cardsPage - 1) * CARDS_PER_PAGE, cardsPage * CARDS_PER_PAGE);
 
   return (
     <DashboardLayout>
@@ -295,35 +266,12 @@ export default function SkillsPage() {
             )}
           </div>
 
-          {universityCards.length > 0 && (
+          {skillCards.length > 0 && (
             <section>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 bg-[#06B4C9]/10 rounded-md flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-[#06B4C9]" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z" /></svg>
-                </div>
-                <h2 className="text-sm font-bold text-gray-900">University</h2>
-                <span className="text-xs text-gray-400">{universityCards.length} skill{universityCards.length !== 1 ? 's' : ''}</span>
-              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {paginatedUni.map((card, i) => <SkillCardItem key={`u-${i}`} card={card} health={healthMap.get(card.skillName)} />)}
+                {paginatedCards.map((card, i) => <SkillCardItem key={`card-${i}`} card={card} health={healthMap.get(card.skillName)} />)}
               </div>
-              <Pagination currentPage={uniPage} totalItems={universityCards.length} itemsPerPage={CARDS_PER_PAGE} onPageChange={setUniPage} />
-            </section>
-          )}
-
-          {blockchainCards.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 bg-indigo-100 rounded-md flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-indigo-700" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                </div>
-                <h2 className="text-sm font-bold text-gray-900">On-Chain</h2>
-                <span className="text-xs text-gray-400">{blockchainCards.length} skill{blockchainCards.length !== 1 ? 's' : ''}</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {paginatedBc.map((card, i) => <SkillCardItem key={`bc-${i}`} card={card} health={healthMap.get(card.skillName)} />)}
-              </div>
-              <Pagination currentPage={bcPage} totalItems={blockchainCards.length} itemsPerPage={CARDS_PER_PAGE} onPageChange={setBcPage} />
+              <Pagination currentPage={cardsPage} totalItems={skillCards.length} itemsPerPage={CARDS_PER_PAGE} onPageChange={setCardsPage} />
             </section>
           )}
 

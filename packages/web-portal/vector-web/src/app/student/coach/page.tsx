@@ -8,7 +8,7 @@ import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import MarketInsightsPanel from '@/components/student/MarketInsightsPanel';
 import RecommendationsPanel, { CourseRecommendation } from '@/components/student/RecommendationsPanel';
 import Pagination from '@/components/shared/Pagination';
-import { fetchWalletSkillNames } from '@/lib/blockchain';
+
 import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -62,7 +62,7 @@ export default function CoachPage() {
   const [skillDropOpen, setSkillDropOpen] = useState(false);
 
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'ai', text: "👋 Hi! I'm connecting to the blockchain to analyze your career data..." }
+    { role: 'ai', text: "👋 Hi! I'm analyzing your career data..." }
   ]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -76,7 +76,7 @@ export default function CoachPage() {
 
       const { data: profile } = await supabase
         .from('users')
-        .select('full_name, student_id, wallet_address')
+        .select('full_name, student_id')
         .eq('id', session.user.id)
         .single();
 
@@ -88,13 +88,7 @@ export default function CoachPage() {
       const firstName = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
       setUserName(firstName);
 
-      // 1. Fetch wallet skills
       const foundSkills: string[] = [];
-      if (profile.wallet_address) {
-        try {
-          foundSkills.push(...await fetchWalletSkillNames(profile.wallet_address));
-        } catch { console.warn("Wallet read failed."); }
-      }
 
       // 🛡️ CSRF - Extract token from cookies
       const csrfToken = typeof document !== 'undefined' 

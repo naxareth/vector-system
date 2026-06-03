@@ -28,7 +28,6 @@ interface ProfileData {
   university: string;
   major: string;
   graduationYear: string;
-  walletAddress: string;
   location: string;
   photoUrl: string;
   studentId: string;
@@ -67,7 +66,6 @@ export default function ProfilePage() {
     university: 'PHINMA University',
     major: '',
     graduationYear: '',
-    walletAddress: '',
     location: '',
     photoUrl: '',
     studentId: '',
@@ -89,7 +87,7 @@ export default function ProfilePage() {
         const { data: userRecord, error } = await supabase
           .from('users')
           .select(`
-            full_name, wallet_address, student_id, avatar_url, location,
+            full_name, student_id, avatar_url, location,
             profiles ( phone, bio, university, major, graduation_year )
           `)
           .eq('id', session.user.id)
@@ -109,7 +107,6 @@ export default function ProfilePage() {
             firstName: capitalizeWords(nameParts[0] || ''),
             lastName: capitalizeWords(nameParts.slice(1).join(' ')) || '',
             email: userEmail,
-            walletAddress: userRecord.wallet_address || '',
             location: userRecord.location || '',
             photoUrl: userRecord.avatar_url || '',
             studentId: userRecord.student_id || '',
@@ -152,12 +149,11 @@ export default function ProfilePage() {
       { label: 'First Name', field: 'firstName', weight: 10, completed: !!formData.firstName },
       { label: 'Last Name', field: 'lastName', weight: 10, completed: !!formData.lastName },
       { label: 'Email', field: 'email', weight: 10, completed: !!formData.email },
-      { label: 'Phone', field: 'phone', weight: 10, completed: !!formData.phone },
+      { label: 'Phone', field: 'phone', weight: 15, completed: !!formData.phone },
       { label: 'Location', field: 'location', weight: 10, completed: !!formData.location },
       { label: 'Bio', field: 'bio', weight: 15, completed: !!formData.bio && formData.bio.length > 10 },
-      { label: 'MetaMask Wallet', field: 'walletAddress', weight: 15, completed: !!formData.walletAddress && formData.walletAddress.startsWith('0x') },
-      { label: 'University', field: 'university', weight: 10, completed: !!formData.university },
-      { label: 'Major', field: 'major', weight: 5, completed: !!formData.major },
+      { label: 'University', field: 'university', weight: 15, completed: !!formData.university },
+      { label: 'Major', field: 'major', weight: 10, completed: !!formData.major },
       { label: 'Graduation Year', field: 'graduationYear', weight: 5, completed: !!formData.graduationYear },
     ];
 
@@ -440,46 +436,6 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Wallet */}
-                <div className={`bg-white rounded-xl border p-5 mb-4 transition-all ${isEditing ? 'border-[#06B4C9]' : 'border-gray-200'}`}>
-                  <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-1">Blockchain Wallet <HelpTip text="A digital wallet (like MetaMask) that stores your verified certificates on the blockchain so they can't be tampered with." size={14} /></h2>
-                  {formData.walletAddress ? (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">Wallet Address <HelpTip text="This is your unique blockchain identity (starts with 0x). It links your MetaMask to your on-chain certificates." size={12} /></label>
-                      <div className="flex items-center gap-3">
-                        <input type="text" value={formData.walletAddress} disabled={true} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 font-mono text-sm cursor-not-allowed" />
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!userId) return;
-                            if (!confirm('Are you sure you want to disconnect your wallet? Your on-chain credentials will no longer be visible.')) return;
-                            try {
-                              await supabase.from('users').update({ wallet_address: null }).eq('id', userId);
-                              setFormData(prev => ({ ...prev, walletAddress: '' }));
-                            } catch (err: unknown) {
-                              const errMsg = err instanceof Error ? err.message : 'Unknown error';
-                              alert('Failed to disconnect: ' + errMsg);
-                            }
-                          }}
-                          className="px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors font-medium whitespace-nowrap"
-                        >
-                          Disconnect
-                        </button>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-1.5">Connected via MetaMask.</p>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12V7H5a2 2 0 010-4h14v4" /><path strokeLinecap="round" strokeLinejoin="round" d="M3 5v14a2 2 0 002 2h16v-5" /><path strokeLinecap="round" strokeLinejoin="round" d="M18 12a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" /></svg>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">No wallet connected</p>
-                        <p className="text-xs text-gray-400">Connect your MetaMask wallet from the dashboard to link on-chain credentials.</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
 
                 {isEditing && (
                   <div className="flex flex-col sm:flex-row justify-end gap-3 mb-4">
@@ -672,7 +628,7 @@ export default function ProfilePage() {
                       <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Personal</span>
                     </div>
                     <div className="space-y-1.5 pl-1">
-                      {progressItems.slice(0, 7).map((item, index) => (
+                      {progressItems.slice(0, 6).map((item, index) => (
                         <div key={index} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 transition-colors ${item.completed ? 'bg-gray-50' : 'bg-amber-50/60 hover:bg-amber-50'}`}>
                           <div className="flex items-center gap-2.5">
                             {item.completed ? (
@@ -701,7 +657,7 @@ export default function ProfilePage() {
                       <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Education</span>
                     </div>
                     <div className="space-y-1.5 pl-1">
-                      {progressItems.slice(7, 10).map((item, index) => (
+                      {progressItems.slice(6, 9).map((item, index) => (
                         <div key={index} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 transition-colors ${item.completed ? 'bg-gray-50' : 'bg-amber-50/60 hover:bg-amber-50'}`}>
                           <div className="flex items-center gap-2.5">
                             {item.completed ? (
