@@ -4,9 +4,7 @@ import { useRouter } from 'next/navigation';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
 import SchemaBuilder from '@/components/dashboard/SchemaBuilder';
 import HelpTip from '@/components/shared/HelpTip';
-import { ethers } from 'ethers';
 import { supabase } from '@/lib/supabaseClient';
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
 
 interface CredentialSchema {
   id: string;
@@ -222,22 +220,9 @@ export default function RegistrarDashboard() {
     }
 
     try {
-      setMintingProgress({ isOpen: true, progress: 20, status: 'minting', message: 'Opening secure wallet…' });
-
-      const { ethereum } = window as unknown as { ethereum: ethers.Eip1193Provider };
-      const provider = new ethers.BrowserProvider(ethereum, "any");
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
-
-      setMintingProgress(prev => ({ ...prev, progress: 40, message: 'Recording certificate on the blockchain…' }));
-      // Use timestamp for higher uniqueness than random
+      setMintingProgress({ isOpen: true, progress: 20, status: 'minting', message: 'Preparing certificate...' });
       const numericTokenId = Date.now() % 100000000;
-      const tx = await contract.mintSkill(selectedStudent!.wallet_address, numericTokenId, 1);
-
-      setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Waiting for confirmation…' }));
-      await tx.wait();
-
-      setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Saving certificate to the database…' }));
+      setMintingProgress(prev => ({ ...prev, progress: 80, message: 'Saving certificate to the database…' }));
 
       // Build credential_data without skill_tags (it's promoted to its own column)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -263,7 +248,7 @@ export default function RegistrarDashboard() {
           private_notes: staticData.privateNotes,
           certificate_number: staticData.certificateNumber,
           token_id: numericTokenId.toString(),
-          transaction_hash: tx.hash
+          transaction_hash: null
         })
       });
 
@@ -271,8 +256,7 @@ export default function RegistrarDashboard() {
 
       setMintingProgress({
         isOpen: true, progress: 100, status: 'complete',
-        message: 'Certificate issued and verified successfully!',
-        txHash: tx.hash
+        message: 'Certificate issued and verified successfully!'
       });
 
       // ✅ Refresh the credentials list immediately so the new one appears in the management panel
@@ -283,11 +267,7 @@ export default function RegistrarDashboard() {
       setStaticData({ certificateNumber: '', privateNotes: '' });
       setValidationErrors({});
     } catch (error: unknown) {
-      const err = error as { code?: string; info?: { error?: { code?: number } } };
-      const isUserRejected = err?.code === 'ACTION_REJECTED' || err?.info?.error?.code === 4001;
-      const message = isUserRejected
-        ? 'Transaction cancelled — you declined the request in MetaMask. No certificate was issued.'
-        : error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+      const message = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
       setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
     }
   };
@@ -305,48 +285,7 @@ export default function RegistrarDashboard() {
     if (!confirmRevoke) return;
 
     try {
-      setMintingProgress({
-        isOpen: true,
-        progress: 10,
-        status: 'minting',
-        message: 'Requesting signature to burn token...',
-      });
-
-      const { ethereum } = window as unknown as { ethereum: ethers.Eip1193Provider };
-      if (!ethereum) throw new Error('MetaMask not found. Please install MetaMask to revoke credentials.');
-
-      const provider = new ethers.BrowserProvider(ethereum, 'any');
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
-      let tx: ethers.ContractTransactionResponse | null = null;
-
-      // Verify balance before burning to prevent silent reverts
-      const balance = await contract.balanceOf(selectedStudent.wallet_address, cred.token_id);
-      let skipBlockchain = false;
-
-      if (balance < BigInt(1)) {
-        const forceRevoke = window.confirm(
-          `GHOST TOKEN DETECTED: The blockchain reports balance 0 for Token ID ${cred.token_id}.\n\nThis usually happens if the local Hardhat node was restarted. Would you like to mark this as REVOKED in the database anyway (Soft Cleanup)?`
-        );
-        if (forceRevoke) {
-          skipBlockchain = true;
-        } else {
-          setMintingProgress({ isOpen: false, progress: 0, status: 'complete', message: '' });
-          return;
-        }
-      }
-
-      if (!skipBlockchain) {
-        setMintingProgress({ isOpen: true, progress: 40, status: 'minting', message: 'Executing revoke on Polygon...' });
-        
-        // Execute Burn (Revoke)
-        tx = await contract.revokeSkill(selectedStudent.wallet_address, cred.token_id, 1);
-        
-        setMintingProgress({ isOpen: true, progress: 70, status: 'minting', message: 'Waiting for blockchain confirmation...' });
-        if (tx) await tx.wait();
-      }
-
-      setMintingProgress({ isOpen: true, progress: 90, status: 'minting', message: skipBlockchain ? 'Performing DB cleanup...' : 'Updating database records...' });
+      setMintingProgress({ isOpen: true, progress: 50, status: 'minting', message: 'Updating database records...' });
       
       // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
       const csrfToken = typeof document !== 'undefined' 
@@ -365,7 +304,7 @@ export default function RegistrarDashboard() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(`Blockchain action succeeded, but database sync failed: ${errorData.error || res.statusText}${errorData.details ? ` (${errorData.details})` : ''}`);
+        throw new Error(`Database sync failed: ${errorData.error || res.statusText}${errorData.details ? ` (${errorData.details})` : ''}`);
       }
 
       // Refresh local state
@@ -375,22 +314,16 @@ export default function RegistrarDashboard() {
         isOpen: true,
         progress: 100,
         status: 'complete',
-        message: skipBlockchain 
-          ? 'Database record marked as revoked (Blockchain skip).' 
-          : 'Credential successfully revoked and token burned.',
-        txHash: tx?.hash,
+        message: 'Credential successfully revoked.',
       });
     } catch (err: unknown) {
       console.error('Revocation Error:', err);
-      const typedErr = err as { code?: string; info?: { error?: { code?: number } }; reason?: string; message?: string };
-      const isUserRejected = typedErr?.code === 'ACTION_REJECTED' || typedErr?.info?.error?.code === 4001;
+      const typedErr = err as { reason?: string; message?: string };
       setMintingProgress({
         isOpen: true,
         progress: 100,
         status: 'error',
-        message: isUserRejected
-          ? 'Revocation cancelled — you declined the request in MetaMask. No changes were made.'
-          : typedErr.reason || typedErr.message || 'Transaction failed or was rejected.',
+        message: typedErr.reason || typedErr.message || 'Transaction failed.',
       });
     }
   };
@@ -410,7 +343,7 @@ export default function RegistrarDashboard() {
     <RegistrarLayout>
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-gray-200 dark:border-[#1E2536] pb-4 gap-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Certificate Workspace <HelpTip text="This is your main workspace for managing student certificates. Use the tabs to issue individual certificates, upload in bulk, or design new certificate templates. Every certificate you issue is permanently recorded and verifiable on the blockchain." /></h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Certificate Workspace <HelpTip text="This is your main workspace for managing student certificates. Use the tabs to issue individual certificates, upload in bulk, or design new certificate templates. Every certificate you issue is permanently recorded and verifiable." /></h1>
           <div className="flex bg-gray-100 dark:bg-[#131825] p-1 rounded-lg">
             <button onClick={() => setActiveTab('issue')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'issue' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
               Issue Certificate
@@ -605,43 +538,9 @@ export default function RegistrarDashboard() {
                           if (!batchSchema) return alert('Template not found.');
 
                           try {
-                            setMintingProgress({ isOpen: true, progress: 5, status: 'minting', message: 'Connecting wallet...' });
-
-                            const { ethereum } = window as unknown as { ethereum: ethers.Eip1193Provider };
-                            if (!ethereum) throw new Error('MetaMask not found. Please install it.');
-                            const provider = new ethers.BrowserProvider(ethereum, 'any');
-                            const signer = await provider.getSigner();
-                            const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
+                            setMintingProgress({ isOpen: true, progress: 5, status: 'minting', message: 'Preparing batch...' });
 
                             const total = rows.length;
-
-                            // ── Build batch arrays for single ERC-1155 batchMintSkills call ──
-                            const addresses: string[] = [];
-                            const tokenIds: number[] = [];
-                            const amounts: number[] = [];
-
-                            for (const row of rows) {
-                              addresses.push(String(row.wallet_address));
-                              tokenIds.push(Math.floor(Math.random() * 1000000));
-                              amounts.push(1);
-                            }
-
-                            // Phase 1: Single on-chain transaction (1 MetaMask popup)
-                            setMintingProgress(prev => ({
-                              ...prev,
-                              progress: 15,
-                              message: `Minting ${total} credential${total > 1 ? 's' : ''} — sign once in MetaMask...`,
-                            }));
-
-                            const tx = await contract.batchMintSkills(addresses, tokenIds, amounts);
-
-                            // Phase 2: Wait for chain confirmation
-                            setMintingProgress(prev => ({
-                              ...prev,
-                              progress: 45,
-                              message: `Confirming batch transaction on Polygon...`,
-                            }));
-                            await tx.wait();
 
                             // Phase 3: Save each credential to database
                             let completed = 0;
@@ -676,14 +575,14 @@ export default function RegistrarDashboard() {
                                   credential_data: credentialData,
                                   private_notes: '',
                                   certificate_number: `BATCH-${Date.now()}-${idx + 1}`,
-                                  token_id: tokenIds[idx].toString(),
-                                  transaction_hash: tx.hash,
+                                  token_id: tokenIds ? tokenIds[idx]?.toString() : Math.floor(Math.random() * 1000000).toString(),
+                                  transaction_hash: null,
                                 }),
                               });
 
                               if (!saveRes.ok) {
                                 const errText = await saveRes.text().catch(() => 'Unknown error');
-                                throw new Error(`Minted on-chain but failed to save record ${idx + 1}: ${errText}`);
+                                throw new Error(`Failed to save record ${idx + 1}: ${errText}`);
                               }
 
                               completed++;
@@ -694,11 +593,7 @@ export default function RegistrarDashboard() {
                               message: `Successfully issued ${completed} certificate${completed > 1 ? 's' : ''}.`,
                             });
                           } catch (error: unknown) {
-                            const err = error as { code?: string; info?: { error?: { code?: number } } };
-                            const isUserRejected = err?.code === 'ACTION_REJECTED' || err?.info?.error?.code === 4001;
-                            const message = isUserRejected
-                              ? 'Batch transaction cancelled — you declined the request in MetaMask. No certificates were issued.'
-                              : error instanceof Error ? error.message : 'Batch processing failed';
+                            const message = error instanceof Error ? error.message : 'Batch processing failed';
                             setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
                           }
                         }}
@@ -724,7 +619,7 @@ export default function RegistrarDashboard() {
           </div>
         ) : (
           <div className="bg-white dark:bg-[#0E1220] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1E2536] p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Issue Certificate <HelpTip text="Fill out the form below to create and send a verified certificate to one student. You'll need to select a student, choose a template, fill in the details, and approve the transaction in your wallet. The certificate will be permanently recorded on the blockchain." /></h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Issue Certificate <HelpTip text="Fill out the form below to create and send a verified certificate to one student. You'll need to select a student, choose a template, and fill in the details. The certificate will be permanently recorded." /></h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {/* Student Search */}

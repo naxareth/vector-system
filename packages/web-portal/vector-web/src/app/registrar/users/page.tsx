@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
 import HelpTip from '@/components/shared/HelpTip';
-import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
 
 interface UserCredential {
   id: string;
@@ -202,7 +200,7 @@ export default function ManageUsers() {
       isOpen: true,
       progress: 0,
       status: 'confirm',
-      message: `Revoke credential "${credential.skill_name}"? This action will permanently burn the blockchain token and mark it as revoked in the database.`,
+      message: `Revoke credential "${credential.skill_name}"? This action will permanently mark it as revoked in the database.`,
       confirmAction: () => startRevocationProcess(credential),
       cancelAction: () => setMintingProgress({ isOpen: false, progress: 0, status: 'complete', message: '' }),
       confirmLabel: 'Confirm Revoke',
@@ -213,73 +211,13 @@ export default function ManageUsers() {
   const startRevocationProcess = async (credential: UserCredential) => {
     setMintingProgress({ 
       isOpen: true, 
-      progress: 10, 
+      progress: 50, 
       status: 'minting', 
-      message: 'Requesting MetaMask signature...' 
+      message: 'Updating database records...' 
     });
 
     try {
-      const { ethereum } = window as unknown as { ethereum: ethers.Eip1193Provider };
-      if (!ethereum) throw new Error('MetaMask not found. Please install MetaMask to revoke credentials.');
-
-      const provider = new ethers.BrowserProvider(ethereum, 'any');
-      const network = await provider.getNetwork();
-      const chainId = Number(network.chainId);
-      let tx: ethers.ContractTransactionResponse | null = null;
-
-      // 🛡️ Verify Network (Polygon Amoy: 80002 or Localhost: 31337)
-      if (chainId !== 80002 && chainId !== 31337 && chainId !== 1337) {
-        throw new Error(`Wrong Network: Your MetaMask is on Chain ID ${chainId}. Please switch to Polygon Amoy (80002) to revoke credentials.`);
-      }
-
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
-      
-      console.log(`[Revoke] Target: ${selectedUser?.wallet_address}, Token ID: ${credential.token_id}, Contract: ${CONTRACT_ADDRESS}`);
-
-      // 🛡️ Verify balance before burning
-      setMintingProgress(prev => ({ ...prev, progress: 20, message: 'Verifying token ownership...' }));
-      
-      let balance;
-      try {
-        balance = await contract.balanceOf(selectedUser?.wallet_address, credential.token_id);
-      } catch (callError: unknown) {
-        const err = callError as Error & { data?: string; value?: string };
-        if (err.message?.includes("could not decode result data") || err.data === '0x' || err.value === '0x') {
-          throw new Error(`Contract Not Found: No code detected at ${CONTRACT_ADDRESS} on this network (Chain ID ${chainId}). Please check if the contract address is correct for this network.`);
-        }
-        throw callError;
-      }
-      if (BigInt(balance) <= BigInt(0)) {
-        setMintingProgress({
-          isOpen: true,
-          progress: 20,
-          status: 'confirm',
-          message: `GHOST TOKEN DETECTED: Token ID ${credential.token_id} not found in student's wallet. Mark as REVOKED anyway (Soft Cleanup)?`,
-          confirmAction: async () => {
-            setMintingProgress({ isOpen: true, progress: 90, status: 'minting', message: 'Performing database-only cleanup...' });
-            await finishDatabaseRevocation(credential);
-          },
-          cancelAction: () => {
-            setMintingProgress({ isOpen: false, progress: 0, status: 'complete', message: '' });
-          },
-          confirmLabel: 'Yes, Soft Cleanup',
-          cancelLabel: 'Cancel'
-        });
-        return;
-      }
-
-      setMintingProgress(prev => ({ ...prev, progress: 40, status: 'minting', message: 'Executing burn on Polygon Amoy...' }));
-      
-      // Execute Burn (Revoke)
-      tx = await contract.revokeSkill(selectedUser?.wallet_address, credential.token_id, 1);
-      
-      setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Waiting for blockchain confirmation...' }));
-      await tx?.wait();
-
-      setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Updating database records...' }));
-      await finishDatabaseRevocation(credential, tx?.hash);
-
+      await finishDatabaseRevocation(credential);
     } catch (error: unknown) {
       console.error('Revocation Error:', error);
       const err = error as Error & { reason?: string };
@@ -307,7 +245,7 @@ export default function ManageUsers() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Blockchain burn succeeded, but database sync failed');
+        throw new Error(data.error || 'Database sync failed');
       }
 
       // Refresh the selected user's data
@@ -339,7 +277,7 @@ export default function ManageUsers() {
         isOpen: true,
         progress: 100,
         status: 'complete',
-        message: txHash ? 'Credential successfully revoked!' : 'Database record marked as revoked (Soft Cleanup).',
+        message: 'Credential successfully revoked!',
         txHash: txHash,
       });
     } catch (error: unknown) {
@@ -611,7 +549,7 @@ export default function ManageUsers() {
                           disabled={mintingProgress.isOpen && mintingProgress.status === 'minting'}
                           className="ml-4 px-4 py-2 text-sm font-medium text-red-600 hover:text-white border border-red-200 hover:bg-red-600 hover:border-red-600 dark:text-red-400 dark:border-red-500/30 dark:hover:bg-red-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
-                          {mintingProgress.isOpen && mintingProgress.status === 'minting' ? 'Revoking...' : 'Revoke (Burn)'}
+                          {mintingProgress.isOpen && mintingProgress.status === 'minting' ? 'Revoking...' : 'Revoke'}
                         </button>
                       </div>
                     ))}
