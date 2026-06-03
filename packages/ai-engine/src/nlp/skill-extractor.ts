@@ -1,15 +1,12 @@
-import { genAI, skillExtractionPrompt } from "./gemini-client";
+import { skillExtractionPrompt } from "./gemini-client";
+import { generateText } from "./ai-provider";
 
 // Legacy: Standard text-based extraction
 export async function extractSkillsFromResume(resumeText: string): Promise<string[]> {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-  
-  const result = await model.generateContent([
+  const response = await generateText([
     skillExtractionPrompt,
     `Resume Text: ${resumeText}`
   ]);
-  
-  const response = result.response.text();
   // Parse JSON response
   const parsed = JSON.parse(response.replace(/```json|```/g, ''));
   return parsed.skills || [];
@@ -28,9 +25,7 @@ export async function extractSkillsFromCredential(
     }
     const schemaDef = await schemaResponse.json() as any;
 
-    // 2. Build the context-aware prompt using your working model
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-    
+    // 2. Build the context-aware prompt using the configured AI provider
     const dynamicPrompt = `
       You are an expert AI skill extractor for a decentralized micro-credentialing platform.
       
@@ -48,12 +43,10 @@ export async function extractSkillsFromCredential(
     `;
 
     // 3. Generate and parse the context-aware response
-    const result = await model.generateContent([
+    const response = await generateText([
       skillExtractionPrompt, 
       dynamicPrompt
     ]);
-    
-    const response = result.response.text();
     const parsed = JSON.parse(response.replace(/```json|```/g, ''));
     return parsed.skills || [];
 

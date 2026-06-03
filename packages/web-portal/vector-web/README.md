@@ -39,9 +39,13 @@ NEXT_PUBLIC_SUPABASE_URL="your-project-url"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 NEXT_PUBLIC_CONTRACT_ADDRESS="0x..."
 SUPABASE_SERVICE_ROLE_KEY="your-service-role"
-GEMINI_API_KEY="your-gemini-key"
 ENCRYPTION_KEY="your-32-byte-hex"
 DATABASE_URL="your-postgres-url"
+AI_PROVIDER="gemini"
+GEMINI_API_KEY="your-gemini-key"
+GROQ_API_KEY="your-groq-key"
+OLLAMA_BASE_URL="http://localhost:11434"
+OLLAMA_MODEL="llama3.1:8b"
 ```
 
 ### 3. Installation & Run

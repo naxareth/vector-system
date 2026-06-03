@@ -31,7 +31,7 @@ Ensure you have these accounts and software ready **before starting**:
 | **Git** | Version control | Pre-installed or [git-scm.com](https://git-scm.com) |
 | **MetaMask Wallet** | Blockchain interactions | Extension from [metamask.io](https://metamask.io) |
 | **Supabase Account** | Database (PostgreSQL) | Free tier at [supabase.com](https://supabase.com) |
-| **Google Gemini API Key** | AI/NLP (Skill Extraction) | From [Google AI Studio](https://makersuite.google.com/app/apikey) |
+| **AI Provider Key** | AI/NLP (Skill Extraction) | Gemini (Google AI Studio) or Groq (Groq Console) |
 | **RapidAPI Key** | Job Market Data (JSearch) | From [RapidAPI JSearch](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch) |
 | **Adzuna API** | Job Market Data (Backup) | From [Adzuna Developer](https://www.google.com/search?q=https://developer.adzuna.com/) |
 
@@ -127,9 +127,13 @@ cd packages/ai-engine
 # 1. Install core AI/ML dependencies
 npm install
 
-# 2. Configure API Keys (Includes Gemini, RapidAPI, and Adzuna)
+# 2. Configure AI Provider + API Keys
 cat > .env << EOL
+AI_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_key
+GROQ_API_KEY=your_groq_key
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1:8b
 RAPIDAPI_KEY=your_rapidapi_key
 JOB_MARKET_API_URL=https://jsearch.p.rapidapi.com/search
 ADZUNA_APP_ID=your_adzuna_id
@@ -185,7 +189,11 @@ DIRECT_URL="postgresql://postgres.[ref]:[password]@aws-0-region.pooler.supabase.
 # ------------------------------------------------------------------
 # 🧠 AI & EXTERNAL SERVICES
 # ------------------------------------------------------------------
+AI_PROVIDER="gemini"
 GEMINI_API_KEY="your-gemini-key"
+GROQ_API_KEY="your-groq-key"
+OLLAMA_BASE_URL="http://localhost:11434"
+OLLAMA_MODEL="llama3.1:8b"
 REGISTRAR_SECRET_KEY="VECTOR-ADMIN-2026"
 # (Optional) Contract Address if hardcoded
 NEXT_PUBLIC_CONTRACT_ADDRESS="0x..."

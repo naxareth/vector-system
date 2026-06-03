@@ -19,3 +19,7 @@ npm-debug.log*
 lint-*.txt
 eslint_output.json
 tree.txt
+
+# Build output
+dist/
+**/dist/

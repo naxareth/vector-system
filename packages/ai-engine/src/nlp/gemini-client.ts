@@ -1,32 +1,8 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
+import { generateText } from "./ai-provider";
 
 // Load environment variables from .env file
 dotenv.config();
-
-// 🛡️ SECURITY (Checkpoint #2): Lazy guard — only crashes when Gemini is
-// actually used, not at import time. This lets Adzuna-only daily runs work
-// even when GEMINI_API_KEY isn't set.
-let _genAI: GoogleGenerativeAI | null = null;
-
-export function getGenAI(): GoogleGenerativeAI {
-  if (!_genAI) {
-    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim().length === 0) {
-      throw new Error(
-        '🛡️ SECURITY: GEMINI_API_KEY is not set. ' +
-        'The AI engine cannot use Gemini features without it.'
-      );
-    }
-    _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  }
-  return _genAI;
-}
-
-// Backward-compatible export — existing code using `genAI` will still work
-// when the key IS available. For lazy usage, prefer `getGenAI()`.
-export const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : (null as unknown as GoogleGenerativeAI);
 
 /**
  * Open-domain skill extraction prompt.
@@ -150,7 +126,7 @@ export interface GeneratedCourse {
 
 // --- Course Generation ---
 /**
- * Calls Gemini to generate 2-3 realistic courses for a given skill tag.
+  * Calls the configured AI provider to generate 2-3 realistic courses for a given skill tag.
  *
  * Called as a fire-and-forget side effect when a new skill_tag arrives
  * via credential minting that has zero coverage in the courses table.
@@ -195,11 +171,9 @@ Input tag: "${tag}"
 `.trim();
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const text = await generateText(prompt);
 
-    // Strip any accidental markdown fences Gemini might wrap around the JSON
+    // Strip any accidental markdown fences the model might wrap around the JSON
     const cleaned = text
       .replace(/```json/gi, '')
       .replace(/```/g, '')
@@ -217,11 +191,11 @@ Input tag: "${tag}"
         c.skill_tags.length > 0
     );
 
-    console.log(`[gemini-client] Generated ${valid.length} course(s) for tag: "${tag}"`);
+    console.log(`[ai-client] Generated ${valid.length} course(s) for tag: "${tag}"`);
     return valid;
   } catch (err) {
     // Non-fatal: log and return empty so the caller can continue
-    console.error(`[gemini-client] generateCoursesForTag failed for "${tag}":`, err);
+    console.error(`[ai-client] generateCoursesForTag failed for "${tag}":`, err);
     return [];
   }
 }

@@ -5,12 +5,12 @@ import { NextResponse } from 'next/server';
 import { decryptData, encryptData } from '@/lib/encryption';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
-import { genAI, GEMINI_MODEL } from '@/lib/gemini'; // 🛡️ Centralized Gemini (Checkpoint #2)
+import { generateText } from '@/lib/ai-provider'; // 🛡️ Centralized AI provider (Checkpoint #2)
 import { buildIpfsMetadata, validateIpfsPayload } from '@/lib/ipfs'; // 🛡️ IPFS Privacy (Checkpoint #2)
 
 // ---------------------------------------------------------------------------
-// Inline course generator — uses the centralized Gemini client from
-// @/lib/gemini. All API key management is handled by env-guard.ts.
+// Inline course generator — uses the centralized AI provider from
+// @/lib/ai-provider. All API key management is handled by env-guard.ts.
 // Mirrors generateCoursesForTag from ai-engine/src/nlp/gemini-client.ts.
 // ---------------------------------------------------------------------------
 
@@ -57,9 +57,7 @@ Input tag: "${tag}"
 `.trim();
 
   try {
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const text = await generateText(prompt);
     const cleaned = text.replace(/\`\`\`json/gi, '').replace(/\`\`\`/g, '').trim();
     const parsed: GeneratedCourse[] = JSON.parse(cleaned);
     const valid = parsed.filter(
@@ -70,7 +68,7 @@ Input tag: "${tag}"
         Array.isArray(c.skill_tags) &&
         c.skill_tags.length > 0
     );
-    console.log(`[course-gen] Gemini generated ${valid.length} course(s) for tag: "${tag}"`);
+    console.log(`[course-gen] AI provider generated ${valid.length} course(s) for tag: "${tag}"`);
     return valid;
   } catch (err) {
     console.error(`[course-gen] generateCoursesForTag failed for "${tag}":`, err);
@@ -391,7 +389,7 @@ export async function POST(req: Request) {
     // 9. 🎓 DYNAMIC COURSE GENERATION (Phase 9)
     //
     // For each incoming skill_tag, check if the courses table already has
-    // coverage. If a tag has zero matching courses, call Gemini to generate
+    // coverage. If a tag has zero matching courses, call the AI provider to generate
     // 2-3 relevant courses and insert them.
     //
     // Fire-and-forget — never delays the 201 response back to the registrar.
@@ -430,7 +428,7 @@ export async function POST(req: Request) {
           const allGenerated = generatedBatches.flat();
 
           if (allGenerated.length === 0) {
-            console.warn('[course-gen] Gemini returned no courses for uncovered tags');
+            console.warn('[course-gen] AI provider returned no courses for uncovered tags');
             return;
           }
 
@@ -439,7 +437,7 @@ export async function POST(req: Request) {
               title: c.title,
               provider: c.provider,
               link: c.link,
-              // TODO: Links are Gemini-generated and unverified.
+              // TODO: Links are AI-generated and unverified.
               // Add a link-validation pass in a future phase.
               skill_tags: c.skill_tags,
             })),

@@ -2,7 +2,7 @@
  * evaluate-extractor.ts
  *
  * Phase 13b — F1 Evaluation Script
- * Runs the Gemini skill extractor against a golden dataset and outputs
+ * Runs the AI skill extractor against a golden dataset and outputs
  * Precision, Recall, and F1 per test case plus an aggregate summary.
  *
  * Usage:
@@ -16,7 +16,7 @@
  *
  * Matching strategy: SOFT match (lowercase, trimmed substring containment).
  * "machine learning" expected matches "machine-learning" or "ml" extracted — 
- * this is intentional since Gemini normalises tags inconsistently.
+ * this is intentional since models normalize tags inconsistently.
  * See MATCH_MODE constant to switch to EXACT if you need stricter eval.
  *
  * Rate limiting: 1 call per case with a 4-second delay between calls.
@@ -29,7 +29,7 @@ import * as fs from 'fs';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Must use require() here — import statements are hoisted above dotenv.config()
-// which causes gemini-client.ts to instantiate GoogleGenerativeAI with undefined key
+// which can leave AI provider env vars unavailable during evaluation runs.
 const { extractSkillsFromResume } = require('../nlp/skill-extractor');
 
 // ---------------------------------------------------------------------------
@@ -48,7 +48,7 @@ const GOLDEN_DATASET_PATH = path.resolve(
  */
 const MATCH_MODE: 'EXACT' | 'SOFT' = 'SOFT';
 
-/** Milliseconds to wait between Gemini calls to respect 10 RPM limit */
+/** Milliseconds to wait between AI provider calls to respect rate limits */
 const DELAY_MS = 13_000;
 
 // ---------------------------------------------------------------------------

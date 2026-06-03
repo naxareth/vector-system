@@ -35,6 +35,9 @@ function restoreEnv() {
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('Test Case 1: Missing API key triggers error');
 {
+    // Force provider selection for deterministic validation
+    process.env.AI_PROVIDER = 'gemini';
+
     // Remove the key
     delete process.env.GEMINI_API_KEY;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -72,6 +75,7 @@ console.log('Test Case 1: Missing API key triggers error');
 console.log('\nTest Case 2: Client-side leak detection');
 {
     // Set valid keys
+    process.env.AI_PROVIDER = 'gemini';
     process.env.GEMINI_API_KEY = 'test-key-123';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
     process.env.ENCRYPTION_KEY = 'test-encryption-key-32bytes00000';
@@ -105,6 +109,7 @@ console.log('\nTest Case 2: Client-side leak detection');
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('\nTest Case 3: Valid configuration passes silently');
 {
+    process.env.AI_PROVIDER = 'gemini';
     process.env.GEMINI_API_KEY = 'test-key-123';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
     process.env.ENCRYPTION_KEY = 'test-encryption-key-32bytes00000';

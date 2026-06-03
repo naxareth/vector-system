@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { genAI, GEMINI_MODEL } from '@/lib/gemini'; // 🛡️ Centralized Gemini (Checkpoint #2)
+import { generateChat } from '@/lib/ai-provider'; // 🛡️ Centralized AI provider (Checkpoint #2)
 import { z } from 'zod';
 
 
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     //
     // Previously: only job_count per skill → flat list of counts
     // Now: most recent snapshot per skill includes salary range, avg salary,
-    //      and top hiring locations so Gemini can give salary-aware,
+    //      and top hiring locations so the AI provider can give salary-aware,
     //      location-specific career advice.
     //
     // Strategy: fetch the single most recent snapshot per skill (via distinct
@@ -133,16 +133,11 @@ export async function POST(req: Request) {
       If a skill has high demand in specific cities, mention those cities.
     `;
 
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-    const chat = model.startChat({
-      history: [
-        { role: 'user', parts: [{ text: systemContext }] },
-        { role: 'model', parts: [{ text: 'I am ready to help.' }] },
-      ],
-    });
-
-    const result = await chat.sendMessage(message);
-    const response = result.response.text();
+    const response = await generateChat([
+      { role: 'system', content: systemContext },
+      { role: 'assistant', content: 'I am ready to help.' },
+      { role: 'user', content: message },
+    ]);
 
     return NextResponse.json({ reply: response });
   } catch (error: unknown) {
