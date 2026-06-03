@@ -25,7 +25,7 @@ export default function TermsOfServicePage() {
             By accessing or using Vector (&quot;the Platform&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to all of these Terms, you may not use the Platform. These Terms constitute a legally binding agreement between you and Vector.
           </p>
           <p>
-            Vector is a decentralized micro-credentialing and career analytics system that combines blockchain-based credential verification with AI-powered skill analytics. These Terms govern your use of all Platform features, including the web portal, API endpoints, blockchain services, and AI engine.
+            Vector is an AI-powered credentialing and career analytics system that combines institutional credential verification with AI-powered skill analytics. These Terms govern your use of all Platform features, including the web portal, API endpoints, and AI engine.
           </p>
         </section>
 
@@ -56,9 +56,7 @@ export default function TermsOfServicePage() {
             <li>You are responsible for all activity that occurs under your account</li>
             <li>You must immediately notify us of any unauthorized access</li>
           </ul>
-          <p>
-            If you connect a cryptocurrency wallet (e.g., MetaMask), you are solely responsible for the security of your private keys and seed phrases. Vector never has access to this information.
-          </p>
+
         </section>
 
         {/* 4. Platform Services */}
@@ -67,12 +65,12 @@ export default function TermsOfServicePage() {
 
           <h3 className="text-base font-semibold text-gray-800 mt-6 mb-2">4.1 Credential Verification</h3>
           <p>
-            Vector enables institutions (Registrars) to issue blockchain-backed micro-credentials to students using ERC-1155 soulbound tokens on the Polygon network. Credentials are:
+            Vector enables institutions (Registrars) to issue verified micro-credentials to students. Credentials are:
           </p>
           <ul className="list-disc pl-6 space-y-1">
-            <li><strong>Immutable:</strong> Once minted on the blockchain, credentials cannot be altered or deleted</li>
-            <li><strong>Non-transferable:</strong> Soulbound tokens are bound to the recipient&apos;s wallet and cannot be transferred</li>
-            <li><strong>Publicly verifiable:</strong> Anyone can verify credential authenticity through the blockchain</li>
+            <li><strong>Secure:</strong> Credentials are securely stored and verified against institutional records</li>
+            <li><strong>Non-transferable:</strong> Credentials are bound to the recipient&apos;s verified identity</li>
+            <li><strong>Publicly verifiable:</strong> Anyone can verify credential authenticity through the platform&apos;s verification portal</li>
           </ul>
 
           <h3 className="text-base font-semibold text-gray-800 mt-6 mb-2">4.2 AI Career Analytics</h3>
@@ -88,7 +86,7 @@ export default function TermsOfServicePage() {
 
           <h3 className="text-base font-semibold text-gray-800 mt-6 mb-2">4.3 Credential Verification Reports (CVR)</h3>
           <p>
-            Students may generate CVR exports containing their verified credentials, skill analytics, and blockchain verification data for sharing with employers. You are responsible for how you distribute your CVR.
+            Students may generate CVR exports containing their verified credentials and skill analytics for sharing with employers. You are responsible for how you distribute your CVR.
           </p>
         </section>
 
@@ -113,28 +111,17 @@ export default function TermsOfServicePage() {
           <p>If you use Vector as a Registrar, you additionally agree to:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>Only issue credentials that accurately reflect a student&apos;s verified academic achievements</li>
-            <li>Ensure proper authorization before minting credential tokens to a student&apos;s wallet</li>
+            <li>Ensure proper authorization before issuing credentials to a student</li>
             <li>Take responsibility for the accuracy of credential metadata, skill names, and private notes</li>
             <li>Not issue credentials to individuals who have not completed the relevant coursework</li>
             <li>Comply with your institution&apos;s data governance policies when handling student information</li>
           </ul>
           <p>
-            Vector is not liable for credentials issued inaccurately by Registrars. All minting actions are permanently logged in the audit system.
+            Vector is not liable for credentials issued inaccurately by Registrars. All issuance actions are permanently logged in the audit system.
           </p>
         </section>
 
-        {/* 7. Blockchain */}
-        <section>
-          <h2>7. Blockchain Terms</h2>
-          <p>By using blockchain features, you acknowledge that:</p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li>Blockchain transactions are irreversible — minted credentials cannot be unminted or altered</li>
-            <li>Gas fees on the Polygon network, if applicable, are your responsibility</li>
-            <li>The Platform currently operates on the Polygon Amoy Testnet; network migrations may occur with advance notice</li>
-            <li>Smart contract functionality is governed by the deployed VectorToken (ERC-1155) contract code</li>
-            <li>Vector is not responsible for wallet security, lost private keys, or unauthorized wallet access</li>
-          </ul>
-        </section>
+
 
         {/* 8. Intellectual Property */}
         <section>
@@ -143,7 +130,6 @@ export default function TermsOfServicePage() {
             <li>The Platform&apos;s software, design, branding, and documentation are the property of Vector</li>
             <li>Your credential data, profile content, and self-reported skills remain your property</li>
             <li>By using the Platform, you grant Vector a non-exclusive license to process and display your data as necessary to provide services</li>
-            <li>Blockchain-anchored credentials are governed by the immutability of the smart contract and are not subject to content removal requests</li>
           </ul>
         </section>
 
@@ -155,7 +141,7 @@ export default function TermsOfServicePage() {
           </p>
           <ul className="list-disc pl-6 space-y-1">
             <li>We do not guarantee the accuracy of AI-generated analytics, skill predictions, or course recommendations</li>
-            <li>We do not guarantee uninterrupted or error-free operation of the Platform or blockchain network</li>
+            <li>We do not guarantee uninterrupted or error-free operation of the Platform</li>
             <li>We are not responsible for actions taken by third-party services (Supabase, Polygon, Google Gemini)</li>
             <li>We are not liable for any decisions made based on Platform data, analytics, or recommendations</li>
           </ul>
@@ -175,7 +161,7 @@ export default function TermsOfServicePage() {
             <li>Required by law or regulatory action</li>
           </ul>
           <p>
-            Upon termination, your access to the Platform will be revoked. Off-chain data may be deleted per our <a href="/privacy" className="text-[#06B4C9] hover:underline">Privacy Policy</a>. Blockchain-anchored credentials will remain on the Polygon network regardless of account status.
+            Upon termination, your access to the Platform will be revoked. Your data may be deleted per our <a href="/privacy" className="text-[#06B4C9] hover:underline">Privacy Policy</a>.
           </p>
         </section>
 

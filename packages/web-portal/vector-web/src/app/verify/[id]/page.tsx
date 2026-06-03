@@ -103,7 +103,7 @@ export default function VerifyPage() {
       <div className="min-h-screen bg-[#0B0F19] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#06B4C9] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[#94A3B8] text-sm">Verifying credential on-chain…</p>
+          <p className="text-[#94A3B8] text-sm">Verifying credential…</p>
         </div>
       </div>
     );
@@ -132,9 +132,6 @@ export default function VerifyPage() {
 
   const { credential, student, issuedBy, onChain } = result;
   const isVerified = onChain.verified;
-  const polygonscanUrl = credential.transactionHash
-    ? `https://amoy.polygonscan.com/tx/${credential.transactionHash}`
-    : null;
 
   // ---------------------------------------------------------------------------
   // Verified page
@@ -179,12 +176,12 @@ export default function VerifyPage() {
           </div>
           <div>
             <h1 className={`text-lg font-bold mb-1 ${isVerified ? 'text-emerald-300' : 'text-amber-300'}`}>
-              {isVerified ? 'Credential Verified on Polygon Amoy' : 'Chain Status Unavailable'}
+              {isVerified ? 'Credential Verified by Institution' : 'Verification Unavailable'}
             </h1>
             <p className={`text-sm ${isVerified ? 'text-emerald-400/70' : 'text-amber-400/70'}`}>
               {isVerified
-                ? `Token #${onChain.tokenId} confirmed in wallet. This credential is authentic and tamper-proof.`
-                : onChain.error || 'The on-chain status could not be confirmed at this time.'}
+                ? `This credential is authentic and confirmed by the issuing institution's database.`
+                : onChain.error || 'The verification status could not be confirmed at this time.'}
             </p>
           </div>
         </div>
@@ -227,74 +224,11 @@ export default function VerifyPage() {
               </div>
             )}
 
-            {/* Wallet */}
-            {student.walletAddress && (
-              <div className="space-y-1">
-                <p className="text-xs text-[#64748B] font-medium uppercase tracking-wider">Student Wallet</p>
-                <p className="font-mono text-sm text-[#94A3B8] break-all">
-                  {truncate(student.walletAddress)}
-                </p>
-              </div>
-            )}
+
           </div>
         </div>
 
-        {/* On-Chain Details */}
-        <div className="bg-[#131825] rounded-xl border border-[#1E2536] p-6 space-y-4">
-          <h3 className="font-semibold text-[#E2E8F0] flex items-center gap-2">
-            <svg className="w-4 h-4 text-[#06B4C9]" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
-              <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
-              <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
-            </svg>
-            Blockchain Record
-          </h3>
 
-          <div className="space-y-3">
-            {/* Token ID */}
-            {onChain.tokenId && (
-              <div className="flex items-center justify-between py-2 border-b border-[#1E2536]">
-                <span className="text-sm text-[#64748B]">Token ID</span>
-                <span className="font-mono text-sm text-[#E2E8F0]">#{onChain.tokenId}</span>
-              </div>
-            )}
-
-            {/* Transaction hash */}
-            {credential.transactionHash && (
-              <div className="flex items-center justify-between py-2 border-b border-[#1E2536]">
-                <span className="text-sm text-[#64748B]">Transaction</span>
-                <a
-                  href={polygonscanUrl!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-mono text-sm text-[#06B4C9] hover:text-[#06B4C9]/70 hover:underline flex items-center gap-1"
-                >
-                  {truncate(credential.transactionHash)}
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </div>
-            )}
-
-            {/* Issuer DID */}
-            {credential.issuerDid && (
-              <div className="flex items-start justify-between py-2 border-b border-[#1E2536] gap-4">
-                <span className="text-sm text-[#64748B] flex-shrink-0">Issuer DID</span>
-                <span className="font-mono text-xs text-[#94A3B8] text-right break-all">{credential.issuerDid}</span>
-              </div>
-            )}
-
-            {/* Network */}
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-[#64748B]">Network</span>
-              <span className="flex items-center gap-1.5 text-sm text-[#E2E8F0]">
-                <span className="w-2 h-2 bg-[#06B4C9] rounded-full" />
-                Polygon Amoy Testnet
-              </span>
-            </div>
-          </div>
-        </div>
 
         {/* Share Section */}
         <div className="bg-[#131825] rounded-xl border border-[#1E2536] p-6">
@@ -340,7 +274,7 @@ export default function VerifyPage() {
 
         {/* Footer note */}
         <p className="text-center text-xs text-[#64748B] pb-6">
-          Verified by VECTOR · Powered by Polygon Amoy · This page is publicly accessible
+          Verified by VECTOR · This page is publicly accessible
         </p>
       </main>
     </div>

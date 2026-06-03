@@ -50,7 +50,7 @@ interface UserProfile {
   full_name: string;
   student_id: string;
   role: string;
-  wallet_address?: string;
+
   location?: string;
   profiles?: {
     phone?: string;
@@ -110,7 +110,7 @@ export default function StudentDashboard() {
       .join(' ');
   };
 
-  const refreshPipeline = async (walletAddress: string, identifier: string) => {
+  const refreshPipeline = async (identifier: string) => {
     try {
       const newActivities: ActivityItem[] = [];
       const foundSkills: string[] = [];
@@ -277,7 +277,7 @@ export default function StudentDashboard() {
             .limit(1);
           if (cvrExports && cvrExports.length > 0) setHasCVRExport(true);
 
-          await refreshPipeline(profile.wallet_address || '', profile.student_id || session.user.id);
+          await refreshPipeline(profile.student_id || session.user.id);
         }
       } catch (error) {
         console.error("Init Error:", error);

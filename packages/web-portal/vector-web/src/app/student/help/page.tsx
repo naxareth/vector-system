@@ -46,7 +46,7 @@ const FAQ_ITEMS = [
 
 export default function HelpPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [activeSection, setActiveSection] = useState<'faq' | 'wallet' | 'contact'>('faq');
+  const [activeSection, setActiveSection] = useState<'faq' | 'contact'>('faq');
 
   return (
     <DashboardLayout>

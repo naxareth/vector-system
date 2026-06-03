@@ -107,7 +107,7 @@ export default function VerifyCVRPage() {
       <div className="min-h-screen bg-[#0B0F19] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#06B4C9] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[#94A3B8] text-sm">Verifying resume on-chain…</p>
+          <p className="text-[#94A3B8] text-sm">Verifying resume…</p>
         </div>
       </div>
     );
@@ -137,7 +137,6 @@ export default function VerifyCVRPage() {
   const { cvrExport, student, credentials, snapshot, isLatest, newerExportDate } = result;
   const allVerified = credentials.length > 0 && credentials.every((c) => c.onChain.verified);
   const someVerified = credentials.some((c) => c.onChain.verified);
-  const polygonscanBase = 'https://amoy.polygonscan.com/tx/';
 
   const snapshotSkills = snapshot?.skills || [];
   const verifiedSkillNames = new Set(credentials.map((c) => c.skillName.toLowerCase()));
@@ -219,13 +218,13 @@ export default function VerifyCVRPage() {
           </div>
           <div>
             <h1 className={`text-lg font-bold mb-1 ${allVerified ? 'text-emerald-300' : someVerified ? 'text-[#06B4C9]' : 'text-amber-300'}`}>
-              {allVerified ? 'All Credentials Verified on Polygon Amoy'
-                : someVerified ? 'Partially Verified — Some credentials confirmed on-chain'
-                  : credentials.length === 0 ? 'No Blockchain Credentials on this Resume'
-                    : 'Chain Status Unavailable'}
+              {allVerified ? 'All Credentials Verified by Institution'
+                : someVerified ? 'Partially Verified — Some credentials confirmed'
+                  : credentials.length === 0 ? 'No Verified Credentials on this Resume'
+                    : 'Verification Status Unavailable'}
             </h1>
             <p className={`text-sm ${allVerified ? 'text-emerald-400/70' : someVerified ? 'text-[#06B4C9]/70' : 'text-amber-400/70'}`}>
-              {credentials.length} blockchain credential{credentials.length !== 1 ? 's' : ''} included •{' '}
+              {credentials.length} verified credential{credentials.length !== 1 ? 's' : ''} included •{' '}
               Generated {formatDate(cvrExport.generatedAt)}
             </p>
           </div>
@@ -249,12 +248,7 @@ export default function VerifyCVRPage() {
               <p className="text-xs text-[#64748B] font-medium uppercase tracking-wider">Export Date</p>
               <p className="font-semibold text-[#E2E8F0]">{formatDate(cvrExport.generatedAt)}</p>
             </div>
-            {student.walletAddress && (
-              <div className="space-y-1 sm:col-span-2">
-                <p className="text-xs text-[#64748B] font-medium uppercase tracking-wider">Wallet Address</p>
-                <p className="font-mono text-sm text-[#94A3B8]">{truncate(student.walletAddress, 10, 6)}</p>
-              </div>
-            )}
+
           </div>
         </div>
 
@@ -281,7 +275,7 @@ export default function VerifyCVRPage() {
                       <p className="font-semibold text-[#E2E8F0]">{cred.skillName}</p>
                       {cred.onChain.verified && (
                         <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                          ✓ On-Chain
+                          ✓ Verified
                         </span>
                       )}
                     </div>
@@ -292,19 +286,7 @@ export default function VerifyCVRPage() {
                       {cred.tokenId && <span className="font-mono">Token #{cred.tokenId}</span>}
                     </div>
                   </div>
-                  {cred.transactionHash && (
-                    <a
-                      href={`${polygonscanBase}${cred.transactionHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-shrink-0 text-xs text-[#06B4C9] hover:text-[#06B4C9]/70 hover:underline flex items-center gap-1 font-mono"
-                    >
-                      {truncate(cred.transactionHash)}
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
-                  )}
+
                 </div>
               ))}
             </div>
@@ -315,7 +297,7 @@ export default function VerifyCVRPage() {
         {unverifiedSnapshotSkills.length > 0 && (
           <div className="bg-[#131825] rounded-xl border border-[#1E2536] p-6">
             <h3 className="font-semibold text-[#E2E8F0] mb-1">Additional Skills on Resume</h3>
-            <p className="text-xs text-[#64748B] mb-4">Self-reported by student — not blockchain verified</p>
+            <p className="text-xs text-[#64748B] mb-4">Self-reported by student — not institutionally verified</p>
             <div className="flex flex-wrap gap-2">
               {unverifiedSnapshotSkills.map((skill: { name: string; verified?: boolean }, i: number) => (
                 <span key={i} className="px-3 py-1 rounded-full text-sm font-medium border bg-[#1E2536] text-[#94A3B8] border-[#283042]">
@@ -333,7 +315,7 @@ export default function VerifyCVRPage() {
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
             <div>
-              <p className="text-sm font-semibold text-amber-300">No blockchain credentials on this resume</p>
+              <p className="text-sm font-semibold text-amber-300">No verified credentials on this resume</p>
               <p className="text-xs text-amber-400/70 mt-0.5">The student may hold verified credentials that were not included in this particular export.</p>
             </div>
           </div>
@@ -343,13 +325,9 @@ export default function VerifyCVRPage() {
         <div className="bg-[#131825] rounded-xl border border-[#1E2536] p-6">
           <h3 className="font-semibold text-[#E2E8F0] mb-3 flex items-center gap-2">
             <span className="w-2 h-2 bg-[#06B4C9] rounded-full" />
-            Network
+            Verification Details
           </h3>
           <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[#64748B]">Blockchain</span>
-              <span className="text-[#E2E8F0] font-medium">Polygon Amoy Testnet</span>
-            </div>
             <div className="flex items-center justify-between">
               <span className="text-[#64748B]">CVR Export ID</span>
               <span className="font-mono text-xs text-[#94A3B8]">{truncate(cvrExport.id, 8, 8)}</span>
@@ -398,7 +376,7 @@ export default function VerifyCVRPage() {
         </div>
 
         <p className="text-center text-xs text-[#64748B] pb-6">
-          Verified by VECTOR · Powered by Polygon Amoy · This page is publicly accessible
+          Verified by VECTOR · This page is publicly accessible
         </p>
       </main>
     </div>

@@ -247,7 +247,7 @@ export default function SkillsPage() {
           </div>
           <h3 className="text-xl font-medium text-gray-800 mb-2">No skill analytics available yet</h3>
           <p className="text-gray-500 max-w-md mx-auto text-sm">
-            Connect your wallet and upload credentials to see performance trends
+            Your credentials will appear here once issued by your registrar
           </p>
         </div>
       )}

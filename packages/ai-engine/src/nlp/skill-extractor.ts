@@ -27,7 +27,7 @@ export async function extractSkillsFromCredential(
 
     // 2. Build the context-aware prompt using the configured AI provider
     const dynamicPrompt = `
-      You are an expert AI skill extractor for a decentralized micro-credentialing platform.
+      You are an expert AI skill extractor for an AI-powered credential verification platform.
       
       Below is a W3C Verifiable Credential data payload, along with its JSON-LD schema definition. 
       Use the schema to understand the exact context of the custom fields before extracting skills.
