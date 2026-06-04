@@ -19,7 +19,7 @@ interface StudentRecord {
   id: string;
   full_name: string;
   student_id: string;
-  wallet_address: string | null;
+
 }
 
 interface VerifiedCredential {
@@ -27,8 +27,7 @@ interface VerifiedCredential {
   user_id: string;
   skill_name: string;
   issued_at: string;
-  transaction_hash: string;
-  token_id: string;
+
   revoked?: boolean;
 }
 
@@ -166,7 +165,7 @@ export default function RegistrarDashboard() {
   };
 
   const fetchStudents = async () => {
-    const { data } = await supabase.from('users').select('id, full_name, student_id, wallet_address').eq('role', 'student').order('full_name');
+    const { data } = await supabase.from('users').select('id, full_name, student_id').eq('role', 'student').order('full_name');
     if (data) setStudents(data);
   };
 
@@ -221,7 +220,6 @@ export default function RegistrarDashboard() {
 
     try {
       setMintingProgress({ isOpen: true, progress: 20, status: 'minting', message: 'Preparing certificate...' });
-      const numericTokenId = Date.now() % 100000000;
       setMintingProgress(prev => ({ ...prev, progress: 80, message: 'Saving certificate to the database…' }));
 
       // Build credential_data without skill_tags (it's promoted to its own column)
@@ -246,9 +244,7 @@ export default function RegistrarDashboard() {
           skill_tags: skillTags,                   // ✅ extracted marketable skills array
           credential_data: credentialDataWithoutTags,
           private_notes: staticData.privateNotes,
-          certificate_number: staticData.certificateNumber,
-          token_id: numericTokenId.toString(),
-          transaction_hash: null
+          certificate_number: staticData.certificateNumber
         })
       });
 
@@ -274,13 +270,13 @@ export default function RegistrarDashboard() {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleRevokeCredential = async (cred: VerifiedCredential) => {
-    if (!selectedStudent || !selectedStudent.wallet_address) {
-      alert("Selected student does not have a connected wallet.");
+    if (!selectedStudent) {
+      alert("Please select a student.");
       return;
     }
 
     const confirmRevoke = window.confirm(
-      `Are you sure you want to REVOKE "${cred.skill_name}" for ${selectedStudent.full_name}?\n\nThis will permanently burn the blockchain token and mark the credential as revoked in the database.`
+      `Are you sure you want to REVOKE "${cred.skill_name}" for ${selectedStudent.full_name}?\n\nThis will mark the credential as revoked in the database.`
     );
     if (!confirmRevoke) return;
 
@@ -384,7 +380,7 @@ export default function RegistrarDashboard() {
                     <div className="mt-2 bg-accent-10 border border-accent rounded-lg px-3 py-2">
                     <p className="text-xs text-accent">
                       <span className="font-semibold">Required columns:</span>{' '}
-                      <code className="bg-accent-10 px-1 rounded">student_id, wallet_address, {schemaFields.join(', ')}</code>
+                      <code className="bg-accent-10 px-1 rounded">student_id, {schemaFields.join(', ')}</code>
                     </p>
                   </div>
                 );
@@ -521,7 +517,7 @@ export default function RegistrarDashboard() {
                                 <td className="py-2 px-3 text-green-700">{i + 1}</td>
                                 {allKeys.map(k => (
                                   <td key={k} className="py-2 px-3 text-xs">
-                                    {k === 'wallet_address' ? `${String(row[k] || '').slice(0, 10)}...` : row[k]}
+                                    {String(row[k] || '')}
                                   </td>
                                 ))}
                               </tr>
@@ -552,8 +548,7 @@ export default function RegistrarDashboard() {
                                 message: `Saving record ${idx + 1} of ${total} to database...`,
                               }));
 
-                              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                              const { student_id, wallet_address: _wallet_address, skill_tags: rawTags, ...credentialData } = row;
+                              const { student_id, skill_tags: rawTags, ...credentialData } = row;
                               const skillTags = rawTags ? String(rawTags).split(',').map((t: string) => t.trim()).filter(Boolean) : [];
 
                               // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
@@ -574,9 +569,7 @@ export default function RegistrarDashboard() {
                                   skill_tags: skillTags,
                                   credential_data: credentialData,
                                   private_notes: '',
-                                  certificate_number: `BATCH-${Date.now()}-${idx + 1}`,
-                                  token_id: Math.floor(Math.random() * 1000000).toString(),
-                                  transaction_hash: null,
+                                  certificate_number: `BATCH-${Date.now()}-${idx + 1}`
                                 }),
                               });
 
@@ -610,7 +603,7 @@ export default function RegistrarDashboard() {
             {/* Help text */}
             <div className="mt-5 bg-gray-50 dark:bg-[#131825] rounded-xl p-4 border border-gray-100 dark:border-[#1E2536]">
               <p className="text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-2">Spreadsheet Format Tips</p>
-              <p className="text-xs text-gray-500 dark:text-[#94A3B8]">Select a template above to see the exact columns needed. <strong>student_id</strong> and <strong>wallet_address</strong> are always required.</p>
+              <p className="text-xs text-gray-500 dark:text-[#94A3B8]">Select a template above to see the exact columns needed. <strong>student_id</strong> is always required.</p>
               <div className="mt-2 space-y-0.5">
                 <p className="text-xs text-gray-400 dark:text-[#64748B]">• Special characters are automatically cleaned</p>
                 <p className="text-xs text-gray-400 dark:text-[#64748B]">• Maximum file size: 1 MB — Maximum rows: 500</p>
@@ -652,10 +645,7 @@ export default function RegistrarDashboard() {
                           <p className="text-sm font-bold text-gray-900 dark:text-white">{s.full_name}</p>
                           <p className="text-xs text-gray-500 dark:text-[#64748B]">ID: {s.student_id || 'Not Assigned'}</p>
                         </div>
-                        {s.wallet_address ?
-                          <span className="text-[10px] bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 px-2 py-1 rounded font-bold">Wallet Ready ✓</span>
-                          : <span className="text-[10px] bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400 px-2 py-1 rounded font-bold">No Wallet <HelpTip size={12} text="This student hasn't connected a digital wallet yet. You can still prepare and issue the certificate directly to their account." /></span>
-                        }
+                        <span className="text-[10px] bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 px-2 py-1 rounded font-bold">Verified User ✓</span>
                       </div>
                     ))}
                   </div>

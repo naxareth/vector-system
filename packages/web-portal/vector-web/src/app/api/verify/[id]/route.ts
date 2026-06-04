@@ -11,7 +11,7 @@ import { verifyRateLimiter } from '@/lib/rate-limiter'; // 🛡️ Checkpoint #2
 //
 // 🛡️ SECURITY (Checkpoint #2):
 //   - Rate limited: 10 requests/minute per IP
-//   - PII redacted: studentId removed, walletAddress truncated
+//   - PII redacted: studentId removed
 //
 // Why UUID as the identifier:
 //   - Not enumerable (v4 random 128-bit) unlike sequential token_id
@@ -20,11 +20,7 @@ import { verifyRateLimiter } from '@/lib/rate-limiter'; // 🛡️ Checkpoint #2
 // ---------------------------------------------------------------------------
 
 
-/** Truncate a string for public display (e.g. wallet address) */
-function truncateAddress(addr: string): string {
-  if (!addr || addr.length <= 13) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
+
 
 export async function GET(
   _req: NextRequest,
@@ -69,8 +65,7 @@ export async function GET(
       select: {
         id: true,
         skill_name: true,
-        token_id: true,
-        transaction_hash: true,
+
         issuer_did: true,
         schema_url: true,
         issued_at: true,
@@ -80,7 +75,6 @@ export async function GET(
         student: {
           select: {
             full_name: true,
-            wallet_address: true,
             // 🛡️ student_id intentionally NOT selected (PII redaction)
           },
         },
@@ -113,14 +107,14 @@ export async function GET(
   const onChain = {
     verified: !credential.revoked,
     balance: null,
-    tokenId: credential.token_id,
+    balance: null,
     error: credential.revoked ? 'This credential has been revoked.' : null,
   };
 
   // -------------------------------------------------------------------------
   // 3. Build response — 🛡️ only expose safe public fields (Checkpoint #2)
   //    - studentId: REMOVED (PII)
-  //    - walletAddress: TRUNCATED (only first 6 + last 4 chars)
+
   // -------------------------------------------------------------------------
   return NextResponse.json(
     {
@@ -131,12 +125,12 @@ export async function GET(
         certificateNumber: credential.certificate_number ?? null,
         issuerDid: credential.issuer_did ?? null,
         schemaUrl: credential.schema_url ?? null,
-        transactionHash: credential.transaction_hash ?? null,
+
       },
       student: {
         fullName: credential.student.full_name ?? 'Unknown',
         // 🛡️ studentId removed — not included in response
-        walletAddress: credential.student.wallet_address ? truncateAddress(credential.student.wallet_address) : null,
+
       },
       issuedBy: {
         batchName: credential.batch?.batch_name ?? null,

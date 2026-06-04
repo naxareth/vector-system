@@ -8,8 +8,7 @@ interface UserCredential {
   id: string;
   skill_name: string;
   issued_at: string;
-  transaction_hash: string;
-  token_id: string;
+
   revoked: boolean;
 }
 
@@ -18,7 +17,7 @@ interface UserProfile {
   email: string;
   full_name: string;
   role: string;
-  wallet_address: string | null;
+
   status: string;
   created_at: string;
   updated_at: string;
@@ -50,10 +49,7 @@ function getInitials(name: string) {
   return name ? name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() : '?';
 }
 
-function shortWallet(addr: string | null) {
-  if (!addr) return 'Not Connected';
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
+
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -174,8 +170,7 @@ export default function ManageUsers() {
     const term = searchQuery.toLowerCase();
     return (
       user.full_name.toLowerCase().includes(term) ||
-      user.email.toLowerCase().includes(term) ||
-      (user.wallet_address?.toLowerCase() || '').includes(term)
+      user.email.toLowerCase().includes(term)
     );
   });
 
@@ -344,7 +339,7 @@ export default function ManageUsers() {
             <div className="mb-6">
               <input
                 type="text"
-                placeholder="Search by name, email, or wallet address..."
+                placeholder="Search by name or email..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -363,7 +358,7 @@ export default function ManageUsers() {
                       <TH>User</TH>
                       <TH>Role</TH>
                       <TH>Status</TH>
-                      <TH>Wallet</TH>
+
                       <TH>Credentials</TH>
                       <TH>Joined</TH>
                     </tr>
@@ -392,9 +387,7 @@ export default function ManageUsers() {
                         <td className="px-4 py-4">
                           <BadgeStatus status={user.status} />
                         </td>
-                        <td className="px-4 py-4">
-                          <p className="text-xs text-gray-500 dark:text-[#94A3B8] font-mono">{shortWallet(user.wallet_address)}</p>
-                        </td>
+
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-gray-900 dark:text-white">{user.activeCredentials}</span>
@@ -474,14 +467,10 @@ export default function ManageUsers() {
               </div>
 
               {/* User Info Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100 dark:border-[#283042]">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-100 dark:border-[#283042]">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Email</p>
                   <p className="text-sm text-gray-900 dark:text-white mt-1 font-mono">{selectedUser.email}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Wallet Address</p>
-                  <p className="text-sm text-gray-900 dark:text-white mt-1 font-mono">{shortWallet(selectedUser.wallet_address)}</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Member Since</p>
@@ -528,11 +517,7 @@ export default function ManageUsers() {
                             <span className="text-xs text-gray-500 dark:text-[#94A3B8]">
                               Issued: {formatDate(cred.issued_at)}
                             </span>
-                            {cred.token_id && (
-                              <span className="text-xs text-gray-500 dark:text-[#94A3B8] font-mono bg-gray-100 dark:bg-white/5 px-2 py-1 rounded">
-                                Token ID: {cred.token_id}
-                              </span>
-                            )}
+
                           </div>
                         </div>
                         <button
@@ -569,11 +554,7 @@ export default function ManageUsers() {
                                 <span className="text-xs text-gray-500 dark:text-[#94A3B8]">
                                   {formatDate(cred.issued_at)}
                                 </span>
-                                {cred.transaction_hash && (
-                                  <span className="text-xs text-gray-500 dark:text-[#94A3B8] font-mono">
-                                    TX: {cred.transaction_hash.slice(0, 8)}...
-                                  </span>
-                                )}
+
                               </div>
                             </div>
                           ))}

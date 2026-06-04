@@ -7,10 +7,9 @@ const FAQ_ITEMS = [
   { q: 'What is a certificate template?', a: 'A template defines the fields required for a specific type of certificate (e.g. Academic Degree, Bootcamp Certificate). You can create custom templates under the "Certificate Template" tab on the Issue Certificate page.' },
   { q: 'Can I issue certificates in bulk?', a: 'Yes! Use the "Bulk Upload" tab on the Issue Certificate page. Prepare a CSV file with the required columns (shown after selecting a template), upload it, validate, and issue all certificates at once.' },
   { q: 'What happens after I issue a certificate?', a: 'The certificate is permanently recorded in the system. The student will see it in their dashboard under Verified Credentials. You can track all issued certificates in the Issued Records page.' },
-  { q: 'Why does a student show "No Wallet"?', a: 'The student hasn\'t connected a wallet yet. However, you can still prepare and issue the certificate directly to their account.' },
-  { q: 'How do I verify a certificate was issued?', a: 'Go to Issued Records and find the certificate. Click "View Proof" to see the verified record details.' },
+  { q: 'How do I verify a certificate was issued?', a: 'Go to Issued Records and find the certificate to see the verified record details.' },
   { q: 'Can I revoke or edit an issued certificate?', a: 'Certificates can be marked as revoked if needed. If you need to correct an error, issue a new certificate and add a private note referencing the original.' },
-  { q: 'What format should my CSV file be?', a: 'Your CSV must include student_id and wallet_address columns (can be blank), plus the fields defined by the selected template. Max file size is 1 MB with up to 500 rows. Special characters are automatically cleaned.' },
+  { q: 'What format should my CSV file be?', a: 'Your CSV must include a student_id column, plus the fields defined by the selected template. Max file size is 1 MB with up to 500 rows. Special characters are automatically cleaned.' },
 ];
 
 const GUIDES = [
