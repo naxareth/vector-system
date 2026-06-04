@@ -32,9 +32,9 @@ console.log('\n🛡️  CSV INPUT VALIDATION — Security Test Suite\n');
 console.log('Test Case 1: Valid CSV with correct headers and clean data');
 {
     const csv = [
-        'student_id,skill_name,wallet_address',
-        'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d,React,0x1234567890abcdef1234567890abcdef12345678',
-        'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e,Node.js,0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+        'student_id,skill_name',
+        'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d,React',
+        'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e,Node.js',
     ].join('\n');
 
     const result = parseCsvContent(csv);
@@ -43,7 +43,7 @@ console.log('Test Case 1: Valid CSV with correct headers and clean data');
     if (result.ok) {
         assert(result.rows.length === 2, 'Parsed 2 rows');
         assert(result.rows[0].skill_name === 'React', 'First row skill = React');
-        assert(result.rows[1].wallet_address === '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd', 'Second row wallet correct');
+
         assert(result.warnings.length === 0, 'No warnings');
     }
 }
@@ -64,8 +64,8 @@ console.log('\nTest Case 2: Formula injection characters are neutralized');
 
     // Test in full CSV parse — formula in skill_name gets sanitized
     const csv = [
-        'student_id,skill_name,wallet_address',
-        'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d,=MALICIOUS(),0x1234567890abcdef1234567890abcdef12345678',
+        'student_id,skill_name',
+        'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d,=MALICIOUS()',
     ].join('\n');
 
     const result = parseCsvContent(csv);

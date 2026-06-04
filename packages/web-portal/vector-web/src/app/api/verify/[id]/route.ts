@@ -107,7 +107,6 @@ export async function GET(
   const onChain = {
     verified: !credential.revoked,
     balance: null,
-    balance: null,
     error: credential.revoked ? 'This credential has been revoked.' : null,
   };
 

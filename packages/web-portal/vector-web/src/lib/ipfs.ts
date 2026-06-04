@@ -22,8 +22,7 @@ export const SENSITIVE_FIELDS = new Set([
     'phone',
     'student_id',
     'studentId',
-    'wallet_address',
-    'walletAddress',
+
     'ip_address',
     'ip',
 
@@ -61,13 +60,12 @@ export interface CredentialInput {
     issuer_did?: string;
     certificate_number?: string;
     schema_url?: string;
-    transaction_hash?: string;
-    token_id?: string;
+
     credential_data?: Record<string, unknown>;
     // Sensitive fields that MUST be stripped
     private_notes?: string;
     user_id?: string;
-    wallet_address?: string;
+
     email?: string;
     student_id?: string;
     [key: string]: unknown;
@@ -86,10 +84,7 @@ export interface IpfsMetadata {
     certificateNumber: string | null;
     /** URL to the W3C JSON-LD schema */
     schemaUrl: string | null;
-    /** On-chain transaction hash (for cross-referencing Polygonscan) */
-    transactionHash: string | null;
-    /** On-chain token ID */
-    tokenId: string | null;
+
     /** Filtered credential data (sensitive fields removed) */
     credentialSubject: Record<string, unknown>;
     /** ISO 8601 timestamp of metadata generation */
@@ -140,7 +135,7 @@ export function stripSensitiveFields<T extends Record<string, unknown>>(
  * 
  * This is the ONLY function that should be used to create IPFS payloads.
  * It guarantees:
- * - No PII (email, phone, student_id, wallet_address)
+ * - No PII (email, phone, student_id)
  * - No private records (private_notes, encrypted data)
  * - No internal IDs (user_id, registrar_id, batch_id)
  * - Only publicly verifiable credential information
@@ -160,8 +155,7 @@ export function buildIpfsMetadata(credential: CredentialInput): IpfsMetadata {
         issuerDid: credential.issuer_did ?? null,
         certificateNumber: credential.certificate_number ?? null,
         schemaUrl: credential.schema_url ?? null,
-        transactionHash: credential.transaction_hash ?? null,
-        tokenId: credential.token_id ?? null,
+
         credentialSubject: safeCredentialData,
         generatedAt: new Date().toISOString(),
         notice:

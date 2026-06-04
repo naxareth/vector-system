@@ -39,7 +39,7 @@ export async function GET(req: Request) {
     // Check if user is registrar or super_admin
     const currentUser = await prisma.users.findUnique({
       where: { id: user.id },
-      select: { role: true, wallet_address: true },
+      select: { role: true },
     });
 
     if (currentUser?.role !== 'registrar' && currentUser?.role !== 'super_admin') {
@@ -86,13 +86,11 @@ export async function GET(req: Request) {
       });
 
       // Filter credentials issued by this registrar based on issuer_did
-      const registrarWallet = `did:polygon:amoy:${currentUser.wallet_address || ''}`;
       const registrarWebDid = `did:web:yourdomain.com:registrar:${user.id}`;
 
       recentCredentials.forEach(cred => {
         if (cred.issuer_did && 
             (cred.issuer_did.includes(user.id) || 
-             cred.issuer_did === registrarWallet || 
              cred.issuer_did === registrarWebDid)) {
           uniqueStudentIds.add(cred.user_id);
         }
@@ -120,7 +118,7 @@ export async function GET(req: Request) {
         email: true,
         full_name: true,
         role: true,
-        wallet_address: true,
+
         status: true,
         created_at: true,
         updated_at: true,
@@ -133,7 +131,7 @@ export async function GET(req: Request) {
     // 7. For each user, fetch their credentials issued by this registrar
     const usersWithCredentials = await Promise.all(
       users.map(async (userRecord) => {
-        let credentials: { id: string; skill_name: string; issued_at: Date | null; transaction_hash: string | null; token_id: string; revoked: boolean; issuer_did: string | null }[] = [];
+        let credentials: { id: string; skill_name: string; issued_at: Date | null; revoked: boolean; issuer_did: string | null }[] = [];
         
         // First try to get credentials from batches
         if (batchIds.length > 0) {
@@ -146,8 +144,7 @@ export async function GET(req: Request) {
               id: true,
               skill_name: true,
               issued_at: true,
-              transaction_hash: true,
-              token_id: true,
+
               revoked: true,
               issuer_did: true,
             },
@@ -169,8 +166,7 @@ export async function GET(req: Request) {
               id: true,
               skill_name: true,
               issued_at: true,
-              transaction_hash: true,
-              token_id: true,
+
               revoked: true,
               issuer_did: true,
             },
@@ -178,13 +174,11 @@ export async function GET(req: Request) {
           });
 
           // Filter by registrar
-          const registrarWallet = `did:polygon:amoy:${currentUser.wallet_address || ''}`;
           const registrarWebDid = `did:web:yourdomain.com:registrar:${user.id}`;
 
           credentials = credentials.filter(c => 
             c.issuer_did && 
             (c.issuer_did.includes(user.id) || 
-             c.issuer_did === registrarWallet || 
              c.issuer_did === registrarWebDid)
           );
         }
@@ -195,8 +189,7 @@ export async function GET(req: Request) {
             id: c.id,
             skill_name: c.skill_name,
             issued_at: c.issued_at,
-            transaction_hash: c.transaction_hash,
-            token_id: c.token_id,
+
             revoked: c.revoked,
           })),
           totalCredentials: credentials.length,

@@ -38,13 +38,11 @@ console.log('Test Case 1: Sensitive fields stripped from IPFS metadata');
         issuer_did: 'did:polygon:amoy:0x1234',
         certificate_number: 'CERT-001',
         schema_url: 'https://example.com/schema/1',
-        transaction_hash: '0xabc123',
-        token_id: '42',
         // --- SENSITIVE DATA that must NOT appear in output ---
         email: 'student@university.edu',
         private_notes: 'This student struggled with finals',
         user_id: 'user-uuid-456',
-        wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+
         student_id: 'STU-2025-001',
     };
 
@@ -55,14 +53,13 @@ console.log('Test Case 1: Sensitive fields stripped from IPFS metadata');
     assert(!metadataStr.includes('student@university.edu'), 'Email is stripped');
     assert(!metadataStr.includes('struggled with finals'), 'Private notes are stripped');
     assert(!metadataStr.includes('user-uuid-456'), 'User ID is stripped');
-    assert(!metadataStr.includes('0x1234567890abcdef'), 'Wallet address is stripped');
     assert(!metadataStr.includes('STU-2025-001'), 'Student ID is stripped');
 
     // Public fields must be PRESERVED
     assert(metadata.skillName === 'React', 'Skill name preserved');
     assert(metadata.issuerDid === 'did:polygon:amoy:0x1234', 'Issuer DID preserved');
     assert(metadata.certificateNumber === 'CERT-001', 'Certificate number preserved');
-    assert(metadata.transactionHash === '0xabc123', 'Transaction hash preserved');
+
     assert(metadata.notice.length > 0, 'Privacy notice included');
 }
 
@@ -78,8 +75,6 @@ console.log('\nTest Case 2: Public fields correctly preserved');
         issuer_did: 'did:web:university.edu',
         certificate_number: 'BC-2025-042',
         schema_url: 'https://api.vector.com/schemas/blockchain',
-        transaction_hash: '0xdeadbeef',
-        token_id: '99',
         credential_data: {
             courseName: 'Advanced Solidity',
             grade: 'A',
@@ -93,7 +88,7 @@ console.log('\nTest Case 2: Public fields correctly preserved');
 
     assert(metadata.credentialId === 'test-id', 'credentialId preserved');
     assert(metadata.skillName === 'Blockchain Development', 'skillName preserved');
-    assert(metadata.tokenId === '99', 'tokenId preserved');
+
 
     // credentialSubject should have courseName and grade, but NOT private_notes/email
     assert(metadata.credentialSubject.courseName === 'Advanced Solidity', 'Nested courseName preserved');
@@ -115,7 +110,7 @@ console.log('\nTest Case 3: Deep nested sensitive fields detected and stripped')
                 email: 'deep@hidden.com',
                 level3: {
                     private_notes: 'super secret',
-                    wallet_address: '0xdeep',
+
                     public_info: 'ok',
                 },
             },
@@ -135,7 +130,6 @@ console.log('\nTest Case 3: Deep nested sensitive fields detected and stripped')
     assert(!('email' in stripped.level1.level2), 'Level 2 email stripped');
     assert(stripped.level1.level2.level3.public_info === 'ok', 'Level 3 safe field preserved');
     assert(!('private_notes' in stripped.level1.level2.level3), 'Level 3 private_notes stripped');
-    assert(!('wallet_address' in stripped.level1.level2.level3), 'Level 3 wallet_address stripped');
 
     // Array items
     assert(stripped.arrayField[0].name === 'item1', 'Array item 1 name preserved');

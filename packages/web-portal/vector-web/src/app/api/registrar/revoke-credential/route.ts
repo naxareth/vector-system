@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     // 3. Fetch the credential to be revoked
     const credential = await prisma.verified_credentials.findUnique({
       where: { id: credentialId },
-      include: { student: { select: { wallet_address: true } } },
+
     });
 
     if (!credential) {

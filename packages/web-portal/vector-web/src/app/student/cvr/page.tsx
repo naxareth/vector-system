@@ -214,7 +214,7 @@ export default function CVRPage() {
 
         const { data: userRecord } = await supabase
           .from('users')
-          .select('full_name, wallet_address')
+          .select('full_name')
           .eq('id', session.user.id)
           .single();
 

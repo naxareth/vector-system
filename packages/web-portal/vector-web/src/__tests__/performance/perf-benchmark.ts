@@ -50,7 +50,7 @@ function generateEthAddress(): string {
 }
 
 function generateCsvRows(count: number, includeErrors = false): string {
-    const lines = ['student_id,skill_name,wallet_address'];
+    const lines = ['student_id,skill_name'];
     const skills = ['React', 'Python', 'Node.js', 'Machine Learning', 'Cybersecurity', 'Data Science'];
 
     for (let i = 0; i < count; i++) {
@@ -136,7 +136,7 @@ console.log('  Claim: ~1.8s total parsing, process without crashing');
 console.log('\n─── Test 3: Empty Input (headers only) ───');
 console.log('  Claim: Show "CSV file has headers but no data rows"');
 {
-    const csv = 'student_id,skill_name,wallet_address\n';
+    const csv = 'student_id,skill_name\n';
 
     const start = performance.now();
     const result = parseCsvContent(csv);
@@ -193,7 +193,7 @@ console.log('  Claim: Dangerous prefixes neutralized with single-quote');
 
     // Full CSV with injection
     const csv = [
-        'student_id,skill_name,wallet_address',
+        'student_id,skill_name',
         `${generateUUID()},=MALICIOUS(),${generateEthAddress()}`,
     ].join('\n');
 
@@ -275,7 +275,7 @@ console.log('\n─── Test 7: File Validation ───');
 console.log('\n─── Test 8: Zod Schema Validation ───');
 {
     const csvBadUUID = [
-        'student_id,skill_name,wallet_address',
+        'student_id,skill_name',
         `not-a-uuid,React,${generateEthAddress()}`,
     ].join('\n');
 
@@ -289,20 +289,7 @@ console.log('\n─── Test 8: Zod Schema Validation ───');
         }
     }
 
-    const csvBadWallet = [
-        'student_id,skill_name,wallet_address',
-        `${generateUUID()},React,not-a-wallet`,
-    ].join('\n');
 
-    const result2 = parseCsvContent(csvBadWallet);
-    assert(!result2.ok, `Bad wallet address rejected`);
-    if (!result2.ok && result2.rowErrors) {
-        const walletError = result2.rowErrors.find(e => e.field === 'wallet_address');
-        assert(!!walletError, `Error on wallet_address field`);
-        if (walletError) {
-            assert(walletError.message.includes('Ethereum'), `Error mentions Ethereum: "${walletError.message}"`);
-        }
-    }
 }
 
 // ===========================================================================
