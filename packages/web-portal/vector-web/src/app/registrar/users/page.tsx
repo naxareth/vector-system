@@ -116,7 +116,7 @@ export default function ManageUsers() {
     progress: number;
     status: 'minting' | 'complete' | 'error' | 'confirm';
     message: string;
-    txHash?: string;
+
     confirmAction?: () => void;
     cancelAction?: () => void;
     confirmLabel?: string;
@@ -212,7 +212,7 @@ export default function ManageUsers() {
     }
   };
 
-  const finishDatabaseRevocation = async (credential: UserCredential, txHash?: string) => {
+  const finishDatabaseRevocation = async (credential: UserCredential) => {
     try {
       // 🛡️ CSRF - Extract token from cookies
       const csrfToken = typeof document !== 'undefined' 
@@ -264,7 +264,7 @@ export default function ManageUsers() {
         progress: 100,
         status: 'complete',
         message: 'Credential successfully revoked!',
-        txHash: txHash,
+
       });
     } catch (error: unknown) {
       const err = error as Error;

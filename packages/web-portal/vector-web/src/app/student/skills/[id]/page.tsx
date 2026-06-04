@@ -12,7 +12,7 @@ interface CredentialData {
   skill_name: string;
   certificate_number?: string;
   issued_at: string;
-  transaction_hash?: string;
+
   private_notes?: string | null;
 }
 

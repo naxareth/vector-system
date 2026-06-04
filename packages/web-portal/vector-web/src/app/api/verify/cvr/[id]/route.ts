@@ -6,7 +6,7 @@ import { verifyRateLimiter } from '@/lib/rate-limiter'; // 🛡️ Checkpoint #2
 // GET /api/verify/cvr/[id]
 //
 // Public — no auth required.
-// Returns CVR snapshot, student identity, per-credential on-chain status,
+// Returns CVR snapshot, student identity, per-credential verification status,
 // and isLatest flag so employers know if a newer version exists.
 //
 // 🛡️ SECURITY (Checkpoint #2):

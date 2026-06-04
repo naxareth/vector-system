@@ -325,6 +325,7 @@ export async function POST(req: Request) {
         user_id: validatedData.user_id,
         batch_id: batchId || null,
         skill_name: validatedData.skill_name,
+        token_id: 'legacy_not_used',
         skill_tags: validatedData.skill_tags,          // ✅ Phase 8: persist marketable skill tags
 
         issuer_did: issuerDid,

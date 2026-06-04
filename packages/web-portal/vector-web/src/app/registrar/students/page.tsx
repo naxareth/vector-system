@@ -8,7 +8,7 @@ interface CredentialLog {
   id: string;
   skill_name: string;
   issued_at: string;
-  transaction_hash: string;
+
   certificate_number?: string;
   private_notes?: string;
   user: { full_name: string } | null;

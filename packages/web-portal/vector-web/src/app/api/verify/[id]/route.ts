@@ -14,8 +14,8 @@ import { verifyRateLimiter } from '@/lib/rate-limiter'; // 🛡️ Checkpoint #2
 //   - PII redacted: studentId removed
 //
 // Why UUID as the identifier:
-//   - Not enumerable (v4 random 128-bit) unlike sequential token_id
-//   - Not exposed by default on-chain unlike transaction_hash
+//   - Not enumerable (v4 random 128-bit)
+//   - Not publicly exposed by default
 //   - Acts as a "secret" share link the student controls
 // ---------------------------------------------------------------------------
 

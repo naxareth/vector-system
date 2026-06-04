@@ -12,7 +12,7 @@ interface RawCredential {
   skill_name: string;
   skill_tags: string[];
   issued_at?: string;
-  transaction_hash?: string;
+
   source: 'university';
 }
 
@@ -140,7 +140,7 @@ export default function SkillsPage() {
         const dbRes = await fetch('/api/student/credentials');
         if (dbRes.ok) {
           const dbCreds = await dbRes.json();
-          dbCreds.forEach((c: { id: string; skill_name: string; skill_tags?: string[]; issued_at?: string; transaction_hash?: string }) => {
+          dbCreds.forEach((c: { id: string; skill_name: string; skill_tags?: string[]; issued_at?: string }) => {
             found.push({
               id: c.id,
               skill_name: c.skill_name,
@@ -148,7 +148,7 @@ export default function SkillsPage() {
                 ? c.skill_tags
                 : [c.skill_name],
               issued_at: c.issued_at,
-              transaction_hash: c.transaction_hash,
+
               source: 'university',
             });
           });

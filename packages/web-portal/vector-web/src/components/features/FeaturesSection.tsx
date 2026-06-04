@@ -2,7 +2,7 @@
 import { useInView } from '@/hooks/useInView';
 
 /* Mini SVG illustrations for each card */
-const BlockchainGraphic = () => (
+const VerifiedGraphic = () => (
   <div className="relative w-full h-24 mb-4 overflow-hidden rounded-lg bg-gradient-to-br from-[#FFEDD4]/60 to-[#FFEDD4]/10">
     {/* Connecting chain nodes */}
     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 80">
@@ -68,7 +68,7 @@ export default function FeaturesSection() {
 
   const features = [
     {
-      graphic: <BlockchainGraphic />,
+      graphic: <VerifiedGraphic />,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -76,7 +76,7 @@ export default function FeaturesSection() {
       ),
       title: 'Granular Verification',
       description: 'Move beyond generic diplomas. Break academic achievements into fine-grained, verifiable skill badges.',
-      tag: 'Blockchain',
+      tag: 'Verified',
       accent: '#F54900',
     },
     {

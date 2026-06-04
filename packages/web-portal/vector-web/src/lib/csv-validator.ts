@@ -212,7 +212,7 @@ export function validateCsvFile(
  * 1. Split into lines, skip empty lines
  * 2. Validate header row contains all required headers
  * 3. Sanitize every cell
- * 4. Validate base fields (student_id, wallet_address) with Zod
+ * 4. Validate base fields (student_id) with Zod
  * 5. Validate dynamic fields are non-empty if they are required by the schema
  * 6. Collect row-level errors; return all at once for UX
  */

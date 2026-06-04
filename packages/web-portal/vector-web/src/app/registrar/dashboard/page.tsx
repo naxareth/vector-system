@@ -36,7 +36,7 @@ interface MintingProgress {
   progress: number;
   status: 'minting' | 'complete' | 'error';
   message: string;
-  txHash?: string;
+
 }
 
 // Parses the registrar's comma-separated skill_tags input into a clean string array
