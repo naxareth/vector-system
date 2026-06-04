@@ -22,7 +22,7 @@ const openSans = localFont({
 
 export const metadata: Metadata = {
   title: "Vector System",
-  description: "Premium Blockchain-Powered Credential Management",
+  description: "Premium Credential Management",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

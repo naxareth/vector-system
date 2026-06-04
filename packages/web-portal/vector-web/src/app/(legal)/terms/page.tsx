@@ -98,7 +98,7 @@ export default function TermsOfServicePage() {
             <li>Provide accurate and truthful information in your profile and self-reported skills</li>
             <li>Not misrepresent your qualifications, credentials, or institutional affiliation</li>
             <li>Not attempt to gain unauthorized access to other accounts, roles, or administrative functions</li>
-            <li>Not interfere with or disrupt Platform services, APIs, or blockchain operations</li>
+            <li>Not interfere with or disrupt Platform services or APIs</li>
             <li>Not use automated tools (bots, scrapers) to access the Platform beyond approved APIs</li>
             <li>Not submit malicious, fraudulent, or deceptive content through any input field</li>
             <li>Comply with all applicable laws and regulations in your jurisdiction</li>
@@ -142,7 +142,7 @@ export default function TermsOfServicePage() {
           <ul className="list-disc pl-6 space-y-1">
             <li>We do not guarantee the accuracy of AI-generated analytics, skill predictions, or course recommendations</li>
             <li>We do not guarantee uninterrupted or error-free operation of the Platform</li>
-            <li>We are not responsible for actions taken by third-party services (Supabase, Polygon, Google Gemini)</li>
+            <li>We are not responsible for actions taken by third-party services (Supabase, Google Gemini)</li>
             <li>We are not liable for any decisions made based on Platform data, analytics, or recommendations</li>
           </ul>
           <p>

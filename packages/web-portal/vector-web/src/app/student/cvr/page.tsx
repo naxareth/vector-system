@@ -346,7 +346,7 @@ export default function CVRPage() {
         ...prev.certifications,
         {
           name: `${cert.skill_name} (#${cert.id.split('-')[0]})`,
-          issuer: 'Vector University (Blockchain Verified)',
+          issuer: 'Vector University (Institutionally Verified)',
           date: new Date(cert.issued_at).toLocaleDateString(),
           verified: true,
           id: cert.id,
@@ -517,7 +517,7 @@ export default function CVRPage() {
 
       {loading ? (
         <div className="p-12 text-center text-gray-500 animate-pulse bg-white rounded-xl border border-gray-200">
-          Syncing Profile & Blockchain Data...
+          Syncing Profile Data...
         </div>
       ) : !isGenerated ? (
         <>

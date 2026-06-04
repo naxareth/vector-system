@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
         <section>
           <h2>1. Introduction</h2>
           <p>
-            Vector (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) operates a decentralized micro-credentialing and career analytics platform that combines blockchain verification with AI-powered skill analytics. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.
+            Vector (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) operates an AI-powered credentialing and career analytics platform that combines institutional credential verification with AI-powered skill analytics. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.
           </p>
           <p>
             By creating an account or using Vector, you agree to the collection and use of information in accordance with this policy.
@@ -43,16 +43,7 @@ export default function PrivacyPolicyPage() {
             <li>Portfolio links (GitHub, LinkedIn, personal portfolio)</li>
           </ul>
 
-          <h3 className="text-base font-semibold text-gray-800 mt-6 mb-2">2.2 Blockchain &amp; Wallet Data</h3>
-          <p>If you connect a cryptocurrency wallet:</p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li>Your public wallet address is stored and linked to your account</li>
-            <li>Transaction hashes for credential minting events on the Polygon network</li>
-            <li>Token IDs associated with your verified credentials (ERC-1155 soulbound tokens)</li>
-          </ul>
-          <p>
-            We never collect or store your private keys, seed phrases, or wallet passwords. Blockchain transactions are publicly visible on the Polygon network by design.
-          </p>
+
 
           <h3 className="text-base font-semibold text-gray-800 mt-6 mb-2">2.3 Credential &amp; Academic Data</h3>
           <ul className="list-disc pl-6 space-y-1">
@@ -83,7 +74,7 @@ export default function PrivacyPolicyPage() {
           <p>We use the information we collect to:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>Create, manage, and authenticate your account via Supabase authentication</li>
-            <li>Issue, verify, and manage blockchain-backed micro-credentials</li>
+            <li>Issue, verify, and manage institution-backed micro-credentials</li>
             <li>Provide AI-powered career analytics, including skill decay detection and course recommendations</li>
             <li>Generate Credential Verification Reports (CVR) for sharing with employers</li>
             <li>Send notifications about credential updates, verification status, and platform alerts</li>
@@ -108,19 +99,19 @@ export default function PrivacyPolicyPage() {
           <p>For more technical details, see our <a href="/security" className="text-[#06B4C9] hover:underline">Security page</a>.</p>
         </section>
 
-        {/* 5. Blockchain & Immutability */}
+        {/* 5. Verification Immutability */}
         <section>
-          <h2>5. Blockchain Data &amp; Immutability</h2>
+          <h2>5. Verification Immutability</h2>
           <p>
-            Credentials minted on the Polygon blockchain are immutable and publicly verifiable by design. Once a credential is issued as a soulbound ERC-1155 token:
+            Credentials issued by Registrars are stored securely to maintain their integrity. Once a credential is issued:
           </p>
           <ul className="list-disc pl-6 space-y-1">
-            <li>The on-chain record (token ID, transaction hash, issuer address) cannot be modified or deleted</li>
-            <li>Soulbound tokens are non-transferable, preventing identity fraud</li>
-            <li>Only verified Registrars (institutions) can mint credential tokens</li>
+            <li>The official record is permanently logged in our audit system</li>
+            <li>Credentials are tied to verified student identities, preventing fraud</li>
+            <li>Only verified Registrars (institutions) can issue credentials</li>
           </ul>
           <p>
-            Off-chain data (profile information, self-reported skills, private notes) can be modified or deleted upon request, subject to audit log retention requirements.
+            Profile information, self-reported skills, and private notes can be modified or deleted upon request, subject to audit log retention requirements.
           </p>
         </section>
 
@@ -130,7 +121,7 @@ export default function PrivacyPolicyPage() {
           <p>Vector integrates with the following third-party services:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>Supabase:</strong> Authentication, database hosting (PostgreSQL), and real-time services</li>
-            <li><strong>Polygon Network:</strong> Blockchain infrastructure for credential verification</li>
+
             <li><strong>Google Gemini AI:</strong> Natural language processing for skill extraction from resumes (text is processed in real-time and not stored by the AI provider for training)</li>
             <li><strong>Adzuna &amp; JSearch APIs:</strong> Anonymized job market data aggregation for skill health analytics</li>
             <li><strong>Cloudflare Turnstile:</strong> Bot detection and CAPTCHA verification on authentication forms</li>
@@ -146,7 +137,7 @@ export default function PrivacyPolicyPage() {
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>Account Data:</strong> Retained for as long as your account is active. Upon account deletion, off-chain data is removed within 30 days</li>
             <li><strong>Audit Logs:</strong> Retained indefinitely for compliance and accountability purposes</li>
-            <li><strong>Blockchain Records:</strong> Permanently stored on the Polygon network (immutable by design)</li>
+
             <li><strong>System Logs:</strong> Retained for 90 days for performance monitoring and security analysis</li>
             <li><strong>Rate Limiting Data:</strong> Automatically expires and is cleared periodically</li>
           </ul>
@@ -159,7 +150,7 @@ export default function PrivacyPolicyPage() {
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>Access:</strong> Request a copy of the personal data we hold about you</li>
             <li><strong>Rectification:</strong> Update or correct inaccurate information through your profile settings</li>
-            <li><strong>Deletion:</strong> Request deletion of your off-chain personal data (blockchain records are immutable)</li>
+            <li><strong>Deletion:</strong> Request deletion of your personal data (audit logs of verified credentials may be retained for compliance)</li>
             <li><strong>Portability:</strong> Export your credential data via CVR reports</li>
             <li><strong>Objection:</strong> Opt out of AI-powered analytics processing</li>
           </ul>

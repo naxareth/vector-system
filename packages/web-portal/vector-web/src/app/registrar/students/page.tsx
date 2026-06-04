@@ -11,7 +11,7 @@ interface CredentialLog {
   transaction_hash: string;
   certificate_number?: string;
   private_notes?: string;
-  user: { full_name: string; wallet_address: string } | null;
+  user: { full_name: string } | null;
 }
 
 const ROWS_PER_PAGE = 10;
@@ -38,9 +38,7 @@ function getInitials(name: string) {
   return name ? name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() : '?';
 }
 
-function shortWallet(addr: string) {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
+
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -101,7 +99,7 @@ export default function ManageCredentials() {
     const term = searchQuery.toLowerCase();
     const matchesSearch =
       (cred.user?.full_name?.toLowerCase() || '').includes(term) ||
-      (cred.user?.wallet_address?.toLowerCase() || '').includes(term) ||
+
       cred.skill_name.toLowerCase().includes(term) ||
       (cred.certificate_number?.toLowerCase() || '').includes(term);
     const matchesSkill = selectedSkills.length === 0 || selectedSkills.includes(cred.skill_name);
@@ -121,7 +119,7 @@ export default function ManageCredentials() {
         <div className="mb-7">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
             Issued Records
-            <HelpTip text="A complete audit log of every certificate issued. Search by student name, certificate type, or serial number. Each record includes a blockchain proof link." />
+            <HelpTip text="A complete audit log of every certificate issued. Search by student name, certificate type, or serial number." />
           </h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
             {credentials.length > 0 ? `${credentials.length} total records issued` : 'Track and verify all issued certificates'}
@@ -257,9 +255,7 @@ export default function ManageCredentials() {
                   <TH className="hidden lg:table-cell">Date</TH>
                   <TH className="hidden md:table-cell">Notes</TH>
                   <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">
-                    <span className="inline-flex items-center justify-end gap-1">
-                      Proof <HelpTip size={12} text="Each certificate is recorded on the blockchain. 'View Proof' opens the public transaction on Polygonscan for independent verification." />
-                    </span>
+                    Status
                   </th>
                 </tr>
               </thead>
@@ -296,9 +292,7 @@ export default function ManageCredentials() {
                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate leading-tight">
                               {name || <span className="italic text-gray-400">Restricted</span>}
                             </p>
-                            <p className="text-[11px] text-gray-400 dark:text-slate-500 font-mono mt-0.5 truncate">
-                              {cred.user?.wallet_address ? shortWallet(cred.user.wallet_address) : 'N/A'}
-                            </p>
+
                           </div>
                         </div>
                       </td>
@@ -332,13 +326,9 @@ export default function ManageCredentials() {
                       </td>
 
                       <td className="px-5 py-3.5 text-right">
-                        {cred.transaction_hash ? (
-                          <a href={`https://amoy.polygonscan.com/tx/${cred.transaction_hash}`} target="_blank" rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-xs font-medium text-[#06B4C9] hover:text-[#0496a3] transition-colors group/link">
-                            View Proof
-                            <svg className="w-3 h-3 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                          </a>
-                        ) : <Dash />}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
+                          Verified
+                        </span>
                       </td>
                     </tr>
                   );
