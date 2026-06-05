@@ -111,7 +111,7 @@ export default function ManageUsers() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [revokeError, setRevokeError] = useState('');
   const [fetchError, setFetchError] = useState('');
-  const [mintingProgress, setMintingProgress] = useState<{
+  const [issuanceProgress, setIssuanceProgress] = useState<{
     isOpen: boolean;
     progress: number;
     status: 'minting' | 'complete' | 'error' | 'confirm';
@@ -182,20 +182,20 @@ export default function ManageUsers() {
 
 
     // Replace native confirm() with custom modal confirmation
-    setMintingProgress({
+    setIssuanceProgress({
       isOpen: true,
       progress: 0,
       status: 'confirm',
       message: `Revoke credential "${credential.skill_name}"? This action will permanently mark it as revoked in the database.`,
       confirmAction: () => startRevocationProcess(credential),
-      cancelAction: () => setMintingProgress({ isOpen: false, progress: 0, status: 'complete', message: '' }),
+      cancelAction: () => setIssuanceProgress({ isOpen: false, progress: 0, status: 'complete', message: '' }),
       confirmLabel: 'Confirm Revoke',
       cancelLabel: 'Cancel'
     });
   };
 
   const startRevocationProcess = async (credential: UserCredential) => {
-    setMintingProgress({ 
+    setIssuanceProgress({ 
       isOpen: true, 
       progress: 50, 
       status: 'minting', 
@@ -208,7 +208,7 @@ export default function ManageUsers() {
       console.error('Revocation Error:', error);
       const err = error as Error & { reason?: string };
       const message = err.reason || err.message || 'Transaction failed.';
-      setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
+      setIssuanceProgress({ isOpen: true, progress: 0, status: 'error', message });
     }
   };
 
@@ -259,7 +259,7 @@ export default function ManageUsers() {
         )
       );
 
-      setMintingProgress({
+      setIssuanceProgress({
         isOpen: true,
         progress: 100,
         status: 'complete',
@@ -268,7 +268,7 @@ export default function ManageUsers() {
       });
     } catch (error: unknown) {
       const err = error as Error;
-      setMintingProgress({ isOpen: true, progress: 0, status: 'error', message: err.message || 'Unknown error' });
+      setIssuanceProgress({ isOpen: true, progress: 0, status: 'error', message: err.message || 'Unknown error' });
     }
   };
 
@@ -522,10 +522,10 @@ export default function ManageUsers() {
                         </div>
                         <button
                           onClick={() => handleRevokeCredential(cred)}
-                          disabled={mintingProgress.isOpen && mintingProgress.status === 'minting'}
+                          disabled={issuanceProgress.isOpen && issuanceProgress.status === 'minting'}
                           className="ml-4 px-4 py-2 text-sm font-medium text-red-600 hover:text-white border border-red-200 hover:bg-red-600 hover:border-red-600 dark:text-red-400 dark:border-red-500/30 dark:hover:bg-red-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
-                          {mintingProgress.isOpen && mintingProgress.status === 'minting' ? 'Revoking...' : 'Revoke'}
+                          {issuanceProgress.isOpen && issuanceProgress.status === 'minting' ? 'Revoking...' : 'Revoke'}
                         </button>
                       </div>
                     ))}
@@ -572,12 +572,12 @@ export default function ManageUsers() {
       {/* ───────────────────────────────────────────────────────────────────────── */}
       {/* PROGRESS MODAL (Fixed Overlay)                                            */}
       {/* ───────────────────────────────────────────────────────────────────────── */}
-      {mintingProgress.isOpen && (
+      {issuanceProgress.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#0E1220] w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 dark:border-[#1E2536] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
               <div className="flex justify-center mb-6">
-                {mintingProgress.status === 'minting' && (
+                {issuanceProgress.status === 'minting' && (
                   <div className="relative">
                     <div className="w-20 h-20 border-4 border-[#06B4C9]/20 border-t-[#06B4C9] rounded-full animate-spin" />
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -587,21 +587,21 @@ export default function ManageUsers() {
                     </div>
                   </div>
                 )}
-                {mintingProgress.status === 'complete' && (
+                {issuanceProgress.status === 'complete' && (
                   <div className="w-20 h-20 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center animate-in zoom-in-50 duration-500">
                     <svg className="w-10 h-10 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
                 )}
-                {mintingProgress.status === 'error' && (
+                {issuanceProgress.status === 'error' && (
                   <div className="w-20 h-20 bg-red-100 dark:bg-red-500/20 rounded-full flex items-center justify-center">
                     <svg className="w-10 h-10 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </div>
                 )}
-                {mintingProgress.status === 'confirm' && (
+                {issuanceProgress.status === 'confirm' && (
                   <div className="w-20 h-20 bg-blue-100 dark:bg-blue-500/20 rounded-full flex items-center justify-center">
                     <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -611,44 +611,44 @@ export default function ManageUsers() {
               </div>
 
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                {mintingProgress.status === 'minting' ? 'Revoking Credential' : 
-                 mintingProgress.status === 'complete' ? 'Revocation Successful' : 
-                 mintingProgress.status === 'confirm' ? 'Action Required' : 'Revocation Failed'}
+                {issuanceProgress.status === 'minting' ? 'Revoking Credential' : 
+                 issuanceProgress.status === 'complete' ? 'Revocation Successful' : 
+                 issuanceProgress.status === 'confirm' ? 'Action Required' : 'Revocation Failed'}
               </h3>
               <p className="text-sm text-gray-500 dark:text-[#94A3B8] mb-8 leading-relaxed">
-                {mintingProgress.message}
+                {issuanceProgress.message}
               </p>
 
-              {mintingProgress.status === 'minting' && (
+              {issuanceProgress.status === 'minting' && (
                 <div className="w-full bg-gray-100 dark:bg-[#1E2536] h-2 rounded-full mb-8 overflow-hidden">
                   <div 
                     className="h-full bg-[#06B4C9] transition-all duration-500 ease-out"
-                    style={{ width: `${mintingProgress.progress}%` }}
+                    style={{ width: `${issuanceProgress.progress}%` }}
                   />
                 </div>
               )}
 
               {/* Action Buttons */}
-              {mintingProgress.status === 'confirm' && (
+              {issuanceProgress.status === 'confirm' && (
                 <div className="flex flex-col gap-3">
                   <button
-                    onClick={mintingProgress.confirmAction}
+                    onClick={issuanceProgress.confirmAction}
                     className="w-full py-3 px-4 bg-gray-900 dark:bg-[#06B4C9] text-white font-bold rounded-xl transition-all shadow-md active:scale-95"
                   >
-                    {mintingProgress.confirmLabel || 'Yes, Proceed'}
+                    {issuanceProgress.confirmLabel || 'Yes, Proceed'}
                   </button>
                   <button
-                    onClick={mintingProgress.cancelAction}
+                    onClick={issuanceProgress.cancelAction}
                     className="w-full py-3 px-4 bg-gray-100 dark:bg-[#1E2536] text-gray-700 dark:text-white font-bold rounded-xl transition-all active:scale-95"
                   >
-                    {mintingProgress.cancelLabel || 'Cancel'}
+                    {issuanceProgress.cancelLabel || 'Cancel'}
                   </button>
                 </div>
               )}
 
-              {(mintingProgress.status === 'complete' || mintingProgress.status === 'error') && (
+              {(issuanceProgress.status === 'complete' || issuanceProgress.status === 'error') && (
                 <button
-                  onClick={() => setMintingProgress(prev => ({ ...prev, isOpen: false }))}
+                  onClick={() => setIssuanceProgress(prev => ({ ...prev, isOpen: false }))}
                   className="w-full py-3 px-4 bg-gray-900 dark:bg-[#06B4C9] hover:opacity-90 text-white font-bold rounded-xl transition-all shadow-lg active:scale-95"
                 >
                   Close Workspace

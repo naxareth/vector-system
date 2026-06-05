@@ -31,7 +31,7 @@ interface VerifiedCredential {
   revoked?: boolean;
 }
 
-interface MintingProgress {
+interface IssuanceProgress {
   isOpen: boolean;
   progress: number;
   status: 'minting' | 'complete' | 'error';
@@ -103,7 +103,7 @@ export default function RegistrarDashboard() {
   const [dynamicData, setDynamicData] = useState<Record<string, string | number | boolean | null>>({});
   const [staticData, setStaticData] = useState({ certificateNumber: '', privateNotes: '' });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [mintingProgress, setMintingProgress] = useState<MintingProgress>({
+  const [issuanceProgress, setIssuanceProgress] = useState<IssuanceProgress>({
     isOpen: false, progress: 0, status: 'minting', message: ''
   });
 
@@ -219,8 +219,8 @@ export default function RegistrarDashboard() {
     }
 
     try {
-      setMintingProgress({ isOpen: true, progress: 20, status: 'minting', message: 'Preparing certificate...' });
-      setMintingProgress(prev => ({ ...prev, progress: 80, message: 'Saving certificate to the database…' }));
+      setIssuanceProgress({ isOpen: true, progress: 20, status: 'minting', message: 'Preparing certificate...' });
+      setIssuanceProgress(prev => ({ ...prev, progress: 80, message: 'Saving certificate to the database…' }));
 
       // Build credential_data without skill_tags (it's promoted to its own column)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -250,7 +250,7 @@ export default function RegistrarDashboard() {
 
       if (!response.ok) throw new Error(await response.text());
 
-      setMintingProgress({
+      setIssuanceProgress({
         isOpen: true, progress: 100, status: 'complete',
         message: 'Certificate issued and verified successfully!'
       });
@@ -264,7 +264,7 @@ export default function RegistrarDashboard() {
       setValidationErrors({});
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
-      setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
+      setIssuanceProgress({ isOpen: true, progress: 0, status: 'error', message });
     }
   };
 
@@ -281,7 +281,7 @@ export default function RegistrarDashboard() {
     if (!confirmRevoke) return;
 
     try {
-      setMintingProgress({ isOpen: true, progress: 50, status: 'minting', message: 'Updating database records...' });
+      setIssuanceProgress({ isOpen: true, progress: 50, status: 'minting', message: 'Updating database records...' });
       
       // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
       const csrfToken = typeof document !== 'undefined' 
@@ -306,7 +306,7 @@ export default function RegistrarDashboard() {
       // Refresh local state
       setStudentCredentials(prev => prev.map(c => c.id === cred.id ? { ...c, revoked: true } : c));
 
-      setMintingProgress({
+      setIssuanceProgress({
         isOpen: true,
         progress: 100,
         status: 'complete',
@@ -315,7 +315,7 @@ export default function RegistrarDashboard() {
     } catch (err: unknown) {
       console.error('Revocation Error:', err);
       const typedErr = err as { reason?: string; message?: string };
-      setMintingProgress({
+      setIssuanceProgress({
         isOpen: true,
         progress: 100,
         status: 'error',
@@ -534,7 +534,7 @@ export default function RegistrarDashboard() {
                           if (!batchSchema) return alert('Template not found.');
 
                           try {
-                            setMintingProgress({ isOpen: true, progress: 5, status: 'minting', message: 'Preparing batch...' });
+                            setIssuanceProgress({ isOpen: true, progress: 5, status: 'minting', message: 'Preparing batch...' });
 
                             const total = rows.length;
 
@@ -542,7 +542,7 @@ export default function RegistrarDashboard() {
                             let completed = 0;
                             for (let idx = 0; idx < rows.length; idx++) {
                               const row = rows[idx];
-                              setMintingProgress(prev => ({
+                              setIssuanceProgress(prev => ({
                                 ...prev,
                                 progress: 50 + Math.round((idx / total) * 45),
                                 message: `Saving record ${idx + 1} of ${total} to database...`,
@@ -581,13 +581,13 @@ export default function RegistrarDashboard() {
                               completed++;
                             }
 
-                            setMintingProgress({
+                            setIssuanceProgress({
                               isOpen: true, progress: 100, status: 'complete',
                               message: `Successfully issued ${completed} certificate${completed > 1 ? 's' : ''}.`,
                             });
                           } catch (error: unknown) {
                             const message = error instanceof Error ? error.message : 'Batch processing failed';
-                            setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
+                            setIssuanceProgress({ isOpen: true, progress: 0, status: 'error', message });
                           }
                         }}
                         className="mt-4 w-full py-3 bg-accent text-white font-bold rounded-xl hover:opacity-90 transition-all shadow-lg"
@@ -789,22 +789,22 @@ export default function RegistrarDashboard() {
         )}
 
         {/* Minting Progress Modal */}
-        {mintingProgress.isOpen && (
+        {issuanceProgress.isOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
             <div className="bg-white dark:bg-[#131825] rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                {mintingProgress.status === 'complete' ? 'Success!' : mintingProgress.status === 'error' ? 'Something went wrong' : 'Processing…'}
+                {issuanceProgress.status === 'complete' ? 'Success!' : issuanceProgress.status === 'error' ? 'Something went wrong' : 'Processing…'}
               </h2>
-              <p className="mb-4 text-gray-600 dark:text-[#94A3B8]">{mintingProgress.message}</p>
+              <p className="mb-4 text-gray-600 dark:text-[#94A3B8]">{issuanceProgress.message}</p>
               <div className="w-full bg-gray-100 dark:bg-[#1E2536] rounded-full h-2 overflow-hidden mb-6">
                 <div
-                  className={`h-full transition-all duration-500 ${mintingProgress.status === 'error' ? 'bg-red-500' : 'bg-[#06B4C9]'}`}
-                  style={{ width: `${mintingProgress.progress}%` }}
+                  className={`h-full transition-all duration-500 ${issuanceProgress.status === 'error' ? 'bg-red-500' : 'bg-[#06B4C9]'}`}
+                  style={{ width: `${issuanceProgress.progress}%` }}
                 />
               </div>
-              {(mintingProgress.status === 'complete' || mintingProgress.status === 'error') && (
+              {(issuanceProgress.status === 'complete' || issuanceProgress.status === 'error') && (
                 <button
-                  onClick={() => setMintingProgress({ isOpen: false, progress: 0, status: 'minting', message: '' })}
+                  onClick={() => setIssuanceProgress({ isOpen: false, progress: 0, status: 'minting', message: '' })}
                   className="w-full py-3 bg-[#06B4C9] hover:bg-[#0496a3] text-white font-bold rounded-xl transition-all"
                 >
                   Close
