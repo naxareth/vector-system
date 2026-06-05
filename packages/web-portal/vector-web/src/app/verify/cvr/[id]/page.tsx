@@ -6,7 +6,7 @@ import QRCode from 'qrcode';
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-interface OnChain {
+interface Verification {
   verified: boolean;
   balance: number | null;
   error: string | null;
@@ -21,7 +21,7 @@ interface VerifiedCredential {
   certificateNumber: string | null;
   batchName: string | null;
   registrarName: string | null;
-  onChain: OnChain;
+  verification: Verification;
 }
 
 interface CVRVerificationResult {
@@ -135,8 +135,8 @@ export default function VerifyCVRPage() {
   }
 
   const { cvrExport, student, credentials, snapshot, isLatest, newerExportDate } = result;
-  const allVerified = credentials.length > 0 && credentials.every((c) => c.onChain.verified);
-  const someVerified = credentials.some((c) => c.onChain.verified);
+  const allVerified = credentials.length > 0 && credentials.every((c) => c.verification.verified);
+  const someVerified = credentials.some((c) => c.verification.verified);
 
   const snapshotSkills = snapshot?.skills || [];
   const verifiedSkillNames = new Set(credentials.map((c) => c.skillName.toLowerCase()));
@@ -271,9 +271,9 @@ export default function VerifyCVRPage() {
                 <div key={cred.id} className="px-6 py-4 flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cred.onChain.verified ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cred.verification.verified ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                       <p className="font-semibold text-[#E2E8F0]">{cred.skillName}</p>
-                      {cred.onChain.verified && (
+                      {cred.verification.verified && (
                         <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
                           ✓ Verified
                         </span>

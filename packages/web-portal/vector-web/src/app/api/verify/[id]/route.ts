@@ -104,7 +104,7 @@ export async function GET(
   // 2. Verification
   //    — A credential is verified if it exists in the database and is not revoked.
   // -------------------------------------------------------------------------
-  const onChain = {
+  const verification = {
     verified: !credential.revoked,
     balance: null,
     error: credential.revoked ? 'This credential has been revoked.' : null,
@@ -135,7 +135,7 @@ export async function GET(
         batchName: credential.batch?.batch_name ?? null,
         registrarName: credential.batch?.registrar?.full_name ?? null,
       },
-      onChain,
+      verification,
     },
     {
       headers: {

@@ -136,7 +136,7 @@ export async function GET(
 
   const verifiedCredentials = await Promise.all(
     credentials.map(async (cred) => {
-      const onChain = {
+      const verification = {
         verified: !cred.revoked,
         balance: null,
         error: cred.revoked ? 'This credential has been revoked.' : null,
@@ -150,7 +150,7 @@ export async function GET(
         certificateNumber: cred.certificate_number ?? null,
         batchName: cred.batch?.batch_name ?? null,
         registrarName: cred.batch?.registrar?.full_name ?? null,
-        onChain,
+        verification,
       };
     })
   );

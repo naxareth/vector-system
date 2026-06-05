@@ -25,7 +25,7 @@ interface VerificationResult {
     batchName: string | null;
     registrarName: string | null;
   };
-  onChain: {
+  verification: {
     verified: boolean;
     balance: number | null;
     tokenId: string | null;
@@ -130,8 +130,8 @@ export default function VerifyPage() {
     );
   }
 
-  const { credential, student, issuedBy, onChain } = result;
-  const isVerified = onChain.verified;
+  const { credential, student, issuedBy, verification } = result;
+  const isVerified = verification.verified;
 
   // ---------------------------------------------------------------------------
   // Verified page
@@ -181,7 +181,7 @@ export default function VerifyPage() {
             <p className={`text-sm ${isVerified ? 'text-emerald-400/70' : 'text-amber-400/70'}`}>
               {isVerified
                 ? `This credential is authentic and confirmed by the issuing institution's database.`
-                : onChain.error || 'The verification status could not be confirmed at this time.'}
+                : verification.error || 'The verification status could not be confirmed at this time.'}
             </p>
           </div>
         </div>
