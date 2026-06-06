@@ -1,5 +1,8 @@
 # Phase 2: Blockchain Extraction — Task-by-Task Execution Plan
 
+> **STATUS: COMPLETED** (June 2026)  
+> *This document serves as a historical reference for the architectural pivot away from Web3/blockchain infrastructure.*
+
 > **Branch:** `feat/blockchain-extraction` (create from `main`)  
 > **Rule:** Build check (`npm run lint --workspace=vector-web`) after every task. Commit after each green build.
 
