@@ -4,9 +4,9 @@ import { useInView } from '@/hooks/useInView';
 /* Mini SVG illustrations for each card */
 const VerifiedGraphic = () => (
   <div className="relative w-full h-24 mb-4 overflow-hidden rounded-lg bg-gradient-to-br from-[#FFEDD4]/60 to-[#FFEDD4]/10">
-    {/* Connecting chain nodes */}
+    {/* Verification nodes */}
     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 80">
-      {/* Chain line */}
+      {/* Connection line */}
       <line x1="30" y1="40" x2="170" y2="40" stroke="#F54900" strokeWidth="1" strokeDasharray="4 3" opacity="0.3" className="animate-dash" />
       {/* Nodes */}
       <rect x="20" y="28" width="24" height="24" rx="6" fill="#F54900" fillOpacity="0.08" stroke="#F54900" strokeWidth="1" strokeOpacity="0.3" className="animate-pulse-subtle" />
