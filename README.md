@@ -1,10 +1,7 @@
+
 ---
 
-# 🚀 VECTOR: Decentralized Micro-Credentialing
-
-> [!IMPORTANT]
-> **FINAL DEFENSE RESOURCE:** For all technical deliverables, security logic, and rubric justifications, please refer to the **[CAPSTONE_FINAL_HANDBOOK.md](./CAPSTONE_FINAL_HANDBOOK.md)**.
- & Career Analytics System
+# VECTOR: Decentralized Micro-Credentialing & Career Analytics System
 
 **VECTOR** is a blockchain-based platform that bridges the gap between academic achievements and industry requirements. It transforms static resumes into dynamic, verifiable career assets using **ERC-1155** tokens and **AI-driven** skill analytics.
 
@@ -105,14 +102,8 @@ NEXT_PUBLIC_CONTRACT_ADDRESS="0x..."
 # --- Private Secrets (NEVER COMMIT) ---
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 ENCRYPTION_KEY="your-generated-32-byte-hex-key"  # Critical for security
+GEMINI_API_KEY="your-google-gemini-key"
 DATABASE_URL="postgres://..."
-
-# --- AI Provider ---
-AI_PROVIDER="gemini" # gemini | groq | ollama
-GEMINI_API_KEY="your-google-gemini-key" # required when AI_PROVIDER=gemini
-GROQ_API_KEY="your-groq-key" # required when AI_PROVIDER=groq
-OLLAMA_BASE_URL="http://localhost:11434" # optional (ollama only)
-OLLAMA_MODEL="llama3.1:8b" # optional (ollama only)
 
 ```
 
