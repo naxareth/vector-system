@@ -1,6 +1,6 @@
 ---
 
-# VECTOR: Institutional Micro-Credentialing & Career Analytics System
+# VECTOR: An AI-Powered Micro-Credentialing System with Predictive Career Analytics and Skill Decay Detection
 
 **VECTOR** is a comprehensive institutional platform that bridges the gap between academic achievements and industry requirements. It transforms static resumes into dynamic, verifiable career assets using **database-anchored verification** and **AI-driven** skill analytics.
 
