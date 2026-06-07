@@ -1,4 +1,3 @@
----
 
 # VECTOR: An AI-Powered Micro-Credentialing System with Predictive Career Analytics and Skill Decay Detection
 
