@@ -106,7 +106,6 @@ export async function GET(
   // -------------------------------------------------------------------------
   const verification = {
     verified: !credential.revoked,
-    balance: null,
     error: credential.revoked ? 'This credential has been revoked.' : null,
   };
 

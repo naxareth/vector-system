@@ -14,12 +14,9 @@ interface VerificationResult {
     certificateNumber: string | null;
     issuerDid: string | null;
     schemaUrl: string | null;
-    transactionHash: string | null;
   };
   student: {
     fullName: string;
-    // 🛡️ studentId removed — no longer returned by API (Checkpoint #2 PII redaction)
-    walletAddress: string | null;
   };
   issuedBy: {
     batchName: string | null;
@@ -27,8 +24,6 @@ interface VerificationResult {
   };
   verification: {
     verified: boolean;
-    balance: number | null;
-    tokenId: string | null;
     error: string | null;
   };
 }

@@ -8,15 +8,12 @@ import QRCode from 'qrcode';
 // ---------------------------------------------------------------------------
 interface Verification {
   verified: boolean;
-  balance: number | null;
   error: string | null;
 }
 
 interface VerifiedCredential {
   id: string;
   skillName: string;
-  tokenId: string;
-  transactionHash: string | null;
   issuedAt: string;
   certificateNumber: string | null;
   batchName: string | null;
@@ -33,7 +30,6 @@ interface CVRVerificationResult {
   student: {
     fullName: string;
     studentId: string | null;
-    walletAddress: string | null;
   };
   credentials: VerifiedCredential[];
   snapshot: { title?: string; skills?: { name: string; verified?: boolean }[]; [key: string]: unknown };
@@ -283,7 +279,6 @@ export default function VerifyCVRPage() {
                       {cred.issuedAt && <span>Issued {formatDate(cred.issuedAt)}</span>}
                       {cred.registrarName && <span>By {cred.registrarName}</span>}
                       {cred.batchName && <span>{cred.batchName}</span>}
-                      {cred.tokenId && <span className="font-mono">Token #{cred.tokenId}</span>}
                     </div>
                   </div>
 

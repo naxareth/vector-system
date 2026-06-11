@@ -138,7 +138,6 @@ export async function GET(
     credentials.map(async (cred) => {
       const verification = {
         verified: !cred.revoked,
-        balance: null,
         error: cred.revoked ? 'This credential has been revoked.' : null,
       };
 

@@ -235,7 +235,6 @@ export default function CVRPage() {
         dbFormDataRef.current = dbData as typeof formData;
         setFormData((prev) => ({ ...prev, ...dbData }));
 
-        // Wallet balance check for skills is now handled dynamically via credentials db
 
         const { data: certs } = await supabase
           .from('verified_credentials')

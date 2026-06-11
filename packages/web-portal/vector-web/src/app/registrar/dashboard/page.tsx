@@ -34,7 +34,7 @@ interface VerifiedCredential {
 interface IssuanceProgress {
   isOpen: boolean;
   progress: number;
-  status: 'minting' | 'complete' | 'error';
+  status: 'processing' | 'complete' | 'error';
   message: string;
 
 }
@@ -104,7 +104,7 @@ export default function RegistrarDashboard() {
   const [staticData, setStaticData] = useState({ certificateNumber: '', privateNotes: '' });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [issuanceProgress, setIssuanceProgress] = useState<IssuanceProgress>({
-    isOpen: false, progress: 0, status: 'minting', message: ''
+    isOpen: false, progress: 0, status: 'processing', message: ''
   });
 
   useEffect(() => {
@@ -219,7 +219,7 @@ export default function RegistrarDashboard() {
     }
 
     try {
-      setIssuanceProgress({ isOpen: true, progress: 20, status: 'minting', message: 'Preparing certificate...' });
+      setIssuanceProgress({ isOpen: true, progress: 20, status: 'processing', message: 'Preparing certificate...' });
       setIssuanceProgress(prev => ({ ...prev, progress: 80, message: 'Saving certificate to the database…' }));
 
       // Build credential_data without skill_tags (it's promoted to its own column)
@@ -281,7 +281,7 @@ export default function RegistrarDashboard() {
     if (!confirmRevoke) return;
 
     try {
-      setIssuanceProgress({ isOpen: true, progress: 50, status: 'minting', message: 'Updating database records...' });
+      setIssuanceProgress({ isOpen: true, progress: 50, status: 'processing', message: 'Updating database records...' });
       
       // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
       const csrfToken = typeof document !== 'undefined' 
@@ -534,7 +534,7 @@ export default function RegistrarDashboard() {
                           if (!batchSchema) return alert('Template not found.');
 
                           try {
-                            setIssuanceProgress({ isOpen: true, progress: 5, status: 'minting', message: 'Preparing batch...' });
+                            setIssuanceProgress({ isOpen: true, progress: 5, status: 'processing', message: 'Preparing batch...' });
 
                             const total = rows.length;
 
@@ -804,7 +804,7 @@ export default function RegistrarDashboard() {
               </div>
               {(issuanceProgress.status === 'complete' || issuanceProgress.status === 'error') && (
                 <button
-                  onClick={() => setIssuanceProgress({ isOpen: false, progress: 0, status: 'minting', message: '' })}
+                  onClick={() => setIssuanceProgress({ isOpen: false, progress: 0, status: 'processing', message: '' })}
                   className="w-full py-3 bg-[#06B4C9] hover:bg-[#0496a3] text-white font-bold rounded-xl transition-all"
                 >
                   Close

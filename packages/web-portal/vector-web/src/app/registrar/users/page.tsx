@@ -114,7 +114,7 @@ export default function ManageUsers() {
   const [issuanceProgress, setIssuanceProgress] = useState<{
     isOpen: boolean;
     progress: number;
-    status: 'minting' | 'complete' | 'error' | 'confirm';
+    status: 'processing' | 'complete' | 'error' | 'confirm';
     message: string;
 
     confirmAction?: () => void;
@@ -124,7 +124,7 @@ export default function ManageUsers() {
   }>({
     isOpen: false,
     progress: 0,
-    status: 'minting',
+    status: 'processing',
     message: ''
   });
 
@@ -198,7 +198,7 @@ export default function ManageUsers() {
     setIssuanceProgress({ 
       isOpen: true, 
       progress: 50, 
-      status: 'minting', 
+      status: 'processing', 
       message: 'Updating database records...' 
     });
 
@@ -522,10 +522,10 @@ export default function ManageUsers() {
                         </div>
                         <button
                           onClick={() => handleRevokeCredential(cred)}
-                          disabled={issuanceProgress.isOpen && issuanceProgress.status === 'minting'}
+                          disabled={issuanceProgress.isOpen && issuanceProgress.status === 'processing'}
                           className="ml-4 px-4 py-2 text-sm font-medium text-red-600 hover:text-white border border-red-200 hover:bg-red-600 hover:border-red-600 dark:text-red-400 dark:border-red-500/30 dark:hover:bg-red-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
-                          {issuanceProgress.isOpen && issuanceProgress.status === 'minting' ? 'Revoking...' : 'Revoke'}
+                          {issuanceProgress.isOpen && issuanceProgress.status === 'processing' ? 'Revoking...' : 'Revoke'}
                         </button>
                       </div>
                     ))}
@@ -577,7 +577,7 @@ export default function ManageUsers() {
           <div className="bg-white dark:bg-[#0E1220] w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 dark:border-[#1E2536] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 text-center">
               <div className="flex justify-center mb-6">
-                {issuanceProgress.status === 'minting' && (
+                {issuanceProgress.status === 'processing' && (
                   <div className="relative">
                     <div className="w-20 h-20 border-4 border-[#06B4C9]/20 border-t-[#06B4C9] rounded-full animate-spin" />
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -611,7 +611,7 @@ export default function ManageUsers() {
               </div>
 
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                {issuanceProgress.status === 'minting' ? 'Revoking Credential' : 
+                {issuanceProgress.status === 'processing' ? 'Revoking Credential' : 
                  issuanceProgress.status === 'complete' ? 'Revocation Successful' : 
                  issuanceProgress.status === 'confirm' ? 'Action Required' : 'Revocation Failed'}
               </h3>
@@ -619,7 +619,7 @@ export default function ManageUsers() {
                 {issuanceProgress.message}
               </p>
 
-              {issuanceProgress.status === 'minting' && (
+              {issuanceProgress.status === 'processing' && (
                 <div className="w-full bg-gray-100 dark:bg-[#1E2536] h-2 rounded-full mb-8 overflow-hidden">
                   <div 
                     className="h-full bg-[#06B4C9] transition-all duration-500 ease-out"
