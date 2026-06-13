@@ -67,10 +67,6 @@ export async function POST(req: Request) {
     });
 
     if (duplicates.length > 0) {
-      // The instructions say: "If found, return 409 with warning"
-      // Wait, is it a hard block or a warning? The instruction says: "If duplicate found, return 409 with warning"
-      // "Handle 409 duplicate response: show modal 'This credential may already exist: {skill_name}. Submit anyway?'"
-      // To allow bypass, the client could pass `ignore_duplicates: true`.
       if (!body.ignore_duplicates) {
         return NextResponse.json({ 
           error: "Duplicate credential detected", 

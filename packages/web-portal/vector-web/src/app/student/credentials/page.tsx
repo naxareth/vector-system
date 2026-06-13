@@ -54,11 +54,11 @@ export default function CredentialsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending': return <span className="bg-yellow-100 text-yellow-800 border border-yellow-200 px-2 py-1 rounded-full text-xs font-semibold">Pending AI Review</span>;
-      case 'ai_reviewed': return <span className="bg-blue-100 text-blue-800 border border-blue-200 px-2 py-1 rounded-full text-xs font-semibold">Under Review</span>;
-      case 'approved': return <span className="bg-green-100 text-green-800 border border-green-200 px-2 py-1 rounded-full text-xs font-semibold">Approved</span>;
-      case 'rejected': return <span className="bg-red-100 text-red-800 border border-red-200 px-2 py-1 rounded-full text-xs font-semibold">Rejected</span>;
-      default: return <span className="bg-gray-100 text-gray-800 border border-gray-200 px-2 py-1 rounded-full text-xs font-semibold">{status}</span>;
+      case 'pending': return <span className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-1 rounded-full text-xs font-semibold">Pending AI Review</span>;
+      case 'ai_reviewed': return <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded-full text-xs font-semibold">Under Review</span>;
+      case 'approved': return <span className="bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-1 rounded-full text-xs font-semibold">Approved</span>;
+      case 'rejected': return <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded-full text-xs font-semibold">Rejected</span>;
+      default: return <span className="bg-gray-500/10 text-gray-400 border border-gray-500/20 px-2 py-1 rounded-full text-xs font-semibold">{status}</span>;
     }
   };
 

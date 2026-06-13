@@ -3,10 +3,8 @@
 import { useState, useRef } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 export default function CredentialUploadPage() {
-  const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
