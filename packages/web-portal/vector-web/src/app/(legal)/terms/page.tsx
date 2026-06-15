@@ -123,6 +123,18 @@ export default function TermsOfServicePage() {
 
 
 
+        {/* 7. Data Usage & AI Processing */}
+        <section>
+          <h2>7. Data Usage &amp; AI Processing</h2>
+          <p>By using Vector, you acknowledge and agree to the following regarding our data practices:</p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li><strong>AI Processing:</strong> Uploaded credential documents are processed by AI for automated data extraction and analysis.</li>
+            <li><strong>Fraud Detection:</strong> AI performs initial fraud pattern detection; however, this is not an absolute verification.</li>
+            <li><strong>Human Review:</strong> Extracted data and AI flags are reviewed by a human registrar before final verification is issued.</li>
+            <li><strong>Job Matching:</strong> Your profile and credential data may be used for career analytics and job matching if you opt in to these services.</li>
+          </ul>
+        </section>
+
         {/* 8. Intellectual Property */}
         <section>
           <h2>8. Intellectual Property</h2>

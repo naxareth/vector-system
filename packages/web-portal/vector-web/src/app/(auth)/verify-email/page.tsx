@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, Suspense } from 'react';
+import { useState, useRef, Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
@@ -13,6 +13,17 @@ function VerifyEmailForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [resendMessage, setResendMessage] = useState('');
+  const [timeLeft, setTimeLeft] = useState(300);
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    const interval = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    return () => clearInterval(interval);
+  }, [timeLeft]);
+
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
   
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -83,6 +94,7 @@ function VerifyEmailForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       setResendMessage('A new code has been sent to your email.');
+      setTimeLeft(300);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to resend verification email';
       setError(errorMsg);
@@ -145,10 +157,17 @@ function VerifyEmailForm() {
       </form>
 
       <div className="text-center mt-6">
+        <p className="text-sm text-gray-600 mb-2">
+          {timeLeft > 0 ? (
+            <span>Code expires in <span className="font-semibold text-gray-900">{timeString}</span></span>
+          ) : (
+            <span className="text-red-500 font-semibold">Code expired</span>
+          )}
+        </p>
         <p className="text-sm text-gray-600">
           Didn&apos;t receive the code?{' '}
-          <button onClick={handleResend} type="button" className="text-[#06B4C9] font-semibold hover:underline outline-none">
-            Resend
+          <button onClick={handleResend} disabled={timeLeft > 0} type="button" className={`font-semibold outline-none transition-colors ${timeLeft > 0 ? 'text-gray-400 cursor-not-allowed' : 'text-[#06B4C9] hover:underline'}`}>
+            Resend Code
           </button>
         </p>
         <p className="mt-4">
