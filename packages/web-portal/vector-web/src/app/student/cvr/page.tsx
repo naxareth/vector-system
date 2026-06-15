@@ -220,17 +220,36 @@ export default function CVRPage() {
 
         const { data: profileRecord } = await supabase
           .from('profiles')
-          .select('phone, major, bio, linkedin_url')
+          .select('phone, major, bio, linkedin_url, specialization, industry_sector, work_experience, education_history')
           .eq('id', session.user.id)
           .maybeSingle();
+
+                const rawWork = Array.isArray(profileRecord?.work_experience) ? profileRecord.work_experience : typeof profileRecord?.work_experience === 'string' ? JSON.parse(profileRecord.work_experience) : [];
+        const mappedWork = rawWork.map((w: any) => ({
+          title: w.title || '',
+          company: w.company || '',
+          dates: w.current ? `${w.start_date || ''} - Present` : `${w.start_date || ''} - ${w.end_date || ''}`,
+          description: w.description || ''
+        }));
+        
+        const rawEdu = Array.isArray(profileRecord?.education_history) ? profileRecord.education_history : typeof profileRecord?.education_history === 'string' ? JSON.parse(profileRecord.education_history) : [];
+        const mappedEdu = rawEdu.map((e: any) => ({
+          school: e.school || '',
+          degree: `${e.degree || ''} ${e.field || ''}`.trim(),
+          location: '',
+          year: e.start_year && e.end_year ? `${e.start_year} - ${e.end_year}` : e.end_year || e.start_year || '',
+          honors: ''
+        }));
 
         const dbData = {
           fullName: userRecord?.full_name || '',
           email: session.user.email || '',
           phone: profileRecord?.phone || '',
-          title: profileRecord?.major || '',
+          title: profileRecord?.specialization || profileRecord?.major || '',
           summary: profileRecord?.bio || '',
           portfolio: profileRecord?.linkedin_url || '',
+          experience: mappedWork,
+          education: mappedEdu,
         };
         dbFormDataRef.current = dbData as typeof formData;
         setFormData((prev) => ({ ...prev, ...dbData }));
@@ -665,18 +684,8 @@ export default function CVRPage() {
                 errors={errors}
                 onChange={handleChange}
               />
-              <EducationSection
-                items={formData.education}
-                onAdd={() => addItem('education', { degree: '', school: '', location: '', year: '', honors: '' })}
-                onRemove={(i) => removeItem('education', i)}
-                onUpdate={(i, f, v) => updateItem('education', i, f, v)}
-              />
-              <ExperienceSection
-                items={formData.experience}
-                onAdd={() => addItem('experience', { title: '', company: '', dates: '', description: '' })}
-                onRemove={(i) => removeItem('experience', i)}
-                onUpdate={(i, f, v) => updateItem('experience', i, f, v)}
-              />
+              {/* Education section removed, display-only from profile */}
+              {/* Experience section removed, display-only from profile */}
               <ProjectsSection
                 items={formData.projects}
                 onAdd={() => addItem('projects', { title: '', description: '', technologies: '', role: '' })}

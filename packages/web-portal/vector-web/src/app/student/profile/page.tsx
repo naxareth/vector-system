@@ -13,7 +13,7 @@ const profileSchema = z.object({
   lastName: z.string().min(2, "Last name must be at least 2 characters").max(50, "Last name too long"),
   phone: z.string().regex(/^\+?[0-9\s-]{7,12}$/, "Phone must be 7-12 characters").optional().or(z.literal('')),
   bio: z.string().max(100, "Bio must be under 100 characters").optional(),
-  university: z.string().min(2, "University name is required"),
+  university: z.string().optional().or(z.literal("")),
   major: z.string().max(100, "Major name too long").optional(),
   graduationYear: z.string().regex(/^\d{4}$/, "Year must be 4 digits (e.g. 2026)").optional().or(z.literal('')),
   location: z.string().max(100).optional(),
@@ -31,6 +31,10 @@ interface ProfileData {
   location: string;
   photoUrl: string;
   studentId: string;
+  specialization: string;
+  industrySector: string;
+  workExperience: any[];
+  educationHistory: any[];
 }
 
 interface ProgressItem {
@@ -69,6 +73,10 @@ export default function ProfilePage() {
     location: '',
     photoUrl: '',
     studentId: '',
+    specialization: '',
+    industrySector: '',
+    workExperience: [],
+    educationHistory: [],
   });
 
   useEffect(() => {
@@ -88,7 +96,7 @@ export default function ProfilePage() {
           .from('users')
           .select(`
             full_name, student_id, avatar_url, location,
-            profiles ( phone, bio, university, major, graduation_year )
+            profiles ( phone, bio, university, major, graduation_year, specialization, industry_sector, work_experience, education_history )
           `)
           .eq('id', session.user.id)
           .single();
@@ -116,6 +124,10 @@ export default function ProfilePage() {
             university: profile?.university || 'PHINMA University',
             major: profile?.major || '',
             graduationYear: profile?.graduation_year || '',
+            specialization: profile?.specialization || '',
+            industrySector: profile?.industry_sector || '',
+            workExperience: Array.isArray(profile?.work_experience) ? profile.work_experience : typeof profile?.work_experience === 'string' ? JSON.parse(profile.work_experience) : [],
+            educationHistory: Array.isArray(profile?.education_history) ? profile.education_history : typeof profile?.education_history === 'string' ? JSON.parse(profile.education_history) : [],
           });
         }
       } catch (error) {
@@ -166,7 +178,38 @@ export default function ProfilePage() {
 
   const { percentage: profileCompletion, items: progressItems } = calculateProgress();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+
+  const addWorkExperience = () => {
+    setFormData({ ...formData, workExperience: [...formData.workExperience, { title: '', company: '', start_date: '', end_date: '', current: false, description: '' }] });
+  };
+
+  const updateWorkExperience = (index: number, field: string, value: any) => {
+    const updated = [...formData.workExperience];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, workExperience: updated });
+  };
+
+  const removeWorkExperience = (index: number) => {
+    const updated = formData.workExperience.filter((_, i) => i !== index);
+    setFormData({ ...formData, workExperience: updated });
+  };
+
+  const addEducation = () => {
+    setFormData({ ...formData, educationHistory: [...formData.educationHistory, { school: '', degree: '', field: '', start_year: '', end_year: '' }] });
+  };
+
+  const updateEducation = (index: number, field: string, value: string) => {
+    const updated = [...formData.educationHistory];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, educationHistory: updated });
+  };
+
+  const removeEducation = (index: number) => {
+    const updated = formData.educationHistory.filter((_, i) => i !== index);
+    setFormData({ ...formData, educationHistory: updated });
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     let sanitizedValue = value;
 
@@ -261,7 +304,11 @@ export default function ProfilePage() {
           bio: formData.bio,
           university: formData.university,
           major: formData.major,
-          graduation_year: formData.graduationYear
+          graduation_year: formData.graduationYear,
+          specialization: formData.specialization,
+          industry_sector: formData.industrySector,
+          work_experience: formData.workExperience,
+          education_history: formData.educationHistory
         });
 
       if (profileError) throw profileError;
@@ -411,6 +458,96 @@ export default function ProfilePage() {
                       {errors.bio && <p className="text-red-500 text-xs mt-1">{errors.bio}</p>}
                     </div>
                   </div>
+                </div>
+
+
+                <div className={`bg-white rounded-xl border p-5 mb-4 transition-all ${isEditing ? 'border-[#06B4C9]' : 'border-gray-200'}`}>
+                  <h2 className="text-base font-semibold text-gray-900 mb-4">Professional Details</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Specialization</label>
+                      <select name="specialization" value={formData.specialization} onChange={handleChange} disabled={!isEditing} 
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50">
+                        <option value="">Select Specialization...</option>
+                        <option value="Information Technology">Information Technology</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Business Administration">Business Administration</option>
+                        <option value="Education">Education</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Arts & Humanities">Arts & Humanities</option>
+                        <option value="Sciences">Sciences</option>
+                        <option value="Others">Others</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Industry Sector</label>
+                      <select name="industrySector" value={formData.industrySector} onChange={handleChange} disabled={!isEditing} 
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50">
+                        <option value="">Select Industry...</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Finance & Banking">Finance & Banking</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Education">Education</option>
+                        <option value="Manufacturing">Manufacturing</option>
+                        <option value="Government">Government</option>
+                        <option value="Retail">Retail</option>
+                        <option value="Media">Media</option>
+                        <option value="Others">Others</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`bg-white rounded-xl border p-5 mb-4 transition-all ${isEditing ? 'border-[#06B4C9]' : 'border-gray-200'}`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-semibold text-gray-900">Work Experience</h2>
+                    {isEditing && (
+                      <button type="button" onClick={addWorkExperience} className="text-sm text-[#06B4C9] hover:underline">+ Add Experience</button>
+                    )}
+                  </div>
+                  {formData.workExperience.map((exp, index) => (
+                    <div key={index} className="mb-4 pb-4 border-b border-gray-100 last:mb-0 last:pb-0 last:border-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Job Title</label>
+                          <input type="text" value={exp.title} onChange={e => updateWorkExperience(index, 'title', e.target.value)} disabled={!isEditing}
+                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Company</label>
+                          <input type="text" value={exp.company} onChange={e => updateWorkExperience(index, 'company', e.target.value)} disabled={!isEditing}
+                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
+                          <input type="month" value={exp.start_date} onChange={e => updateWorkExperience(index, 'start_date', e.target.value)} disabled={!isEditing}
+                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">End Date</label>
+                          <div className="flex gap-2 items-center">
+                            <input type="month" value={exp.end_date} onChange={e => updateWorkExperience(index, 'end_date', e.target.value)} disabled={!isEditing || exp.current}
+                              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50" />
+                            <label className="flex items-center gap-1 text-xs text-gray-600">
+                              <input type="checkbox" checked={exp.current} onChange={e => updateWorkExperience(index, 'current', e.target.checked)} disabled={!isEditing} /> Present
+                            </label>
+                          </div>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+                          <textarea value={exp.description} onChange={e => updateWorkExperience(index, 'description', e.target.value)} disabled={!isEditing} rows={2}
+                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50" />
+                        </div>
+                      </div>
+                      {isEditing && (
+                        <div className="mt-2 text-right">
+                          <button type="button" onClick={() => removeWorkExperience(index)} className="text-xs text-red-500 hover:underline">Remove</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {formData.workExperience.length === 0 && <p className="text-sm text-gray-500">No work experience added.</p>}
                 </div>
 
                 {/* Education */}
