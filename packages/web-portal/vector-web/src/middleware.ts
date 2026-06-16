@@ -4,7 +4,7 @@ import { logSystemTraffic } from '@/lib/logger';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { validateCsrfToken, generateCsrfToken } from '@/lib/csrf';
 
-const PROTECTED_PATHS = ['/registrar', '/student', '/admin', '/api/admin'];
+const PROTECTED_PATHS = ['/registrar', '/student', '/admin', '/api/admin', '/employer'];
 // 1. Added registrar and student quick-entry routes to AUTH_PATHS
 const AUTH_PATHS = [
   '/login',
@@ -13,6 +13,8 @@ const AUTH_PATHS = [
   '/registrar-login',
   '/student-register',
   '/student-login',
+  '/employer-register',
+  '/employer-login',
   '/forgot-password',
 ];
 
@@ -117,14 +119,14 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     // --- RULE 2: VERIFIED USERS ON VERIFICATION PAGE ---
     if (status === 'active' && pathname === '/verify-email') {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
-      const targetPath = role === 'super_admin' ? '/admin/dashboard' : role === 'registrar' ? '/registrar/dashboard' : '/student/dashboard';
+      const targetPath = role === 'super_admin' ? '/admin/dashboard' : role === 'registrar' ? '/registrar/dashboard' : role === 'employer' ? '/employer/dashboard' : '/student/dashboard';
       return logAndReturn(NextResponse.redirect(`${baseUrl}${targetPath}${url.search}`));
     }
 
     // --- RULE 3: AUTH PATHS ---
     if (AUTH_PATHS.some(p => pathname.startsWith(p)) && status === 'active') {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
-      const targetPath = role === 'super_admin' ? '/admin/dashboard' : role === 'registrar' ? '/registrar/dashboard' : '/student/dashboard';
+      const targetPath = role === 'super_admin' ? '/admin/dashboard' : role === 'registrar' ? '/registrar/dashboard' : role === 'employer' ? '/employer/dashboard' : '/student/dashboard';
       return logAndReturn(NextResponse.redirect(`${baseUrl}${targetPath}${url.search}`));
     }
 
@@ -145,6 +147,15 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
 
     if (pathname.startsWith('/registrar')) {
       if (role === 'registrar' || role === 'super_admin') {
+        return logAndReturn(response);
+      } else {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+        return logAndReturn(NextResponse.redirect(`${baseUrl}/student/dashboard${url.search}`));
+      }
+    }
+
+    if (pathname.startsWith('/employer')) {
+      if (role === 'employer' || role === 'super_admin') {
         return logAndReturn(response);
       } else {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;

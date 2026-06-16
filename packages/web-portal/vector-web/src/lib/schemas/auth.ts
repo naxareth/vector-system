@@ -50,5 +50,14 @@ export const registrarSchema = baseRegisterSchema.extend({
   path: ["confirmPassword"],
 });
 
+// Employer specific schema
+export const employerSchema = baseRegisterSchema.extend({
+  companyName: z.string().min(2, "Company name must be at least 2 characters").max(100),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
 export type StudentRegisterData = z.infer<typeof studentSchema>;
 export type RegistrarRegisterData = z.infer<typeof registrarSchema>;
+export type EmployerRegisterData = z.infer<typeof employerSchema>;
