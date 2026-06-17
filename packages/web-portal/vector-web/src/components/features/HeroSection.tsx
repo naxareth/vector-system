@@ -89,7 +89,7 @@ export default function HeroSection() {
 
             {/* Subheading */}
             <p className={`text-base sm:text-lg text-gray-500 text-center lg:text-left max-w-xl mb-8 leading-relaxed transition-all duration-700 delay-200 ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-              The first skills verification system that combines <span className="text-gray-700 font-medium">secure verification</span> with <span className="text-gray-700 font-medium">predictive AI career analytics</span>.
+              Build <span className="text-gray-700 font-medium">verified resumes</span>. Get matched to <span className="text-gray-700 font-medium">real opportunities</span>.
             </p>
 
             {/* CTA */}

@@ -60,11 +60,23 @@ const SecurityGraphic = () => (
   </div>
 );
 
+const EmployerGraphic = () => (
+  <div className="relative w-full h-24 mb-4 overflow-hidden rounded-lg bg-gradient-to-br from-blue-50/80 to-blue-50/20">
+    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 80">
+      <path d="M70 35 L130 35 L130 65 L70 65 Z" fill="none" stroke="#3b82f6" strokeWidth="1.5" opacity="0.3" />
+      <path d="M90 35 L90 25 L110 25 L110 35" fill="none" stroke="#3b82f6" strokeWidth="1.5" opacity="0.3" />
+      <line x1="70" y1="45" x2="130" y2="45" stroke="#3b82f6" strokeWidth="1" opacity="0.2" />
+      <circle cx="100" cy="55" r="4" fill="#3b82f6" opacity="0.5" className="animate-pulse-subtle" />
+    </svg>
+  </div>
+);
+
 export default function FeaturesSection() {
   const { ref: headerRef, isInView: headerVisible } = useInView();
   const { ref: grid1Ref, isInView: grid1Visible } = useInView();
   const { ref: grid2Ref, isInView: grid2Visible } = useInView();
   const { ref: grid3Ref, isInView: grid3Visible } = useInView();
+  const { ref: grid4Ref, isInView: grid4Visible } = useInView();
 
   const features = [
     {
@@ -103,10 +115,23 @@ export default function FeaturesSection() {
       tag: 'Security',
       accent: '#22c55e',
     },
+    {
+      graphic: <EmployerGraphic />,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      ),
+      title: 'Find Verified Talent',
+      description: 'Post jobs and discover candidates with institutionally verified credentials — not just self-reported skills.',
+      tag: 'For Employers',
+      accent: '#3b82f6',
+      cta: { text: 'Get Started', link: '/employer-register' }
+    },
   ];
 
-  const gridRefs = [grid1Ref, grid2Ref, grid3Ref];
-  const gridVisible = [grid1Visible, grid2Visible, grid3Visible];
+  const gridRefs = [grid1Ref, grid2Ref, grid3Ref, grid4Ref];
+  const gridVisible = [grid1Visible, grid2Visible, grid3Visible, grid4Visible];
 
   return (
     <section id="features" className="py-28 px-6 bg-gray-50/70 relative">
@@ -136,7 +161,7 @@ export default function FeaturesSection() {
         </div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {features.map((feature, index) => (
             <div
               key={index}
@@ -162,7 +187,14 @@ export default function FeaturesSection() {
                     <h3 className="text-lg font-bold text-gray-900">{feature.title}</h3>
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 leading-relaxed">{feature.description}</p>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4 flex-grow">{feature.description}</p>
+                
+                {feature.cta && (
+                  <a href={feature.cta.link} className="text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all mt-auto" style={{ color: feature.accent }}>
+                    {feature.cta.text}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                  </a>
+                )}
               </div>
             </div>
           ))}

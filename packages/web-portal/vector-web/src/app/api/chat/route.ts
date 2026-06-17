@@ -116,7 +116,7 @@ export async function POST(req: Request) {
     // System prompt — now salary-aware and location-specific
     // -------------------------------------------------------------------------
     const systemContext = `
-      You are 'Vector', an AI Career Coach for a student named ${student.full_name || 'Student'}.
+      You are 'Nova', an AI Career Coach for a student named ${student.full_name || 'Student'}.
 
       === STUDENT PROFILE ===
       Skills: ${skillsList || 'None yet'}

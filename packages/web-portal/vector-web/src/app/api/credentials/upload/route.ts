@@ -88,5 +88,19 @@ export async function POST(req: Request) {
     }
   });
 
+  // Notify registrars
+  const registrars = await prisma.users.findMany({ where: { role: 'registrar' }, select: { id: true } });
+  if (registrars.length > 0) {
+    await prisma.notifications.createMany({
+      data: registrars.map(r => ({
+        user_id: r.id,
+        title: 'New Credential Upload',
+        message: 'A student has uploaded a new credential for review.',
+        type: 'system',
+        link_url: '/registrar/dashboard'
+      }))
+    });
+  }
+
   return NextResponse.json({ id: submission.id, status: 'pending' });
 }

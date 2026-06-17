@@ -92,6 +92,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       data: { status }
     });
 
+    // Notify student of status change
+    await prisma.notifications.create({
+      data: {
+        user_id: application.student_id,
+        title: 'Application Status Updated',
+        message: `Your application for ${application.job.title} is now ${status}`,
+        type: 'application_update',
+        link_url: '/student/applications'
+      }
+    });
+
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
