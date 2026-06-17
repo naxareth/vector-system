@@ -25,6 +25,7 @@ export async function GET(req: Request) {
   const skillsParam = searchParams.get('skills');
   const location = searchParams.get('location');
   const job_type = searchParams.get('job_type');
+  const employer_id = searchParams.get('employer_id');
 
   const where: any = { status: 'active' };
 
@@ -43,11 +44,21 @@ export async function GET(req: Request) {
     where.job_type = job_type;
   }
 
+  // Support querying by employer user ID
+  if (employer_id) {
+    where.employer = { user_id: employer_id };
+    // If querying by employer, don't restrict to 'active' status so they see all their jobs
+    delete where.status;
+  }
+
   try {
     const [jobs, total] = await Promise.all([
       prisma.job_postings.findMany({
         where,
-        include: { employer: true },
+        include: { 
+           employer: true,
+           _count: { select: { applications: true } }
+        },
         skip,
         take: limit,
         orderBy: { created_at: 'desc' }

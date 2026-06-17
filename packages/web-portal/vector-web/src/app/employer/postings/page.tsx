@@ -11,7 +11,7 @@ interface JobPosting {
   status: string;
   created_at: string;
   _count?: {
-    job_applications: number;
+    applications: number;
   };
 }
 
@@ -142,7 +142,7 @@ export default function JobPostingsManagement() {
                       </span>
                     </td>
                     <td className="px-6 py-4">{new Date(job.created_at).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 font-medium">{job._count?.job_applications || 0}</td>
+                    <td className="px-6 py-4 font-medium">{job._count?.applications || 0}</td>
                     <td className="px-6 py-4 text-right">
                       <Link 
                         href={`/employer/postings/${job.id}/applicants`}

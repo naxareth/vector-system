@@ -21,6 +21,9 @@ interface JobPosting {
 
 export default function JobBoard() {
   const [jobs, setJobs] = useState<JobPosting[]>([]);
+  const [matchMap, setMatchMap] = useState<Record<string, number>>({});
+  const [matchedJobs, setMatchedJobs] = useState<any[]>([]);
+  const [mode, setMode] = useState<'all' | 'matches'>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -31,7 +34,7 @@ export default function JobBoard() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.set('location', search); // Example: search by location
+      if (search) params.set('location', search);
       params.set('page', page.toString());
       params.set('limit', JOBS_PER_PAGE.toString());
 
@@ -40,6 +43,18 @@ export default function JobBoard() {
         const data = await res.json();
         setJobs(data.jobs || []);
         setTotalPages(Math.max(1, Math.ceil((data.total || 0) / JOBS_PER_PAGE)));
+      }
+
+      // Also fetch matches
+      const matchRes = await fetch('/api/jobs/match');
+      if (matchRes.ok) {
+        const matchData = await matchRes.json();
+        setMatchedJobs(matchData.matches || []);
+        const map: Record<string, number> = {};
+        (matchData.matches || []).forEach((m: any) => {
+          map[m.job.id] = m.matchScore;
+        });
+        setMatchMap(map);
       }
     } catch (e) {
       console.error(e);
@@ -50,6 +65,9 @@ export default function JobBoard() {
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
+
+  const displayJobs = mode === 'matches' ? matchedJobs.map(m => m.job) : jobs;
+
 
   function Pagination() {
     if (totalPages <= 1) return null;
@@ -104,15 +122,38 @@ export default function JobBoard() {
         />
       </div>
 
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setMode('all')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+              mode === 'all' 
+                ? 'bg-gray-900 text-white border-gray-900' 
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            All Jobs
+          </button>
+          <button
+            onClick={() => setMode('matches')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors border flex items-center gap-1.5 ${
+              mode === 'matches' 
+                ? 'bg-[#06B4C9] text-white border-[#06B4C9]' 
+                : 'bg-white text-[#06B4C9] border-[#06B4C9]/30 hover:bg-[#06B4C9]/5'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+            Best Matches
+          </button>
+        </div>
         <p className="text-sm text-gray-500">
-          {jobs.length} job{jobs.length !== 1 ? 's' : ''} found
+          {displayJobs.length} job{displayJobs.length !== 1 ? 's' : ''} found
         </p>
       </div>
 
       {loading ? (
         <div className="py-12 text-center text-sm text-gray-500">Loading jobs...</div>
-      ) : jobs.length === 0 ? (
+      ) : displayJobs.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
@@ -124,21 +165,29 @@ export default function JobBoard() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {jobs.map((job) => (
+            {displayJobs.map((job) => {
+              const score = matchMap[job.id];
+              return (
               <div
                 key={job.id}
-                className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm hover:border-gray-300 transition-all flex flex-col gap-3"
+                className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm hover:border-gray-300 transition-all flex flex-col gap-3 relative"
               >
+                {score !== undefined && (
+                  <div className="absolute -top-2 -right-2 bg-green-100 text-green-800 border border-green-200 shadow-sm text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 z-10">
+                    <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                    {Math.round(score * 100)}% Match
+                  </div>
+                )}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-2.5">
                     <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-sm font-bold text-blue-600 mt-0.5">
-                       {job.employer.company_name.charAt(0)}
+                       {job.employer?.company_name?.charAt(0) || 'C'}
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-900 leading-snug">{job.title}</p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-gray-700">
-                          {job.employer.company_name}
+                          {job.employer?.company_name || 'Unknown'}
                         </span>
                         {job.job_type && (
                           <span className="text-xs font-medium px-2 py-0.5 rounded-full border border-blue-200 bg-blue-50 text-blue-700">
@@ -154,7 +203,7 @@ export default function JobBoard() {
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
-                  {job.required_skills.slice(0, 5).map(tag => (
+                  {job.required_skills.slice(0, 5).map((tag: string) => (
                     <span key={tag} className="text-xs text-gray-500 border border-gray-200 rounded-full px-2 py-0.5 bg-gray-50">
                       {tag}
                     </span>
@@ -179,9 +228,9 @@ export default function JobBoard() {
                   </Link>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
-          <Pagination />
+          {mode === 'all' && <Pagination />}
         </>
       )}
     </DashboardLayout>
