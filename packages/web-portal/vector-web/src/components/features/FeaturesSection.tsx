@@ -156,7 +156,7 @@ export default function FeaturesSection() {
             Infrastructure for<br />Modern Credentials
           </h2>
           <p className="text-gray-500 max-w-2xl mx-auto leading-relaxed">
-            Bridging the gap between academic records and industry demands through three core innovations that redefine trust.
+            Bridging the gap between academic records and industry demands through four core innovations that redefine trust.
           </p>
         </div>
 

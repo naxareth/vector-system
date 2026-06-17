@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { generateText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { generateText } from '@/lib/ai-provider';
 
 export async function GET(req: Request) {
   const cookieStore = await cookies();
@@ -81,10 +80,7 @@ export async function GET(req: Request) {
           Be specific, professional, and encouraging. Return plain text only.
           `;
           
-          const { text } = await generateText({
-            model: google('gemini-1.5-pro'),
-            prompt
-          });
+          const text = await generateText(prompt);
           
           return { ...match, aiInsight: text.trim() };
         } catch (e) {
@@ -95,7 +91,7 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({ matches: scored });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

@@ -78,6 +78,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
+    const VALID_STATUSES = ['pending', 'reviewing', 'accepted', 'rejected'];
+    if (!VALID_STATUSES.includes(status)) {
+      return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    }
+
     const application = await prisma.job_applications.findUnique({
       where: { id: application_id },
       include: { job: { include: { employer: true } } }
@@ -93,15 +98,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
 
     // Notify student of status change
-    await prisma.notifications.create({
-      data: {
-        user_id: application.student_id,
-        title: 'Application Status Updated',
-        message: `Your application for ${application.job.title} is now ${status}`,
-        type: 'application_update',
-        link_url: '/student/applications'
-      }
-    });
+    try {
+      await prisma.notifications.create({
+        data: {
+          user_id: application.student_id,
+          title: 'Application Status Updated',
+          message: `Your application for ${application.job.title} is now ${status}`,
+          type: 'application_update',
+          link_url: '/student/applications'
+        }
+      });
+    } catch (notifErr) {
+      console.error('[applicants] Notification insert failed:', notifErr);
+    }
 
     return NextResponse.json(updated);
   } catch (error: any) {

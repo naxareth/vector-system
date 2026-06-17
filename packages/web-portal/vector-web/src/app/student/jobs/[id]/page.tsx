@@ -27,6 +27,14 @@ interface JobPosting {
   };
 }
 
+interface JobMatch {
+  job: JobPosting;
+  matchScore: number;
+  matchedSkills: string[];
+  missingSkills: string[];
+  aiInsight?: string;
+}
+
 interface CVRExport {
   id: string;
   generated_at: string;
@@ -37,7 +45,7 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
   const { id } = use(params);
   
   const [job, setJob] = useState<JobPosting | null>(null);
-  const [matchData, setMatchData] = useState<any>(null);
+  const [matchData, setMatchData] = useState<JobMatch | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 

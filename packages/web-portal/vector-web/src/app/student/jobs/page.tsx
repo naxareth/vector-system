@@ -19,10 +19,18 @@ interface JobPosting {
   };
 }
 
+interface JobMatch {
+  job: JobPosting;
+  matchScore: number;
+  matchedSkills: string[];
+  missingSkills: string[];
+  aiInsight?: string;
+}
+
 export default function JobBoard() {
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [matchMap, setMatchMap] = useState<Record<string, number>>({});
-  const [matchedJobs, setMatchedJobs] = useState<any[]>([]);
+  const [matchedJobs, setMatchedJobs] = useState<JobMatch[]>([]);
   const [mode, setMode] = useState<'all' | 'matches'>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -44,23 +52,31 @@ export default function JobBoard() {
         setJobs(data.jobs || []);
         setTotalPages(Math.max(1, Math.ceil((data.total || 0) / JOBS_PER_PAGE)));
       }
-
-      // Also fetch matches
-      const matchRes = await fetch('/api/jobs/match');
-      if (matchRes.ok) {
-        const matchData = await matchRes.json();
-        setMatchedJobs(matchData.matches || []);
-        const map: Record<string, number> = {};
-        (matchData.matches || []).forEach((m: any) => {
-          map[m.job.id] = m.matchScore;
-        });
-        setMatchMap(map);
-      }
     } catch (e) {
       console.error(e);
     }
     setLoading(false);
   }, [search, page]);
+
+  useEffect(() => {
+    const fetchMatches = async () => {
+      try {
+        const matchRes = await fetch('/api/jobs/match');
+        if (matchRes.ok) {
+          const matchData = await matchRes.json();
+          setMatchedJobs(matchData.matches || []);
+          const map: Record<string, number> = {};
+          (matchData.matches || []).forEach((m: JobMatch) => {
+            map[m.job.id] = m.matchScore;
+          });
+          setMatchMap(map);
+        }
+      } catch (e) {
+        console.error('Failed to fetch matches', e);
+      }
+    };
+    fetchMatches();
+  }, []);
 
   useEffect(() => {
     fetchJobs();
