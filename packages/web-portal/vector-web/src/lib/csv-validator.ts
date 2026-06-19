@@ -32,9 +32,8 @@ export const ALLOWED_MIME_TYPES = [
 /**
  * Base headers always required regardless of schema.
  * student_id  → identifies the student in the DB
- * wallet_address → required for on-chain minting
  */
-export const BASE_HEADERS = ['student_id', 'wallet_address'];
+export const BASE_HEADERS = ['student_id'];
 
 /**
  * Characters that trigger formula injection in spreadsheet software.
@@ -93,12 +92,8 @@ export function parseCsvLine(line: string): string[] {
 // ---------------------------------------------------------------------------
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
-
-/** Base row schema — validates the two identity fields */
 export const BaseRowSchema = z.object({
   student_id: z.string().regex(uuidRegex, 'Must be a valid UUID v4'),
-  wallet_address: z.string().regex(ethAddressRegex, 'Must be a valid Ethereum address (0x…40 hex chars)'),
 });
 
 // Legacy: full schema with skill_name for backward compatibility with tests
@@ -217,7 +212,7 @@ export function validateCsvFile(
  * 1. Split into lines, skip empty lines
  * 2. Validate header row contains all required headers
  * 3. Sanitize every cell
- * 4. Validate base fields (student_id, wallet_address) with Zod
+ * 4. Validate base fields (student_id) with Zod
  * 5. Validate dynamic fields are non-empty if they are required by the schema
  * 6. Collect row-level errors; return all at once for UX
  */
@@ -297,8 +292,8 @@ export function parseCsvContent(
       }
     });
 
-    // Validate base fields (student_id, wallet_address) with strict Zod rules
-    const baseData = { student_id: rowObj.student_id, wallet_address: rowObj.wallet_address };
+    // Validate base fields (student_id) with strict Zod rules
+    const baseData = { student_id: rowObj.student_id };
     const baseResult = BaseRowSchema.safeParse(baseData);
     if (!baseResult.success) {
       baseResult.error.issues.forEach((issue) => {

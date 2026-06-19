@@ -3,18 +3,17 @@ import { useState } from 'react';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
 
 const FAQ_ITEMS = [
-  { q: 'How do I issue a certificate?', a: 'Go to the Issue Certificate page, search for the student, select a certificate template, fill in the required fields, and click "Issue Verified Certificate". You\'ll need to approve the transaction in your MetaMask wallet.' },
+  { q: 'How do I issue a certificate?', a: 'Go to the Issue Certificate page, search for the student, select a certificate template, fill in the required fields, and click "Issue Verified Certificate".' },
   { q: 'What is a certificate template?', a: 'A template defines the fields required for a specific type of certificate (e.g. Academic Degree, Bootcamp Certificate). You can create custom templates under the "Certificate Template" tab on the Issue Certificate page.' },
   { q: 'Can I issue certificates in bulk?', a: 'Yes! Use the "Bulk Upload" tab on the Issue Certificate page. Prepare a CSV file with the required columns (shown after selecting a template), upload it, validate, and issue all certificates at once.' },
-  { q: 'What happens after I issue a certificate?', a: 'The certificate is permanently recorded on the blockchain. The student will see it in their dashboard under Verified Credentials. You can track all issued certificates in the Issued Records page.' },
-  { q: 'Why does a student show "No Wallet"?', a: 'The student hasn\'t connected a MetaMask wallet yet. They need to do this from their student dashboard. You can still prepare the certificate, but the final blockchain step requires the student to have a wallet address.' },
-  { q: 'How do I verify a certificate was issued?', a: 'Go to Issued Records and find the certificate. Click "View Proof" to see the blockchain transaction on Polygonscan, which provides independent, tamper-proof verification.' },
-  { q: 'Can I revoke or edit an issued certificate?', a: 'Certificates on the blockchain are immutable — they cannot be changed or deleted. If you need to correct an error, issue a new certificate and add a private note referencing the original.' },
-  { q: 'What format should my CSV file be?', a: 'Your CSV must include student_id and wallet_address columns, plus the fields defined by the selected template. Max file size is 1 MB with up to 500 rows. Special characters are automatically cleaned.' },
+  { q: 'What happens after I issue a certificate?', a: 'The certificate is permanently recorded in the system. The student will see it in their dashboard under Verified Credentials. You can track all issued certificates in the Issued Records page.' },
+  { q: 'How do I verify a certificate was issued?', a: 'Go to Issued Records and find the certificate to see the verified record details.' },
+  { q: 'Can I revoke or edit an issued certificate?', a: 'Certificates can be marked as revoked if needed. If you need to correct an error, issue a new certificate and add a private note referencing the original.' },
+  { q: 'What format should my CSV file be?', a: 'Your CSV must include a student_id column, plus the fields defined by the selected template. Max file size is 1 MB with up to 500 rows. Special characters are automatically cleaned.' },
 ];
 
 const GUIDES = [
-  { title: 'Issue Your First Certificate', steps: ['Navigate to Issue Certificate', 'Search and select a student', 'Choose a certificate template', 'Fill in all required fields', 'Click "Issue Verified Certificate"', 'Approve the transaction in MetaMask'], icon: '📄' },
+  { title: 'Issue Your First Certificate', steps: ['Navigate to Issue Certificate', 'Search and select a student', 'Choose a certificate template', 'Fill in all required fields', 'Click "Issue Verified Certificate"'], icon: '📄' },
   { title: 'Create a Certificate Template', steps: ['Go to Issue Certificate → Certificate Template tab', 'Enter a template name and description', 'Add fields with types (text, number, date, etc.)', 'Mark required fields', 'Save the template'], icon: '🏗️' },
   { title: 'Bulk Upload Certificates', steps: ['Go to Issue Certificate → Bulk Upload tab', 'Select a certificate template', 'Download or prepare your CSV file', 'Upload and validate the CSV', 'Review the validated rows', 'Click "Issue" to process all certificates'], icon: '📦' },
 ];
@@ -140,7 +139,7 @@ export default function RegistrarHelpPage() {
               </div>
               <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">Documentation</h3>
               <p className="text-xs text-gray-500 dark:text-[#94A3B8] mb-3">
-                Detailed guides on certificate issuance, templates, and blockchain verification.
+                Detailed guides on certificate issuance, templates, and verification.
               </p>
               <span className="text-sm font-medium text-gray-400 dark:text-[#64748B]">
                 Coming soon
@@ -157,15 +156,11 @@ export default function RegistrarHelpPage() {
               <ul className="text-xs text-gray-500 dark:text-[#94A3B8] space-y-1.5 mt-3">
                 <li className="flex items-start gap-2">
                   <span className="text-amber-500 mt-0.5">•</span>
-                  Certificates are permanent once issued on the blockchain and cannot be edited or deleted.
+                  Certificates are permanently recorded once issued and can only be revoked, not deleted.
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-amber-500 mt-0.5">•</span>
                   Always double-check student details and certificate information before issuing.
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-500 mt-0.5">•</span>
-                  Keep your MetaMask wallet installed and funded with enough MATIC for transaction fees.
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-amber-500 mt-0.5">•</span>

@@ -128,7 +128,7 @@ export default function PersonalDetailsSection({
             maxLength={500}
             style={{ resize: 'none' }}
             className={inputClass('summary')}
-            placeholder="e.g., Diligent Computer Science student with a passion for blockchain technology..."
+            placeholder="e.g., Diligent Computer Science student with a passion for software engineering and AI..."
           />
           <p className={`text-xs mt-1 text-right ${(formData.summary?.length ?? 0) >= 500 ? 'text-red-500' : 'text-gray-400'}`}>
             {formData.summary?.length ?? 0}/500

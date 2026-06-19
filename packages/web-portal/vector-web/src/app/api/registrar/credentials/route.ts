@@ -144,16 +144,14 @@ export async function GET(req: Request) {
         id,
         skill_name,
         issued_at,
-        transaction_hash,
         certificate_number,
         private_notes,
         schema_url,
-        token_id,
+
         revoked,
         user_id,
         user:users!user_id (
-          full_name,
-          wallet_address
+          full_name
         )
       `)
       .order('issued_at', { ascending: false });
@@ -195,9 +193,7 @@ const MintCredentialValidator = z.object({
   skill_tags: z.array(z.string()).default([]),         // ✅ Phase 8: marketable skill tags
   credential_data: z.record(z.string(), z.any()),      // ✅ Fixed Zod syntax
   private_notes: z.string().optional(),
-  certificate_number: z.string().optional(),
-  token_id: z.string().min(1, "Token ID is required"),
-  transaction_hash: z.string().optional()
+  certificate_number: z.string().optional()
 });
 
 export async function POST(req: Request) {
@@ -230,7 +226,7 @@ export async function POST(req: Request) {
 
     const dbUser = await prisma.users.findUnique({
       where: { id: user.id },
-      select: { role: true, wallet_address: true, full_name: true },
+      select: { role: true, full_name: true },
     });
     if (dbUser?.role !== 'registrar') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -271,9 +267,7 @@ export async function POST(req: Request) {
     }
 
     // 5. Generate standard W3C JSON-LD payload
-    const issuerDid = dbUser.wallet_address
-      ? `did:polygon:amoy:${dbUser.wallet_address}`
-      : `did:web:yourdomain.com:registrar:${user.id}`;
+    const issuerDid = `did:web:yourdomain.com:registrar:${user.id}`;
     const host = req.headers.get('host');
     const protocol = req.headers.get('x-forwarded-proto') || 'http';
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : 'http://localhost:3000');
@@ -331,9 +325,9 @@ export async function POST(req: Request) {
         user_id: validatedData.user_id,
         batch_id: batchId || null,
         skill_name: validatedData.skill_name,
+
         skill_tags: validatedData.skill_tags,          // ✅ Phase 8: persist marketable skill tags
-        token_id: validatedData.token_id,
-        transaction_hash: validatedData.transaction_hash,
+
         issuer_did: issuerDid,
         schema_url: schemaUrl,
         credential_data: w3cPayload.credentialSubject,
@@ -457,7 +451,7 @@ export async function POST(req: Request) {
     // 10. 🛡️ IPFS METADATA PRIVACY (Checkpoint #2)
     //
     // Build a privacy-safe metadata payload using buildIpfsMetadata().
-    // This strips all PII (email, student_id, wallet_address, private_notes,
+    // This strips all PII (email, student_id, private_notes,
     // etc.) and keeps only publicly verifiable credential data.
     //
     // validateIpfsPayload() runs a final safety scan for any leaked fields.
@@ -470,13 +464,11 @@ export async function POST(req: Request) {
       issuer_did: newCredential.issuer_did ?? undefined,
       certificate_number: newCredential.certificate_number ?? undefined,
       schema_url: newCredential.schema_url ?? undefined,
-      transaction_hash: newCredential.transaction_hash ?? undefined,
-      token_id: newCredential.token_id ?? undefined,
+
       credential_data: w3cPayload.credentialSubject,
       // These sensitive fields exist in DB but must NOT appear in IPFS payload:
       private_notes: validatedData.private_notes,
       user_id: validatedData.user_id,
-      wallet_address: body.wallet_address,
       email: body.email,
       student_id: body.student_id,
     });

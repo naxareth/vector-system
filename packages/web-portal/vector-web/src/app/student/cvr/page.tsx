@@ -2,11 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { ethers } from 'ethers';
 import { z } from 'zod';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, SKILL_MAP } from '@/lib/blockchain';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import CVRSuccessModal from '@/components/dashboard/CVRSuccessModal';
@@ -218,28 +214,46 @@ export default function CVRPage() {
 
         const { data: userRecord } = await supabase
           .from('users')
-          .select('full_name, wallet_address')
+          .select('full_name')
           .eq('id', session.user.id)
           .single();
 
         const { data: profileRecord } = await supabase
           .from('profiles')
-          .select('phone, major, bio, linkedin_url')
+          .select('phone, major, bio, linkedin_url, specialization, industry_sector, work_experience, education_history')
           .eq('id', session.user.id)
           .maybeSingle();
+
+                const rawWork = Array.isArray(profileRecord?.work_experience) ? profileRecord.work_experience : typeof profileRecord?.work_experience === 'string' ? JSON.parse(profileRecord.work_experience) : [];
+        const mappedWork = rawWork.map((w: any) => ({
+          title: w.title || '',
+          company: w.company || '',
+          dates: w.current ? `${w.start_date || ''} - Present` : `${w.start_date || ''} - ${w.end_date || ''}`,
+          description: w.description || ''
+        }));
+        
+        const rawEdu = Array.isArray(profileRecord?.education_history) ? profileRecord.education_history : typeof profileRecord?.education_history === 'string' ? JSON.parse(profileRecord.education_history) : [];
+        const mappedEdu = rawEdu.map((e: any) => ({
+          school: e.school || '',
+          degree: `${e.degree || ''} ${e.field || ''}`.trim(),
+          location: '',
+          year: e.start_year && e.end_year ? `${e.start_year} - ${e.end_year}` : e.end_year || e.start_year || '',
+          honors: ''
+        }));
 
         const dbData = {
           fullName: userRecord?.full_name || '',
           email: session.user.email || '',
           phone: profileRecord?.phone || '',
-          title: profileRecord?.major || '',
+          title: profileRecord?.specialization || profileRecord?.major || '',
           summary: profileRecord?.bio || '',
           portfolio: profileRecord?.linkedin_url || '',
+          experience: mappedWork,
+          education: mappedEdu,
         };
         dbFormDataRef.current = dbData as typeof formData;
         setFormData((prev) => ({ ...prev, ...dbData }));
 
-        // Wallet balance check for skills is now handled dynamically via credentials db
 
         const { data: certs } = await supabase
           .from('verified_credentials')
@@ -350,7 +364,7 @@ export default function CVRPage() {
         ...prev.certifications,
         {
           name: `${cert.skill_name} (#${cert.id.split('-')[0]})`,
-          issuer: 'Vector University (Blockchain Verified)',
+          issuer: 'Vector University (Institutionally Verified)',
           date: new Date(cert.issued_at).toLocaleDateString(),
           verified: true,
           id: cert.id,
@@ -521,7 +535,7 @@ export default function CVRPage() {
 
       {loading ? (
         <div className="p-12 text-center text-gray-500 animate-pulse bg-white rounded-xl border border-gray-200">
-          Syncing Profile & Blockchain Data...
+          Syncing Profile Data...
         </div>
       ) : !isGenerated ? (
         <>
@@ -670,18 +684,8 @@ export default function CVRPage() {
                 errors={errors}
                 onChange={handleChange}
               />
-              <EducationSection
-                items={formData.education}
-                onAdd={() => addItem('education', { degree: '', school: '', location: '', year: '', honors: '' })}
-                onRemove={(i) => removeItem('education', i)}
-                onUpdate={(i, f, v) => updateItem('education', i, f, v)}
-              />
-              <ExperienceSection
-                items={formData.experience}
-                onAdd={() => addItem('experience', { title: '', company: '', dates: '', description: '' })}
-                onRemove={(i) => removeItem('experience', i)}
-                onUpdate={(i, f, v) => updateItem('experience', i, f, v)}
-              />
+              {/* Education section removed, display-only from profile */}
+              {/* Experience section removed, display-only from profile */}
               <ProjectsSection
                 items={formData.projects}
                 onAdd={() => addItem('projects', { title: '', description: '', technologies: '', role: '' })}

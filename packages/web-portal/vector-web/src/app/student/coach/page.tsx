@@ -8,7 +8,7 @@ import ExportCVRModal from '@/components/dashboard/ExportCVRModal';
 import MarketInsightsPanel from '@/components/student/MarketInsightsPanel';
 import RecommendationsPanel, { CourseRecommendation } from '@/components/student/RecommendationsPanel';
 import Pagination from '@/components/shared/Pagination';
-import { fetchWalletSkillNames } from '@/lib/blockchain';
+
 import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -62,7 +62,7 @@ export default function CoachPage() {
   const [skillDropOpen, setSkillDropOpen] = useState(false);
 
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'ai', text: "👋 Hi! I'm connecting to the blockchain to analyze your career data..." }
+    { role: 'ai', text: "👋 Hi! I'm analyzing your career data..." }
   ]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -76,7 +76,7 @@ export default function CoachPage() {
 
       const { data: profile } = await supabase
         .from('users')
-        .select('full_name, student_id, wallet_address')
+        .select('full_name, student_id')
         .eq('id', session.user.id)
         .single();
 
@@ -88,13 +88,7 @@ export default function CoachPage() {
       const firstName = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
       setUserName(firstName);
 
-      // 1. Fetch wallet skills
       const foundSkills: string[] = [];
-      if (profile.wallet_address) {
-        try {
-          foundSkills.push(...await fetchWalletSkillNames(profile.wallet_address));
-        } catch { console.warn("Wallet read failed."); }
-      }
 
       // 🛡️ CSRF - Extract token from cookies
       const csrfToken = typeof document !== 'undefined' 
@@ -651,7 +645,7 @@ export default function CoachPage() {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="font-bold text-sm leading-tight flex items-center gap-1">Vector Co-Pilot <HelpTip text="An AI assistant that can answer questions about your skills, career options, and market trends." size={12} /></h2>
+                <h2 className="font-bold text-sm leading-tight flex items-center gap-1">Nova <HelpTip text="An AI assistant that can answer questions about your skills, career options, and market trends." size={12} /></h2>
                 <p className="text-[11px] font-medium text-[#06B4C9]">{chatLoading ? 'Thinking...' : 'Online'}</p>
               </div>
               <div className="flex items-center gap-1">
@@ -682,7 +676,7 @@ export default function CoachPage() {
                   <div className="relative w-36 h-36 mb-2">
                     <Image
                       src={chatbotSticker}
-                      alt="Vector Co-Pilot mascot"
+                      alt="Nova mascot"
                       fill
                       className="object-contain"
                       priority
@@ -751,7 +745,7 @@ export default function CoachPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Ask Vector anything..."
+                  placeholder="Ask Nova anything..."
                   className="flex-1 border border-gray-300 dark:border-[#1E2536] rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white bg-white dark:bg-[#0B0F19] placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#06B4C9]"
                 />
                 <button

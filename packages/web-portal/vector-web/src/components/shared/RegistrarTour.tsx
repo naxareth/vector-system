@@ -25,7 +25,7 @@ export default function RegistrarTour() {
           } 
         },
         { 
-          element: '#reg-tour-mint', 
+          element: '#reg-tour-issue', 
           popover: { 
             title: 'Issue Certificate', 
             description: 'Use this form to create a certificate. Issue a single certificate or upload many at once using CSV.',

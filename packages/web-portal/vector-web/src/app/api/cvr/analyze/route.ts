@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
       const tags = s.tags || [];
       const tagLine = tags.length > 0 ? ` [Technical Skills: ${tags.join(', ')}]` : '';
       
-      let line = `- CREDENTIAL: "${s.name}"${tagLine} | Status: ${s.verified ? 'Blockchain Verified' : 'Self-reported'}`;
+      let line = `- CREDENTIAL: "${s.name}"${tagLine} | Status: ${s.verified ? 'Registrar Verified' : 'Self-reported'}`;
       
       // Look up health for the main name or its tags
       const healthMatches = healthData.filter(h => 
@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
 
   const prompt = `
 You are an expert career advisor AI analyzing a student's Credential Verified Resume (CVR).
-Blockchain-verified skills carry on-chain proof of completion and are significantly more valuable to employers than self-reported skills.
+Registrar-verified credentials carry institutional validation and are significantly more valuable to employers than self-reported skills.
 
 === STUDENT CVR PROFILE ===
 ${profileLines || 'No profile details provided.'}
@@ -233,7 +233,7 @@ Rules:
 - skillStrength: Categorize ONLY the individual technical skills (e.g., "React", "Python", "SQL", "Frontend Development") found in the parentheses or tags. DO NOT use the credential names (like "College Degree" or "Bootcamp") as skills. Base the bucket on health_score (>= 70 = strong, 40–69 = moderate, < 40 = weak). If no market data, default to moderate.
 - missingKeywords: 3–6 high-demand skills/technologies that are ABSENT from their profile and would strengthen their market position given their existing skill set and career title.
 - recommendations: exactly 3, concrete and specific. Reference their actual skills and market data where relevant.
-- overallScore: penalise heavily for self-reported-only skills vs blockchain-verified, and for skills with declining trends.
+- overallScore: penalise heavily for self-reported-only skills vs registrar-verified, and for skills with declining trends.
 `;
 
   // -------------------------------------------------------------------------

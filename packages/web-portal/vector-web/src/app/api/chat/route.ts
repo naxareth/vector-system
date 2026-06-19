@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         recorded_at: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       },
       orderBy: { recorded_at: 'desc' },
-      take: 200, // fetch more to ensure we get latest per skill after dedup
+      take: 30, // capped to keep prompt under free-tier TPM limits
     });
 
     // Deduplicate: keep only the most recent snapshot per skill
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       if (seenSkills.has(record.skill_name)) return false;
       seenSkills.add(record.skill_name);
       return true;
-    });
+    }).slice(0, 15); // cap context to stay under provider token limits
 
     // Build rich context string for each skill
     const marketContextList = latestPerSkill
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
     // System prompt — now salary-aware and location-specific
     // -------------------------------------------------------------------------
     const systemContext = `
-      You are 'Vector', an AI Career Coach for a student named ${student.full_name || 'Student'}.
+      You are 'Nova', an AI Career Coach for a student named ${student.full_name || 'Student'}.
 
       === STUDENT PROFILE ===
       Skills: ${skillsList || 'None yet'}

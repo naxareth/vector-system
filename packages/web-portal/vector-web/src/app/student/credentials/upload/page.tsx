@@ -1,0 +1,431 @@
+'use client';
+
+import { useState, useRef } from 'react';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import Link from 'next/link';
+
+export default function CredentialUploadPage() {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [extractedData, setExtractedData] = useState<any>(null);
+  const [fraudFlags, setFraudFlags] = useState<any[]>([]);
+  const [fraudScore, setFraudScore] = useState<number>(0);
+  
+  // Step 2 Form State
+  const [formData, setFormData] = useState({
+    institution_name: '',
+    credential_type: 'diploma',
+    field_of_study: '',
+    date_issued: '',
+    skills: [] as string[],
+    skillInput: '',
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleUploadAndAnalyze = async () => {
+    if (!file) return;
+    setUploading(true);
+
+    try {
+      // 1. Upload
+      const fd = new FormData();
+      fd.append('file', file);
+      
+      const uploadRes = await fetch('/api/credentials/upload', {
+        method: 'POST',
+        body: fd,
+      });
+
+      if (!uploadRes.ok) throw new Error('Upload failed');
+      const { id } = await uploadRes.json();
+      setSubmissionId(id);
+
+      // 2. Extract
+      const extractRes = await fetch('/api/credentials/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submission_id: id }),
+      });
+
+      if (!extractRes.ok) throw new Error('Extraction failed');
+      const data = await extractRes.json();
+      
+      setExtractedData(data.extracted_data);
+      setFraudFlags(data.fraud_flags || []);
+      setFraudScore(data.fraud_score || 0);
+
+      setFormData({
+        institution_name: data.extracted_data?.institution_name || '',
+        credential_type: data.extracted_data?.credential_type || 'diploma',
+        field_of_study: data.extracted_data?.field_of_study || '',
+        date_issued: data.extracted_data?.date_issued || '',
+        skills: data.extracted_data?.skills || [],
+        skillInput: '',
+      });
+
+      setStep(2);
+    } catch (error) {
+      console.error(error);
+      alert('An error occurred during upload or analysis.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const addSkill = () => {
+    if (formData.skillInput.trim() && !formData.skills.includes(formData.skillInput.trim())) {
+      setFormData({
+        ...formData,
+        skills: [...formData.skills, formData.skillInput.trim()],
+        skillInput: ''
+      });
+    }
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    setFormData({
+      ...formData,
+      skills: formData.skills.filter(s => s !== skillToRemove)
+    });
+  };
+
+  const handleSubmitReview = async () => {
+    if (!submissionId) return;
+
+    try {
+      const res = await fetch('/api/credentials/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submission_id: submissionId,
+          confirmed_data: {
+            institution_name: formData.institution_name,
+            credential_type: formData.credential_type,
+            field_of_study: formData.field_of_study,
+            date_issued: formData.date_issued,
+            skills: formData.skills
+          }
+        })
+      });
+
+      if (res.status === 409) {
+        const errorData = await res.json();
+        const confirmBypass = confirm(`This credential may already exist for skills: ${errorData.duplicates.join(', ')}. Submit anyway?`);
+        if (confirmBypass) {
+          await fetch('/api/credentials/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              submission_id: submissionId,
+              confirmed_data: {
+                institution_name: formData.institution_name,
+                credential_type: formData.credential_type,
+                field_of_study: formData.field_of_study,
+                date_issued: formData.date_issued,
+                skills: formData.skills
+              },
+              ignore_duplicates: true
+            })
+          });
+          setStep(3);
+        }
+      } else if (res.ok) {
+        setStep(3);
+      } else {
+        alert('Failed to submit credential');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-8">
+          <Link href="/student/credentials" className="text-[#94A3B8] hover:text-white inline-flex items-center gap-2 mb-4 transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Credentials
+          </Link>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Upload Credential</h1>
+        </div>
+
+        {/* Stepper */}
+        <div className="flex items-center mb-8">
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${step >= 1 ? 'bg-[#06B4C9] text-white' : 'bg-[#1E2536] text-[#94A3B8]'}`}>1</div>
+          <div className={`flex-1 h-1 mx-2 rounded ${step >= 2 ? 'bg-[#06B4C9]' : 'bg-[#1E2536]'}`}></div>
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${step >= 2 ? 'bg-[#06B4C9] text-white' : 'bg-[#1E2536] text-[#94A3B8]'}`}>2</div>
+          <div className={`flex-1 h-1 mx-2 rounded ${step >= 3 ? 'bg-[#06B4C9]' : 'bg-[#1E2536]'}`}></div>
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${step >= 3 ? 'bg-[#06B4C9] text-white' : 'bg-[#1E2536] text-[#94A3B8]'}`}>3</div>
+        </div>
+
+        <div className="bg-[#131825] border border-[#1E2536] rounded-xl p-6 md:p-8">
+          {step === 1 && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-4">Step 1: File Upload</h2>
+              <div 
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${file ? 'border-[#06B4C9] bg-[#06B4C9]/5' : 'border-[#1E2536] hover:border-[#06B4C9]/50'}`}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
+                <input 
+                  type="file" 
+                  accept=".pdf,.png,.jpg,.jpeg" 
+                  className="hidden" 
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                />
+                
+                {file ? (
+                  <div className="space-y-4">
+                    <div className="w-16 h-16 bg-[#06B4C9]/20 text-[#06B4C9] rounded-full flex items-center justify-center mx-auto">
+                      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">{file.name}</p>
+                      <p className="text-sm text-[#94A3B8]">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                    <button 
+                      onClick={() => setFile(null)}
+                      className="text-sm text-red-400 hover:text-red-300"
+                    >
+                      Remove file
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="w-16 h-16 bg-[#1E2536] text-[#94A3B8] rounded-full flex items-center justify-center mx-auto">
+                      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-white font-medium mb-1">Drag and drop your file here</p>
+                      <p className="text-sm text-[#94A3B8]">or click to browse (PDF, PNG, JPG up to 10MB)</p>
+                    </div>
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="bg-[#1E2536] hover:bg-[#2A3441] text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    >
+                      Browse Files
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-8 flex justify-end">
+                <button 
+                  onClick={handleUploadAndAnalyze}
+                  disabled={!file || uploading}
+                  className="bg-[#06B4C9] hover:bg-[#0598A9] disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  {uploading ? (
+                    <>
+                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                      </svg>
+                      AI is analyzing your credential...
+                    </>
+                  ) : (
+                    'Upload & Analyze'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-6">Step 2: Review AI Extraction</h2>
+              
+              {fraudScore < 0.3 ? (
+                <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-lg mb-6 flex items-start gap-3">
+                  <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-bold">Looks good</p>
+                    <p className="text-sm opacity-90">Our AI didn't find any significant issues with this document.</p>
+                  </div>
+                </div>
+              ) : fraudScore < 0.6 ? (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 p-4 rounded-lg mb-6 flex items-start gap-3">
+                  <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <p className="font-bold">Medium Risk Identified</p>
+                    <ul className="text-sm opacity-90 list-disc list-inside mt-1">
+                      {fraudFlags.map((flag, i) => (
+                        <li key={i}>{flag.description}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 flex items-start gap-3">
+                  <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <p className="font-bold">High Risk Identified</p>
+                    <p className="text-sm opacity-90 mt-1">Registrar review may be delayed due to multiple anomalies found.</p>
+                    <ul className="text-sm opacity-90 list-disc list-inside mt-2">
+                      {fraudFlags.map((flag, i) => (
+                        <li key={i}>{flag.description}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#94A3B8] mb-1">Institution Name</label>
+                  <input 
+                    type="text" 
+                    value={formData.institution_name}
+                    onChange={(e) => setFormData({...formData, institution_name: e.target.value})}
+                    className="w-full bg-[#0B0F19] border border-[#1E2536] rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#06B4C9]"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#94A3B8] mb-1">Credential Type</label>
+                    <select 
+                      value={formData.credential_type}
+                      onChange={(e) => setFormData({...formData, credential_type: e.target.value})}
+                      className="w-full bg-[#0B0F19] border border-[#1E2536] rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#06B4C9]"
+                    >
+                      <option value="diploma">Diploma</option>
+                      <option value="certificate">Certificate</option>
+                      <option value="license">License</option>
+                      <option value="transcript">Transcript</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#94A3B8] mb-1">Date Issued</label>
+                    <input 
+                      type="date" 
+                      value={formData.date_issued}
+                      onChange={(e) => setFormData({...formData, date_issued: e.target.value})}
+                      className="w-full bg-[#0B0F19] border border-[#1E2536] rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#06B4C9] [color-scheme:dark]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#94A3B8] mb-1">Field of Study</label>
+                  <input 
+                    type="text" 
+                    value={formData.field_of_study}
+                    onChange={(e) => setFormData({...formData, field_of_study: e.target.value})}
+                    className="w-full bg-[#0B0F19] border border-[#1E2536] rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#06B4C9]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#94A3B8] mb-1">Skills & Competencies</label>
+                  <div className="flex gap-2 mb-3">
+                    <input 
+                      type="text" 
+                      value={formData.skillInput}
+                      onChange={(e) => setFormData({...formData, skillInput: e.target.value})}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                      placeholder="Add a skill..."
+                      className="flex-1 bg-[#0B0F19] border border-[#1E2536] rounded-lg px-4 py-2 text-white focus:outline-none focus:border-[#06B4C9]"
+                    />
+                    <button 
+                      type="button"
+                      onClick={addSkill}
+                      className="bg-[#1E2536] hover:bg-[#2A3441] text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.skills.map(skill => (
+                      <span key={skill} className="bg-[#06B4C9]/20 text-[#06B4C9] px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                        {skill}
+                        <button onClick={() => removeSkill(skill)} className="hover:text-white transition-colors">
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-end">
+                <button 
+                  onClick={handleSubmitReview}
+                  className="bg-[#06B4C9] hover:bg-[#0598A9] text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Confirm & Submit for Review
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Credential Submitted!</h2>
+              <p className="text-[#94A3B8] mb-8 max-w-md mx-auto">
+                Your credential has been submitted for institutional review. You will be notified once a registrar has reviewed it.
+              </p>
+              <div className="flex items-center justify-center gap-4">
+                <button 
+                  onClick={() => {
+                    setStep(1);
+                    setFile(null);
+                  }}
+                  className="bg-[#1E2536] hover:bg-[#2A3441] text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Upload Another
+                </button>
+                <Link 
+                  href="/student/credentials"
+                  className="bg-[#06B4C9] hover:bg-[#0598A9] text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                >
+                  View My Credentials
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}

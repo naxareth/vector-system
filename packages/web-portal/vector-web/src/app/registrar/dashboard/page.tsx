@@ -4,9 +4,7 @@ import { useRouter } from 'next/navigation';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
 import SchemaBuilder from '@/components/dashboard/SchemaBuilder';
 import HelpTip from '@/components/shared/HelpTip';
-import { ethers } from 'ethers';
 import { supabase } from '@/lib/supabaseClient';
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
 
 interface CredentialSchema {
   id: string;
@@ -21,7 +19,7 @@ interface StudentRecord {
   id: string;
   full_name: string;
   student_id: string;
-  wallet_address: string | null;
+
 }
 
 interface VerifiedCredential {
@@ -29,17 +27,16 @@ interface VerifiedCredential {
   user_id: string;
   skill_name: string;
   issued_at: string;
-  transaction_hash: string;
-  token_id: string;
+
   revoked?: boolean;
 }
 
-interface MintingProgress {
+interface IssuanceProgress {
   isOpen: boolean;
   progress: number;
-  status: 'minting' | 'complete' | 'error';
+  status: 'processing' | 'complete' | 'error';
   message: string;
-  txHash?: string;
+
 }
 
 // Parses the registrar's comma-separated skill_tags input into a clean string array
@@ -75,7 +72,10 @@ const FIELD_HINTS: Record<string, string> = {
 export default function RegistrarDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'issue' | 'build' | 'batch'>('issue');
+  const [activeTab, setActiveTab] = useState<'issue' | 'build' | 'batch' | 'review'>('issue');
+  const [reviewQueue, setReviewQueue] = useState<any[]>([]);
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+  const [expandedFlags, setExpandedFlags] = useState<Record<string, boolean>>({});
 
   // CSV Batch Upload state
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -106,8 +106,8 @@ export default function RegistrarDashboard() {
   const [dynamicData, setDynamicData] = useState<Record<string, string | number | boolean | null>>({});
   const [staticData, setStaticData] = useState({ certificateNumber: '', privateNotes: '' });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [mintingProgress, setMintingProgress] = useState<MintingProgress>({
-    isOpen: false, progress: 0, status: 'minting', message: ''
+  const [issuanceProgress, setIssuanceProgress] = useState<IssuanceProgress>({
+    isOpen: false, progress: 0, status: 'processing', message: ''
   });
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export default function RegistrarDashboard() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return router.replace('/login');
         // eslint-disable-next-line react-hooks/immutability
-        await Promise.all([fetchSchemas(), fetchStudents()]);
+        await Promise.all([fetchSchemas(), fetchStudents(), fetchReviewQueue()]);
         setLoading(false);
       } catch (error) {
         console.error(error);
@@ -167,8 +167,31 @@ export default function RegistrarDashboard() {
     }
   };
 
+  const fetchReviewQueue = async () => {
+    try {
+      const res = await fetch('/api/credentials/review');
+      if (res.ok) setReviewQueue(await res.json());
+    } catch (e) { console.error(e); }
+  };
+
+  const handleReviewAction = async (id: string, action: 'approve' | 'reject') => {
+    setIssuanceProgress({ isOpen: true, progress: 50, status: 'processing', message: `Processing ${action}...` });
+    try {
+      const res = await fetch('/api/credentials/review', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submission_id: id, action, notes: reviewNotes[id] || '' })
+      });
+      if (!res.ok) throw new Error('Failed to process review');
+      setIssuanceProgress({ isOpen: true, progress: 100, status: 'complete', message: `Credential ${action}d successfully` });
+      await fetchReviewQueue();
+    } catch (e: any) {
+      setIssuanceProgress({ isOpen: true, progress: 100, status: 'error', message: e.message || 'Error processing review' });
+    }
+  };
+
   const fetchStudents = async () => {
-    const { data } = await supabase.from('users').select('id, full_name, student_id, wallet_address').eq('role', 'student').order('full_name');
+    const { data } = await supabase.from('users').select('id, full_name, student_id').eq('role', 'student').order('full_name');
     if (data) setStudents(data);
   };
 
@@ -222,22 +245,8 @@ export default function RegistrarDashboard() {
     }
 
     try {
-      setMintingProgress({ isOpen: true, progress: 20, status: 'minting', message: 'Opening secure wallet…' });
-
-      const { ethereum } = window as unknown as { ethereum: ethers.Eip1193Provider };
-      const provider = new ethers.BrowserProvider(ethereum, "any");
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
-
-      setMintingProgress(prev => ({ ...prev, progress: 40, message: 'Recording certificate on the blockchain…' }));
-      // Use timestamp for higher uniqueness than random
-      const numericTokenId = Date.now() % 100000000;
-      const tx = await contract.mintSkill(selectedStudent!.wallet_address, numericTokenId, 1);
-
-      setMintingProgress(prev => ({ ...prev, progress: 70, message: 'Waiting for confirmation…' }));
-      await tx.wait();
-
-      setMintingProgress(prev => ({ ...prev, progress: 90, message: 'Saving certificate to the database…' }));
+      setIssuanceProgress({ isOpen: true, progress: 20, status: 'processing', message: 'Preparing certificate...' });
+      setIssuanceProgress(prev => ({ ...prev, progress: 80, message: 'Saving certificate to the database…' }));
 
       // Build credential_data without skill_tags (it's promoted to its own column)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -261,18 +270,15 @@ export default function RegistrarDashboard() {
           skill_tags: skillTags,                   // ✅ extracted marketable skills array
           credential_data: credentialDataWithoutTags,
           private_notes: staticData.privateNotes,
-          certificate_number: staticData.certificateNumber,
-          token_id: numericTokenId.toString(),
-          transaction_hash: tx.hash
+          certificate_number: staticData.certificateNumber
         })
       });
 
       if (!response.ok) throw new Error(await response.text());
 
-      setMintingProgress({
+      setIssuanceProgress({
         isOpen: true, progress: 100, status: 'complete',
-        message: 'Certificate issued and verified successfully!',
-        txHash: tx.hash
+        message: 'Certificate issued and verified successfully!'
       });
 
       // ✅ Refresh the credentials list immediately so the new one appears in the management panel
@@ -283,70 +289,25 @@ export default function RegistrarDashboard() {
       setStaticData({ certificateNumber: '', privateNotes: '' });
       setValidationErrors({});
     } catch (error: unknown) {
-      const err = error as { code?: string; info?: { error?: { code?: number } } };
-      const isUserRejected = err?.code === 'ACTION_REJECTED' || err?.info?.error?.code === 4001;
-      const message = isUserRejected
-        ? 'Transaction cancelled — you declined the request in MetaMask. No certificate was issued.'
-        : error instanceof Error ? error.message : 'Something went wrong. Please try again.';
-      setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
+      const message = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+      setIssuanceProgress({ isOpen: true, progress: 0, status: 'error', message });
     }
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleRevokeCredential = async (cred: VerifiedCredential) => {
-    if (!selectedStudent || !selectedStudent.wallet_address) {
-      alert("Selected student does not have a connected wallet.");
+    if (!selectedStudent) {
+      alert("Please select a student.");
       return;
     }
 
     const confirmRevoke = window.confirm(
-      `Are you sure you want to REVOKE "${cred.skill_name}" for ${selectedStudent.full_name}?\n\nThis will permanently burn the blockchain token and mark the credential as revoked in the database.`
+      `Are you sure you want to REVOKE "${cred.skill_name}" for ${selectedStudent.full_name}?\n\nThis will mark the credential as revoked in the database.`
     );
     if (!confirmRevoke) return;
 
     try {
-      setMintingProgress({
-        isOpen: true,
-        progress: 10,
-        status: 'minting',
-        message: 'Requesting signature to burn token...',
-      });
-
-      const { ethereum } = window as unknown as { ethereum: ethers.Eip1193Provider };
-      if (!ethereum) throw new Error('MetaMask not found. Please install MetaMask to revoke credentials.');
-
-      const provider = new ethers.BrowserProvider(ethereum, 'any');
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
-      let tx: ethers.ContractTransactionResponse | null = null;
-
-      // Verify balance before burning to prevent silent reverts
-      const balance = await contract.balanceOf(selectedStudent.wallet_address, cred.token_id);
-      let skipBlockchain = false;
-
-      if (balance < BigInt(1)) {
-        const forceRevoke = window.confirm(
-          `GHOST TOKEN DETECTED: The blockchain reports balance 0 for Token ID ${cred.token_id}.\n\nThis usually happens if the local Hardhat node was restarted. Would you like to mark this as REVOKED in the database anyway (Soft Cleanup)?`
-        );
-        if (forceRevoke) {
-          skipBlockchain = true;
-        } else {
-          setMintingProgress({ isOpen: false, progress: 0, status: 'complete', message: '' });
-          return;
-        }
-      }
-
-      if (!skipBlockchain) {
-        setMintingProgress({ isOpen: true, progress: 40, status: 'minting', message: 'Executing revoke on Polygon...' });
-        
-        // Execute Burn (Revoke)
-        tx = await contract.revokeSkill(selectedStudent.wallet_address, cred.token_id, 1);
-        
-        setMintingProgress({ isOpen: true, progress: 70, status: 'minting', message: 'Waiting for blockchain confirmation...' });
-        if (tx) await tx.wait();
-      }
-
-      setMintingProgress({ isOpen: true, progress: 90, status: 'minting', message: skipBlockchain ? 'Performing DB cleanup...' : 'Updating database records...' });
+      setIssuanceProgress({ isOpen: true, progress: 50, status: 'processing', message: 'Updating database records...' });
       
       // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
       const csrfToken = typeof document !== 'undefined' 
@@ -365,32 +326,26 @@ export default function RegistrarDashboard() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(`Blockchain action succeeded, but database sync failed: ${errorData.error || res.statusText}${errorData.details ? ` (${errorData.details})` : ''}`);
+        throw new Error(`Database sync failed: ${errorData.error || res.statusText}${errorData.details ? ` (${errorData.details})` : ''}`);
       }
 
       // Refresh local state
       setStudentCredentials(prev => prev.map(c => c.id === cred.id ? { ...c, revoked: true } : c));
 
-      setMintingProgress({
+      setIssuanceProgress({
         isOpen: true,
         progress: 100,
         status: 'complete',
-        message: skipBlockchain 
-          ? 'Database record marked as revoked (Blockchain skip).' 
-          : 'Credential successfully revoked and token burned.',
-        txHash: tx?.hash,
+        message: 'Credential successfully revoked.',
       });
     } catch (err: unknown) {
       console.error('Revocation Error:', err);
-      const typedErr = err as { code?: string; info?: { error?: { code?: number } }; reason?: string; message?: string };
-      const isUserRejected = typedErr?.code === 'ACTION_REJECTED' || typedErr?.info?.error?.code === 4001;
-      setMintingProgress({
+      const typedErr = err as { reason?: string; message?: string };
+      setIssuanceProgress({
         isOpen: true,
         progress: 100,
         status: 'error',
-        message: isUserRejected
-          ? 'Revocation cancelled — you declined the request in MetaMask. No changes were made.'
-          : typedErr.reason || typedErr.message || 'Transaction failed or was rejected.',
+        message: typedErr.reason || typedErr.message || 'Transaction failed.',
       });
     }
   };
@@ -410,7 +365,7 @@ export default function RegistrarDashboard() {
     <RegistrarLayout>
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-gray-200 dark:border-[#1E2536] pb-4 gap-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Certificate Workspace <HelpTip text="This is your main workspace for managing student certificates. Use the tabs to issue individual certificates, upload in bulk, or design new certificate templates. Every certificate you issue is permanently recorded and verifiable on the blockchain." /></h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Certificate Workspace <HelpTip text="This is your main workspace for managing student certificates. Use the tabs to issue individual certificates, upload in bulk, or design new certificate templates. Every certificate you issue is permanently recorded and verifiable." /></h1>
           <div className="flex bg-gray-100 dark:bg-[#131825] p-1 rounded-lg">
             <button onClick={() => setActiveTab('issue')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'issue' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
               Issue Certificate
@@ -421,10 +376,94 @@ export default function RegistrarDashboard() {
             <button onClick={() => setActiveTab('build')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'build' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
               Template Builder
             </button>
+            <button onClick={() => setActiveTab('review')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'review' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
+              Credential Reviews {reviewQueue.length > 0 && <span className="ml-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{reviewQueue.length}</span>}
+            </button>
           </div>
         </div>
 
-        {activeTab === 'build' ? (
+                {activeTab === 'review' ? (
+          <div className="bg-white dark:bg-[#0E1220] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1E2536] p-8">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Pending Credential Reviews</h2>
+            {reviewQueue.length === 0 ? (
+              <div className="text-center py-12 border border-dashed border-gray-200 dark:border-[#1E2536] rounded-xl">
+                <p className="text-gray-500 dark:text-[#94A3B8]">No pending reviews found.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {reviewQueue.map((item) => {
+                  const fraudScore = item.fraud_score || 0;
+                  const isHighRisk = fraudScore > 0.6;
+                  const isMediumRisk = fraudScore > 0.3 && fraudScore <= 0.6;
+                  const isExpanded = expandedFlags[item.id] || false;
+                  
+                  return (
+                    <div key={item.id} className="border border-gray-200 dark:border-[#1E2536] rounded-xl p-6">
+                      <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                            {item.student_name} <span className="text-sm font-normal text-gray-500 dark:text-[#94A3B8]">({item.student_id})</span>
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-[#94A3B8]">{item.student_email}</p>
+                          <div className="mt-3">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{item.extracted_data?.credential_type || 'Unknown Credential'}</p>
+                            <p className="text-xs text-gray-500 dark:text-[#94A3B8]">{item.extracted_data?.institution_name || 'Unknown Institution'}</p>
+                            <p className="text-xs text-gray-400 mt-1">Submitted: {new Date(item.created_at).toLocaleString()}</p>
+                            <a href={item.file_url} target="_blank" rel="noreferrer" className="text-xs text-[#06B4C9] hover:underline mt-1 inline-block">View Document: {item.file_name}</a>
+                          </div>
+                        </div>
+                        <div className="md:text-right">
+                          <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${isHighRisk ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20' : isMediumRisk ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20' : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20'}`}>
+                            {isHighRisk ? '🔴 High Risk' : isMediumRisk ? '🟡 Medium Risk' : '🟢 Low Risk'} ({(fraudScore * 100).toFixed(0)}%)
+                          </div>
+                        </div>
+                      </div>
+
+                      {item.fraud_flags && item.fraud_flags.length > 0 && (
+                        <div className="mb-4 bg-gray-50 dark:bg-[#131825] rounded-lg border border-gray-100 dark:border-[#1E2536] overflow-hidden">
+                          <button onClick={() => setExpandedFlags(prev => ({...prev, [item.id]: !isExpanded}))} className="w-full px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-[#CBD5E1] flex justify-between items-center hover:bg-gray-100 dark:hover:bg-[#1E2536] transition-colors">
+                            <span>AI Analysis ({item.fraud_flags.length} flags)</span>
+                            <svg className={`w-4 h-4 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                          </button>
+                          {isExpanded && (
+                            <div className="p-4 border-t border-gray-100 dark:border-[#1E2536] space-y-2">
+                              {item.fraud_flags.map((flag: any, i: number) => (
+                                <div key={i} className="flex gap-2 text-sm">
+                                  <span className={`shrink-0 ${flag.severity === 'high' ? 'text-red-500' : flag.severity === 'medium' ? 'text-yellow-500' : 'text-gray-400'}`}>•</span>
+                                  <div>
+                                    <p className="text-gray-800 dark:text-[#E2E8F0]"><span className="font-semibold capitalize">{flag.type}:</span> {flag.description}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="space-y-3">
+                        <textarea
+                          placeholder="Optional notes to student (required for rejection)"
+                          value={reviewNotes[item.id] || ''}
+                          onChange={(e) => setReviewNotes(prev => ({...prev, [item.id]: e.target.value}))}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#131825] dark:text-white"
+                          rows={2}
+                        />
+                        <div className="flex gap-3 justify-end">
+                          <button onClick={() => handleReviewAction(item.id, 'reject')} className="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 font-medium rounded-lg transition-colors text-sm">
+                            ✗ Reject
+                          </button>
+                          <button onClick={() => handleReviewAction(item.id, 'approve')} className="px-4 py-2 bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20 font-medium rounded-lg transition-colors text-sm">
+                            ✓ Approve
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : activeTab === 'build' ? (
           <SchemaBuilder />
         ) : activeTab === 'batch' ? (
           <div className="bg-white dark:bg-[#0E1220] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1E2536] p-8">
@@ -451,7 +490,7 @@ export default function RegistrarDashboard() {
                     <div className="mt-2 bg-accent-10 border border-accent rounded-lg px-3 py-2">
                     <p className="text-xs text-accent">
                       <span className="font-semibold">Required columns:</span>{' '}
-                      <code className="bg-accent-10 px-1 rounded">student_id, wallet_address, {schemaFields.join(', ')}</code>
+                      <code className="bg-accent-10 px-1 rounded">student_id, {schemaFields.join(', ')}</code>
                     </p>
                   </div>
                 );
@@ -588,7 +627,7 @@ export default function RegistrarDashboard() {
                                 <td className="py-2 px-3 text-green-700">{i + 1}</td>
                                 {allKeys.map(k => (
                                   <td key={k} className="py-2 px-3 text-xs">
-                                    {k === 'wallet_address' ? `${String(row[k] || '').slice(0, 10)}...` : row[k]}
+                                    {String(row[k] || '')}
                                   </td>
                                 ))}
                               </tr>
@@ -605,56 +644,21 @@ export default function RegistrarDashboard() {
                           if (!batchSchema) return alert('Template not found.');
 
                           try {
-                            setMintingProgress({ isOpen: true, progress: 5, status: 'minting', message: 'Connecting wallet...' });
-
-                            const { ethereum } = window as unknown as { ethereum: ethers.Eip1193Provider };
-                            if (!ethereum) throw new Error('MetaMask not found. Please install it.');
-                            const provider = new ethers.BrowserProvider(ethereum, 'any');
-                            const signer = await provider.getSigner();
-                            const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, signer);
+                            setIssuanceProgress({ isOpen: true, progress: 5, status: 'processing', message: 'Preparing batch...' });
 
                             const total = rows.length;
-
-                            // ── Build batch arrays for single ERC-1155 batchMintSkills call ──
-                            const addresses: string[] = [];
-                            const tokenIds: number[] = [];
-                            const amounts: number[] = [];
-
-                            for (const row of rows) {
-                              addresses.push(String(row.wallet_address));
-                              tokenIds.push(Math.floor(Math.random() * 1000000));
-                              amounts.push(1);
-                            }
-
-                            // Phase 1: Single on-chain transaction (1 MetaMask popup)
-                            setMintingProgress(prev => ({
-                              ...prev,
-                              progress: 15,
-                              message: `Minting ${total} credential${total > 1 ? 's' : ''} — sign once in MetaMask...`,
-                            }));
-
-                            const tx = await contract.batchMintSkills(addresses, tokenIds, amounts);
-
-                            // Phase 2: Wait for chain confirmation
-                            setMintingProgress(prev => ({
-                              ...prev,
-                              progress: 45,
-                              message: `Confirming batch transaction on Polygon...`,
-                            }));
-                            await tx.wait();
 
                             // Phase 3: Save each credential to database
                             let completed = 0;
                             for (let idx = 0; idx < rows.length; idx++) {
                               const row = rows[idx];
-                              setMintingProgress(prev => ({
+                              setIssuanceProgress(prev => ({
                                 ...prev,
                                 progress: 50 + Math.round((idx / total) * 45),
                                 message: `Saving record ${idx + 1} of ${total} to database...`,
                               }));
 
-                              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                              const { student_id, wallet_address: _wallet_address, skill_tags: rawTags, ...credentialData } = row;
+                              const { student_id, skill_tags: rawTags, ...credentialData } = row;
                               const skillTags = rawTags ? String(rawTags).split(',').map((t: string) => t.trim()).filter(Boolean) : [];
 
                               // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
@@ -675,31 +679,25 @@ export default function RegistrarDashboard() {
                                   skill_tags: skillTags,
                                   credential_data: credentialData,
                                   private_notes: '',
-                                  certificate_number: `BATCH-${Date.now()}-${idx + 1}`,
-                                  token_id: tokenIds[idx].toString(),
-                                  transaction_hash: tx.hash,
+                                  certificate_number: `BATCH-${Date.now()}-${idx + 1}`
                                 }),
                               });
 
                               if (!saveRes.ok) {
                                 const errText = await saveRes.text().catch(() => 'Unknown error');
-                                throw new Error(`Minted on-chain but failed to save record ${idx + 1}: ${errText}`);
+                                throw new Error(`Failed to save record ${idx + 1}: ${errText}`);
                               }
 
                               completed++;
                             }
 
-                            setMintingProgress({
+                            setIssuanceProgress({
                               isOpen: true, progress: 100, status: 'complete',
                               message: `Successfully issued ${completed} certificate${completed > 1 ? 's' : ''}.`,
                             });
                           } catch (error: unknown) {
-                            const err = error as { code?: string; info?: { error?: { code?: number } } };
-                            const isUserRejected = err?.code === 'ACTION_REJECTED' || err?.info?.error?.code === 4001;
-                            const message = isUserRejected
-                              ? 'Batch transaction cancelled — you declined the request in MetaMask. No certificates were issued.'
-                              : error instanceof Error ? error.message : 'Batch processing failed';
-                            setMintingProgress({ isOpen: true, progress: 0, status: 'error', message });
+                            const message = error instanceof Error ? error.message : 'Batch processing failed';
+                            setIssuanceProgress({ isOpen: true, progress: 0, status: 'error', message });
                           }
                         }}
                         className="mt-4 w-full py-3 bg-accent text-white font-bold rounded-xl hover:opacity-90 transition-all shadow-lg"
@@ -715,7 +713,7 @@ export default function RegistrarDashboard() {
             {/* Help text */}
             <div className="mt-5 bg-gray-50 dark:bg-[#131825] rounded-xl p-4 border border-gray-100 dark:border-[#1E2536]">
               <p className="text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-2">Spreadsheet Format Tips</p>
-              <p className="text-xs text-gray-500 dark:text-[#94A3B8]">Select a template above to see the exact columns needed. <strong>student_id</strong> and <strong>wallet_address</strong> are always required.</p>
+              <p className="text-xs text-gray-500 dark:text-[#94A3B8]">Select a template above to see the exact columns needed. <strong>student_id</strong> is always required.</p>
               <div className="mt-2 space-y-0.5">
                 <p className="text-xs text-gray-400 dark:text-[#64748B]">• Special characters are automatically cleaned</p>
                 <p className="text-xs text-gray-400 dark:text-[#64748B]">• Maximum file size: 1 MB — Maximum rows: 500</p>
@@ -724,7 +722,7 @@ export default function RegistrarDashboard() {
           </div>
         ) : (
           <div className="bg-white dark:bg-[#0E1220] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1E2536] p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Issue Certificate <HelpTip text="Fill out the form below to create and send a verified certificate to one student. You'll need to select a student, choose a template, fill in the details, and approve the transaction in your wallet. The certificate will be permanently recorded on the blockchain." /></h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Issue Certificate <HelpTip text="Fill out the form below to create and send a verified certificate to one student. You'll need to select a student, choose a template, and fill in the details. The certificate will be permanently recorded." /></h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {/* Student Search */}
@@ -757,10 +755,7 @@ export default function RegistrarDashboard() {
                           <p className="text-sm font-bold text-gray-900 dark:text-white">{s.full_name}</p>
                           <p className="text-xs text-gray-500 dark:text-[#64748B]">ID: {s.student_id || 'Not Assigned'}</p>
                         </div>
-                        {s.wallet_address ?
-                          <span className="text-[10px] bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 px-2 py-1 rounded font-bold">Wallet Ready ✓</span>
-                          : <span className="text-[10px] bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400 px-2 py-1 rounded font-bold">No Wallet <HelpTip size={12} text="This student hasn't connected a digital wallet (MetaMask) yet. They'll need to set one up from their dashboard before you can issue them a blockchain-verified certificate. You can still prepare the certificate, but the final step requires a wallet." /></span>
-                        }
+                        <span className="text-[10px] bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 px-2 py-1 rounded font-bold">Verified User ✓</span>
                       </div>
                     ))}
                   </div>
@@ -904,22 +899,22 @@ export default function RegistrarDashboard() {
         )}
 
         {/* Minting Progress Modal */}
-        {mintingProgress.isOpen && (
+        {issuanceProgress.isOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
             <div className="bg-white dark:bg-[#131825] rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                {mintingProgress.status === 'complete' ? 'Success!' : mintingProgress.status === 'error' ? 'Something went wrong' : 'Processing…'}
+                {issuanceProgress.status === 'complete' ? 'Success!' : issuanceProgress.status === 'error' ? 'Something went wrong' : 'Processing…'}
               </h2>
-              <p className="mb-4 text-gray-600 dark:text-[#94A3B8]">{mintingProgress.message}</p>
+              <p className="mb-4 text-gray-600 dark:text-[#94A3B8]">{issuanceProgress.message}</p>
               <div className="w-full bg-gray-100 dark:bg-[#1E2536] rounded-full h-2 overflow-hidden mb-6">
                 <div
-                  className={`h-full transition-all duration-500 ${mintingProgress.status === 'error' ? 'bg-red-500' : 'bg-[#06B4C9]'}`}
-                  style={{ width: `${mintingProgress.progress}%` }}
+                  className={`h-full transition-all duration-500 ${issuanceProgress.status === 'error' ? 'bg-red-500' : 'bg-[#06B4C9]'}`}
+                  style={{ width: `${issuanceProgress.progress}%` }}
                 />
               </div>
-              {(mintingProgress.status === 'complete' || mintingProgress.status === 'error') && (
+              {(issuanceProgress.status === 'complete' || issuanceProgress.status === 'error') && (
                 <button
-                  onClick={() => setMintingProgress({ isOpen: false, progress: 0, status: 'minting', message: '' })}
+                  onClick={() => setIssuanceProgress({ isOpen: false, progress: 0, status: 'processing', message: '' })}
                   className="w-full py-3 bg-[#06B4C9] hover:bg-[#0496a3] text-white font-bold rounded-xl transition-all"
                 >
                   Close

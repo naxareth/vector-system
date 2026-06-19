@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Fetch user profile to get their student ID
     const { data: userProfile, error: userError } = await supabase
       .from('users')
-      .select('student_id, wallet_address')
+      .select('student_id')
       .eq('id', userId)
       .maybeSingle();
 

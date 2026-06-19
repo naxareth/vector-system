@@ -1,29 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, VECTOR_TOKEN_ABI } from '@/lib/blockchain';
 import { verifyRateLimiter } from '@/lib/rate-limiter'; // 🛡️ Checkpoint #2
 
 // ---------------------------------------------------------------------------
 // GET /api/verify/cvr/[id]
 //
 // Public — no auth required.
-// Returns CVR snapshot, student identity, per-credential on-chain status,
+// Returns CVR snapshot, student identity, per-credential verification status,
 // and isLatest flag so employers know if a newer version exists.
 //
 // 🛡️ SECURITY (Checkpoint #2):
 //   - Rate limited: 10 requests/minute per IP
-//   - PII redacted: email removed, studentId removed, walletAddress truncated
+//   - PII redacted: email removed, studentId removed
 // ---------------------------------------------------------------------------
 
-const POLYGON_AMOY_RPC = 'https://rpc-amoy.polygon.technology/';
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-/** Truncate a string for public display (e.g. wallet address) */
-function truncateAddress(addr: string): string {
-  if (!addr || addr.length <= 13) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
+
 
 export async function GET(
   _req: NextRequest,
@@ -67,7 +60,7 @@ export async function GET(
         users: {
           select: {
             full_name: true,
-            wallet_address: true,
+
             // 🛡️ student_id and email intentionally NOT selected (PII redaction)
           },
         },
@@ -110,7 +103,7 @@ export async function GET(
   // -------------------------------------------------------------------------
   // 3. Fetch verified_credentials in this CVR
   // -------------------------------------------------------------------------
-  let credentials: { id: string; skill_name: string; token_id: string; transaction_hash: string | null; issued_at: Date | null; certificate_number: string | null; batch: { batch_name: string | null; registrar: { full_name: string | null } | null } | null }[] = [];
+  let credentials: { id: string; skill_name: string; issued_at: Date | null; certificate_number: string | null; revoked: boolean | null; batch: { batch_name: string | null; registrar: { full_name: string | null } | null } | null }[] = [];
   if (cvrExport.credential_ids && cvrExport.credential_ids.length > 0) {
     try {
       credentials = await prisma.verified_credentials.findMany({
@@ -118,10 +111,10 @@ export async function GET(
         select: {
           id: true,
           skill_name: true,
-          token_id: true,
-          transaction_hash: true,
+
           issued_at: true,
           certificate_number: true,
+          revoked: true,
           batch: {
             select: {
               batch_name: true,
@@ -138,37 +131,25 @@ export async function GET(
   }
 
   // -------------------------------------------------------------------------
-  // 4. On-chain verification per credential
+  // 4. Verification per credential
   // -------------------------------------------------------------------------
-  const walletAddress = cvrExport.users.wallet_address;
+
   const verifiedCredentials = await Promise.all(
     credentials.map(async (cred) => {
-      let onChain: { verified: boolean; balance: number | null; error: string | null } =
-        { verified: false, balance: null, error: null };
-
-      if (walletAddress && cred.token_id) {
-        try {
-          const provider = new ethers.JsonRpcProvider(POLYGON_AMOY_RPC);
-          const contract = new ethers.Contract(CONTRACT_ADDRESS, VECTOR_TOKEN_ABI, provider);
-          const balance: bigint = await contract.balanceOf(walletAddress, BigInt(cred.token_id));
-          onChain = { verified: balance > BigInt(0), balance: Number(balance), error: null };
-        } catch {
-          onChain = { verified: false, balance: null, error: 'Could not reach Polygon Amoy RPC.' };
-        }
-      } else {
-        onChain.error = 'No wallet address or token ID associated with this credential.';
-      }
+      const verification = {
+        verified: !cred.revoked,
+        error: cred.revoked ? 'This credential has been revoked.' : null,
+      };
 
       return {
         id: cred.id,
         skillName: cred.skill_name,
-        tokenId: cred.token_id,
-        transactionHash: cred.transaction_hash ?? null,
+
         issuedAt: cred.issued_at,
         certificateNumber: cred.certificate_number ?? null,
         batchName: cred.batch?.batch_name ?? null,
         registrarName: cred.batch?.registrar?.full_name ?? null,
-        onChain,
+        verification,
       };
     })
   );
@@ -186,8 +167,7 @@ export async function GET(
       student: {
         fullName: cvrExport.users.full_name ?? 'Unknown',
         // 🛡️ studentId removed — not included in response (PII redaction)
-        // 🛡️ walletAddress truncated for privacy
-        walletAddress: walletAddress ? truncateAddress(walletAddress) : null,
+
       },
       credentials: verifiedCredentials,
       snapshot: cvrExport.snapshot,

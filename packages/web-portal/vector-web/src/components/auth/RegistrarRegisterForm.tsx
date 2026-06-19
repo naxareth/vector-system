@@ -227,6 +227,7 @@ export default function RegistrarRegisterForm() {
             {...register('confirmPassword')}
             type={showConfirmPassword ? "text" : "password"}
             onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
+            onPaste={(e) => e.preventDefault()}
             className={`w-full px-3 py-2 pr-10 border ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-[#011018] outline-none transition-all hide-password-toggle`}
           />
           <button

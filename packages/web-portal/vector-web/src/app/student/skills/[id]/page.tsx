@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Link from 'next/link';
-import { SKILL_MAP } from '@/lib/blockchain'; // ✅ Added to decode bc- IDs
+
 
 interface CredentialData {
   id: string;
   skill_name: string;
   certificate_number?: string;
   issued_at: string;
-  transaction_hash?: string;
+
   private_notes?: string | null;
 }
 
@@ -25,24 +25,6 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     const fetchDetail = async () => {
       try {
-        // 1. 🛡️ Handle Blockchain-Only Credentials (IDs starting with 'bc-')
-        if (id.startsWith('bc-')) {
-          const skillId = parseInt(id.replace('bc-', ''));
-          // Find the skill name by matching the ID in the SKILL_MAP
-          const skillName = Object.keys(SKILL_MAP).find(key => (SKILL_MAP as Record<string, number>)[key] === skillId);
-          
-          if (skillName) {
-            setCredential({
-              id: id,
-              skill_name: skillName,
-              certificate_number: 'ON-CHAIN-ONLY',
-              issued_at: new Date().toISOString(), // Fallback for pure blockchain reads
-              transaction_hash: 'verified_on_chain', 
-              private_notes: null
-            });
-            return; // Exit early, no need to query DB
-          }
-        }
 
         // 2. 🛡️ Fetching from our secure API for University-Issued credentials
         const res = await fetch('/api/student/credentials');
@@ -88,7 +70,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             <h1 className="text-3xl font-bold mb-2">{credential.skill_name}</h1>
             <p className="text-[#06B4C9] opacity-90">
-              {id.startsWith('bc-') ? 'Decentralized Smart Contract Proof' : 'University Verified Micro-Credential'}
+              University Verified Micro-Credential
             </p>
           </div>
 
@@ -112,26 +94,11 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Issue Date</label>
                 <p className="text-gray-900 font-medium">
-                  {id.startsWith('bc-') ? 'Real-time via Smart Contract' : new Date(credential.issued_at).toLocaleDateString('en-US', { dateStyle: 'long' })}
+                  {new Date(credential.issued_at).toLocaleDateString('en-US', { dateStyle: 'long' })}
                 </p>
               </div>
 
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Blockchain Receipt</label>
-                {/* Check if it's a real tx hash or just our placeholder */}
-                {credential.transaction_hash?.startsWith('0x') ? (
-                  <a 
-                    href={`https://amoy.polygonscan.com/tx/${credential.transaction_hash}`} 
-                    target="_blank" 
-                    className="text-[#06B4C9] text-sm break-all hover:underline flex items-center gap-1"
-                  >
-                    {credential.transaction_hash?.slice(0, 24)}...
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                  </a>
-                ) : (
-                   <p className="text-gray-900 text-sm font-medium">Verified via Polygon Contract State</p>
-                )}
-              </div>
+
             </div>
 
             {/* The Vault Section (Decrypted Data) */}
@@ -148,7 +115,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 )}
               </div>
               <p className="text-[10px] text-slate-400 mt-4 leading-relaxed">
-                Notice: These notes are end-to-end encrypted. Only you and the issuing registrar can view this data. It is not included in the public blockchain metadata.
+                Notice: These notes are end-to-end encrypted. Only you and the issuing registrar can view this data.
               </p>
             </div>
           </div>

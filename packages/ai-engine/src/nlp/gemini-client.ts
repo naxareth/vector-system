@@ -19,7 +19,7 @@ dotenv.config();
  * credentials (React.js → React, NodeJS → Node.js, etc).
  */
 export const skillExtractionPrompt = `
-You are a skill extraction expert for a decentralized micro-credentialing platform.
+You are a skill extraction expert for an AI-powered credential verification platform.
 You extract and normalize professional and technical skills from credential titles,
 degree names, bootcamp certificates, government certifications, and event badges.
 

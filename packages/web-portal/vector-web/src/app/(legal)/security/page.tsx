@@ -15,7 +15,7 @@ export default function SecurityPage() {
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Security</h1>
         <p className="text-gray-500 text-base max-w-2xl leading-relaxed">
-          Vector is designed with enterprise-grade security at every layer — from encrypted data storage to blockchain-anchored verification. Here&apos;s how we protect your data.
+          Vector is designed with enterprise-grade security at every layer — from encrypted data storage to institution-anchored verification. Here&apos;s how we protect your data.
         </p>
       </div>
 
@@ -129,18 +129,7 @@ export default function SecurityPage() {
           </ul>
         </section>
 
-        {/* Blockchain */}
-        <section>
-          <h2>Blockchain Security</h2>
-          <p>Credential integrity is guaranteed through blockchain architecture:</p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li><strong>Smart contract access control:</strong> Only addresses granted the <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">REGISTRAR_ROLE</code> via OpenZeppelin&apos;s AccessControl can mint credential tokens</li>
-            <li><strong>Soulbound tokens:</strong> ERC-1155 tokens are non-transferable, preventing credential fraud through token trading</li>
-            <li><strong>Immutable records:</strong> Once minted, credential data on the Polygon network cannot be altered, deleted, or tampered with</li>
-            <li><strong>Verified contract:</strong> The VectorToken smart contract uses battle-tested OpenZeppelin library implementations</li>
-            <li><strong>Wallet integration:</strong> Vector never has access to your private keys — wallet operations use RainbowKit and client-side signing only</li>
-          </ul>
-        </section>
+
 
         {/* Monitoring */}
         <section>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { fetchWalletSkillNames } from '@/lib/blockchain';
+
 import { resumeSchema, SkillItem, CVRData, CVREducation, CVRExperience, CVRProject, CVRCertification, CVRAward } from '@/lib/schemas/cvr';
 
 // Type for the dynamic section fields
@@ -50,7 +50,7 @@ export function useCVR() {
 
         const { data: userRecord } = await supabase
           .from('users')
-          .select('full_name, wallet_address')
+          .select('full_name')
           .eq('id', session.user.id)
           .single();
 
@@ -70,17 +70,21 @@ export function useCVR() {
           portfolio: profileRecord?.linkedin_url || ''
         }));
 
-        if (userRecord?.wallet_address) {
-          // eslint-disable-next-line react-hooks/immutability
-          await fetchVerifiedSkills(userRecord.wallet_address);
-        }
-
         const { data: certs } = await supabase
           .from('verified_credentials')
           .select('*')
           .eq('user_id', session.user.id);
 
-        if (certs) setAvailableCertifications(certs);
+        if (certs) {
+          setAvailableCertifications(certs);
+          const foundSkills: SkillItem[] = certs.map((cert, index) => ({
+             id: `cert-${index}`,
+             name: cert.skill_name,
+             verified: true,
+          }));
+          setAvailableSkills(foundSkills);
+          setSelectedSkillIds(foundSkills.map(s => s.id));
+        }
 
       } catch (error) {
         console.error("CVR Data Error:", error);
@@ -91,19 +95,7 @@ export function useCVR() {
     initPage();
   }, [router]);
 
-  const fetchVerifiedSkills = async (walletAddress: string) => {
-    try {
-      const foundSkills: SkillItem[] = (await fetchWalletSkillNames(walletAddress)).map((skillName, index) => ({
-        id: `chain-${skillName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`,
-        name: skillName,
-        verified: true,
-      }));
-      setAvailableSkills(foundSkills);
-      setSelectedSkillIds(foundSkills.map(s => s.id));
-    } catch (error) {
-      console.error("Blockchain Scan Failed:", error);
-    }
-  };
+
 
   // --- Handlers ---
   const handleChange = (field: string, value: string) => {
@@ -150,7 +142,7 @@ export function useCVR() {
     if (exists) return;
     addItem('certifications', {
       name: cert.skill_name,
-      issuer: 'Vector University (Blockchain Verified)',
+      issuer: 'Vector University (Verified)',
       date: new Date(cert.issued_at).toLocaleDateString(),
       verified: true
     });
