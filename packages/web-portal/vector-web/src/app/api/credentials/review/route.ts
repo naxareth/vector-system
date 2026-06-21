@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 
-export async function GET(req: Request) {
+export async function GET() {
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -143,7 +143,14 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Submission is no longer pending' }, { status: 400 });
     }
 
-    const extractedData: any = submission.extracted_data || {};
+    interface ExtractedData {
+      skills?: string[];
+      credential_number?: string;
+      credential_type?: string;
+      institution_name?: string;
+      [key: string]: unknown;
+    }
+    const extractedData = (submission.extracted_data as ExtractedData) || {};
 
     if (action === 'approve') {
       // 1. Create verified_credentials

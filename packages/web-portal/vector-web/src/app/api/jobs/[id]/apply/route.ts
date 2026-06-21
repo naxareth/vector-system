@@ -57,10 +57,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
 
     return NextResponse.json(application);
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
         return NextResponse.json({ error: 'You have already applied for this job' }, { status: 409 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

@@ -60,7 +60,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({
-      applications: applications.map((app: any) => ({
+      applications: applications.map((app) => ({
         id: app.id,
         status: app.status,
         applied_at: app.applied_at,
@@ -77,7 +77,7 @@ export async function GET(req: Request) {
       })),
       total
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

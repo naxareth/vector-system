@@ -27,7 +27,7 @@ export async function GET(req: Request) {
   const job_type = searchParams.get('job_type');
   const employer_id = searchParams.get('employer_id');
 
-  const where: any = { status: 'active' };
+  const where: import('@prisma/client').Prisma.job_postingsWhereInput = { status: 'active' };
 
   if (skillsParam) {
     const skills = skillsParam.split(',').map(s => s.trim()).filter(Boolean);
@@ -67,8 +67,8 @@ export async function GET(req: Request) {
     ]);
 
     return NextResponse.json({ jobs, total, page });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = jobSchema.parse(body);
     
-    let employerProfile = await prisma.employer_profiles.findUnique({
+    const employerProfile = await prisma.employer_profiles.findUnique({
       where: { user_id: user.id }
     });
     
@@ -121,10 +121,10 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(job);
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
         return NextResponse.json({ error: error.flatten().fieldErrors }, { status: 400 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
