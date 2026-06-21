@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, use } from 'react';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import EmployerLayout from '@/components/dashboard/EmployerLayout';
 
@@ -22,24 +22,22 @@ export default function JobApplicants({ params }: { params: Promise<{ id: string
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchApplicants = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/jobs/${id}/applicants`);
-      if (res.ok) {
-        const data = await res.json();
-        setApplicants(data.applications || []);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
   useEffect(() => {
+    const fetchApplicants = async () => {
+      try {
+        const res = await fetch(`/api/jobs/${id}/applicants`);
+        if (res.ok) {
+          const data = await res.json();
+          setApplicants(data.applications || []);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchApplicants();
-  }, [fetchApplicants]);
+  }, [id]);
 
   const updateStatus = async (application_id: string, new_status: string) => {
     try {

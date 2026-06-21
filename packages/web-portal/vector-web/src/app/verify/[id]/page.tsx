@@ -31,10 +31,7 @@ interface VerificationResult {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function truncate(str: string, start = 6, end = 4) {
-  if (!str || str.length <= start + end + 3) return str;
-  return `${str.slice(0, start)}...${str.slice(-end)}`;
-}
+
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {

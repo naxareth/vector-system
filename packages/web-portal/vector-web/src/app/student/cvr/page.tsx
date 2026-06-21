@@ -12,8 +12,6 @@ import HelpTip from '@/components/shared/HelpTip';
 import Pagination from '@/components/shared/Pagination';
 import {
   PersonalDetailsSection,
-  EducationSection,
-  ExperienceSection,
   ProjectsSection,
   CertificationsSection,
   VerifiedCertificationsBlock,
@@ -224,16 +222,18 @@ export default function CVRPage() {
           .eq('id', session.user.id)
           .maybeSingle();
 
-                const rawWork = Array.isArray(profileRecord?.work_experience) ? profileRecord.work_experience : typeof profileRecord?.work_experience === 'string' ? JSON.parse(profileRecord.work_experience) : [];
-        const mappedWork = rawWork.map((w: any) => ({
+                interface ProfileWork { title?: string; company?: string; current?: boolean; start_date?: string; end_date?: string; description?: string; }
+        const rawWork = Array.isArray(profileRecord?.work_experience) ? profileRecord.work_experience : typeof profileRecord?.work_experience === 'string' ? JSON.parse(profileRecord.work_experience) : [];
+        const mappedWork = rawWork.map((w: ProfileWork) => ({
           title: w.title || '',
           company: w.company || '',
           dates: w.current ? `${w.start_date || ''} - Present` : `${w.start_date || ''} - ${w.end_date || ''}`,
           description: w.description || ''
         }));
         
+        interface ProfileEdu { school?: string; degree?: string; field?: string; start_year?: string; end_year?: string; }
         const rawEdu = Array.isArray(profileRecord?.education_history) ? profileRecord.education_history : typeof profileRecord?.education_history === 'string' ? JSON.parse(profileRecord.education_history) : [];
-        const mappedEdu = rawEdu.map((e: any) => ({
+        const mappedEdu = rawEdu.map((e: ProfileEdu) => ({
           school: e.school || '',
           degree: `${e.degree || ''} ${e.field || ''}`.trim(),
           location: '',

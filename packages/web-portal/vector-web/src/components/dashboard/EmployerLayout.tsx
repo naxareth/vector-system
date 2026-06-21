@@ -149,7 +149,7 @@ function EmployerShell({ children }: { children: React.ReactNode }) {
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
             {navigation.map((item) => {
-              const isActive = pathname.startsWith(item.href) && (item.href !== '/employer/postings' || pathname === '/employer/postings' || pathname.startsWith('/employer/postings/'));
+
               // Exact match for dashboard, startsWith for others to handle dynamic routes
               const isActuallyActive = item.href === '/employer/dashboard' ? pathname === item.href : pathname.startsWith(item.href);
 

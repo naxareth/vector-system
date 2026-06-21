@@ -73,7 +73,19 @@ export default function RegistrarDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'issue' | 'build' | 'batch' | 'review'>('issue');
-  const [reviewQueue, setReviewQueue] = useState<any[]>([]);
+  interface ReviewItem {
+    id: string;
+    student_name: string;
+    student_id: string;
+    student_email: string;
+    extracted_data?: Record<string, string>;
+    fraud_score: number;
+    fraud_flags?: Array<{ type: string; description: string; severity: string }>;
+    created_at: string;
+    file_url: string;
+    file_name: string;
+  }
+  const [reviewQueue, setReviewQueue] = useState<ReviewItem[]>([]);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [expandedFlags, setExpandedFlags] = useState<Record<string, boolean>>({});
 
@@ -185,8 +197,8 @@ export default function RegistrarDashboard() {
       if (!res.ok) throw new Error('Failed to process review');
       setIssuanceProgress({ isOpen: true, progress: 100, status: 'complete', message: `Credential ${action}d successfully` });
       await fetchReviewQueue();
-    } catch (e: any) {
-      setIssuanceProgress({ isOpen: true, progress: 100, status: 'error', message: e.message || 'Error processing review' });
+    } catch (e) {
+      setIssuanceProgress({ isOpen: true, progress: 100, status: 'error', message: e instanceof Error ? e.message : 'Error processing review' });
     }
   };
 
@@ -427,7 +439,7 @@ export default function RegistrarDashboard() {
                           </button>
                           {isExpanded && (
                             <div className="p-4 border-t border-gray-100 dark:border-[#1E2536] space-y-2">
-                              {item.fraud_flags.map((flag: any, i: number) => (
+                              {item.fraud_flags.map((flag, i: number) => (
                                 <div key={i} className="flex gap-2 text-sm">
                                   <span className={`shrink-0 ${flag.severity === 'high' ? 'text-red-500' : flag.severity === 'medium' ? 'text-yellow-500' : 'text-gray-400'}`}>•</span>
                                   <div>

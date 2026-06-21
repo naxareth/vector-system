@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import EmployerLayout from '@/components/dashboard/EmployerLayout';
 import { supabase } from '@/lib/supabaseClient';
@@ -34,27 +34,25 @@ export default function JobPostingsManagement() {
     preferred_skills: ''
   });
 
-  const fetchPostings = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const res = await fetch(`/api/jobs?employer_id=${user.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPostings(data.jobs || []);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
+    const fetchPostings = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const res = await fetch(`/api/jobs?employer_id=${user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setPostings(data.jobs || []);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchPostings();
-  }, [fetchPostings]);
+  }, []);
 
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,9 +81,10 @@ export default function JobPostingsManagement() {
       setFormData({
         title: '', description: '', location: '', job_type: 'Full-time', salary_range: '', required_skills: '', preferred_skills: ''
       });
+      setLoading(true);
       fetchPostings();
-    } catch (e: any) {
-      setCreateError(e.message);
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : String(e));
     } finally {
       setCreating(false);
     }

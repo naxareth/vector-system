@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
@@ -27,6 +27,31 @@ interface JobMatch {
   aiInsight?: string;
 }
 
+function Pagination({ totalPages, page, setPage }: { totalPages: number, page: number, setPage: (p: number | ((prev: number) => number)) => void }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex justify-center items-center gap-2 mt-6">
+      <button
+        className="px-2 py-1 rounded border text-xs font-medium disabled:opacity-40"
+        onClick={() => setPage(p => Math.max(1, p - 1))}
+        disabled={page === 1}
+      >
+        Prev
+      </button>
+      <span className="text-xs text-gray-500">
+        Page {page} of {totalPages}
+      </span>
+      <button
+        className="px-2 py-1 rounded border text-xs font-medium disabled:opacity-40"
+        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+        disabled={page === totalPages}
+      >
+        Next
+      </button>
+    </div>
+  );
+}
+
 export default function JobBoard() {
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [matchMap, setMatchMap] = useState<Record<string, number>>({});
@@ -38,25 +63,7 @@ export default function JobBoard() {
   const [loading, setLoading] = useState(false);
   const JOBS_PER_PAGE = 20;
 
-  const fetchJobs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (search) params.set('location', search);
-      params.set('page', page.toString());
-      params.set('limit', JOBS_PER_PAGE.toString());
 
-      const res = await fetch(`/api/jobs?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setJobs(data.jobs || []);
-        setTotalPages(Math.max(1, Math.ceil((data.total || 0) / JOBS_PER_PAGE)));
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    setLoading(false);
-  }, [search, page]);
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -79,36 +86,31 @@ export default function JobBoard() {
   }, []);
 
   useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (search) params.set('location', search);
+        params.set('page', page.toString());
+        params.set('limit', JOBS_PER_PAGE.toString());
+
+        const res = await fetch(`/api/jobs?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          setJobs(data.jobs || []);
+          setTotalPages(Math.max(1, Math.ceil((data.total || 0) / JOBS_PER_PAGE)));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      setLoading(false);
+    };
     fetchJobs();
-  }, [fetchJobs]);
+  }, [search, page]);
 
   const displayJobs = mode === 'matches' ? matchedJobs.map(m => m.job) : jobs;
 
 
-  function Pagination() {
-    if (totalPages <= 1) return null;
-    return (
-      <div className="flex justify-center items-center gap-2 mt-6">
-        <button
-          className="px-2 py-1 rounded border text-xs font-medium disabled:opacity-40"
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          Prev
-        </button>
-        <span className="text-xs text-gray-500">
-          Page {page} of {totalPages}
-        </span>
-        <button
-          className="px-2 py-1 rounded border text-xs font-medium disabled:opacity-40"
-          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-          disabled={page === totalPages}
-        >
-          Next
-        </button>
-      </div>
-    );
-  }
+  // Pagination component moved outside
 
   return (
     <DashboardLayout>
@@ -246,7 +248,7 @@ export default function JobBoard() {
               </div>
             )})}
           </div>
-          {mode === 'all' && <Pagination />}
+          {mode === 'all' && <Pagination totalPages={totalPages} page={page} setPage={setPage} />}
         </>
       )}
     </DashboardLayout>

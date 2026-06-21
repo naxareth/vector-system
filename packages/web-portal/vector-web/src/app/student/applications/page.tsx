@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
@@ -28,6 +28,31 @@ const STATUS_COLORS: Record<string, string> = {
   REJECTED: 'bg-red-100 text-red-800 border-red-200',
 };
 
+function Pagination({ totalPages, page, setPage }: { totalPages: number, page: number, setPage: (p: number | ((prev: number) => number)) => void }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex justify-center items-center gap-2 mt-6">
+      <button
+        className="px-2 py-1 rounded border text-xs font-medium disabled:opacity-40"
+        onClick={() => setPage(p => Math.max(1, p - 1))}
+        disabled={page === 1}
+      >
+        Prev
+      </button>
+      <span className="text-xs text-gray-500">
+        Page {page} of {totalPages}
+      </span>
+      <button
+        className="px-2 py-1 rounded border text-xs font-medium disabled:opacity-40"
+        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+        disabled={page === totalPages}
+      >
+        Next
+      </button>
+    </div>
+  );
+}
+
 export default function Applications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,49 +60,24 @@ export default function Applications() {
   const [totalPages, setTotalPages] = useState(1);
   const APPS_PER_PAGE = 20;
 
-  const fetchApplications = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/student/applications?page=${page}&limit=${APPS_PER_PAGE}`);
-      if (res.ok) {
-        const data = await res.json();
-        setApplications(data.applications || []);
-        setTotalPages(Math.max(1, Math.ceil((data.total || 0) / APPS_PER_PAGE)));
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const res = await fetch(`/api/student/applications?page=${page}&limit=${APPS_PER_PAGE}`);
+        if (res.ok) {
+          const data = await res.json();
+          setApplications(data.applications || []);
+          setTotalPages(Math.max(1, Math.ceil((data.total || 0) / APPS_PER_PAGE)));
+        }
+      } catch (e) {
+        console.error(e);
       }
-    } catch (e) {
-      console.error(e);
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+    fetchApplications();
   }, [page]);
 
-  useEffect(() => {
-    fetchApplications();
-  }, [fetchApplications]);
-
-  function Pagination() {
-    if (totalPages <= 1) return null;
-    return (
-      <div className="flex justify-center items-center gap-2 mt-6">
-        <button
-          className="px-2 py-1 rounded border text-xs font-medium disabled:opacity-40"
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          Prev
-        </button>
-        <span className="text-xs text-gray-500">
-          Page {page} of {totalPages}
-        </span>
-        <button
-          className="px-2 py-1 rounded border text-xs font-medium disabled:opacity-40"
-          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-          disabled={page === totalPages}
-        >
-          Next
-        </button>
-      </div>
-    );
-  }
+  // Pagination component moved outside
 
   return (
     <DashboardLayout>
@@ -147,7 +147,7 @@ export default function Applications() {
           </div>
         )}
       </div>
-      <Pagination />
+      <Pagination totalPages={totalPages} page={page} setPage={setPage} />
     </DashboardLayout>
   );
 }

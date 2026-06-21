@@ -40,7 +40,13 @@ interface ConfirmModalState {
 
 export default function AdminDashboard() {
   const [allUsers, setAllUsers] = useState<UserRecord[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  interface PlatformStats {
+    employers: number;
+    activeJobs: number;
+    totalApplications: number;
+    credentialsReviewed: number;
+  }
+  const [stats, setStats] = useState<PlatformStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');

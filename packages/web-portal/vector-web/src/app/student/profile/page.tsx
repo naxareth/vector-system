@@ -33,8 +33,8 @@ interface ProfileData {
   studentId: string;
   specialization: string;
   industrySector: string;
-  workExperience: any[];
-  educationHistory: any[];
+  workExperience: { title: string; company: string; start_date: string; end_date: string; current: boolean; description: string }[];
+  educationHistory: { school: string; degree: string; field: string; start_year: string; end_year: string }[];
 }
 
 interface ProgressItem {
@@ -58,8 +58,7 @@ export default function ProfilePage() {
 
   // 2FA status for security tab
   const [mfa2faEnabled, setMfa2faEnabled] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [mfa2faFactorId, setMfa2faFactorId] = useState<string | null>(null); 
+ 
 
   const [formData, setFormData] = useState<ProfileData>({
     firstName: '',
@@ -147,10 +146,8 @@ export default function ProfilePage() {
       const verified = data?.totp?.filter(f => f.status === 'verified') ?? [];
       if (verified.length > 0) {
         setMfa2faEnabled(true);
-        setMfa2faFactorId(verified[0].id);
       } else {
         setMfa2faEnabled(false);
-        setMfa2faFactorId(null);
       }
     };
     checkMfa();
@@ -183,7 +180,7 @@ export default function ProfilePage() {
     setFormData({ ...formData, workExperience: [...formData.workExperience, { title: '', company: '', start_date: '', end_date: '', current: false, description: '' }] });
   };
 
-  const updateWorkExperience = (index: number, field: string, value: any) => {
+  const updateWorkExperience = (index: number, field: string, value: string | boolean) => {
     const updated = [...formData.workExperience];
     updated[index] = { ...updated[index], [field]: value };
     setFormData({ ...formData, workExperience: updated });
@@ -194,20 +191,7 @@ export default function ProfilePage() {
     setFormData({ ...formData, workExperience: updated });
   };
 
-  const addEducation = () => {
-    setFormData({ ...formData, educationHistory: [...formData.educationHistory, { school: '', degree: '', field: '', start_year: '', end_year: '' }] });
-  };
 
-  const updateEducation = (index: number, field: string, value: string) => {
-    const updated = [...formData.educationHistory];
-    updated[index] = { ...updated[index], [field]: value };
-    setFormData({ ...formData, educationHistory: updated });
-  };
-
-  const removeEducation = (index: number) => {
-    const updated = formData.educationHistory.filter((_, i) => i !== index);
-    setFormData({ ...formData, educationHistory: updated });
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

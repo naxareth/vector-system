@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, use } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -58,30 +58,29 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
   const [applyError, setApplyError] = useState('');
   const [applySuccess, setApplySuccess] = useState(false);
 
-  const fetchJob = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/jobs/${id}`);
-      if (!res.ok) throw new Error('Job not found');
-      const data = await res.json();
-      setJob(data);
-
-      const matchRes = await fetch(`/api/jobs/match?jobId=${id}&ai=true`);
-      if (matchRes.ok) {
-        const mData = await matchRes.json();
-        if (mData.matches && mData.matches.length > 0) {
-          setMatchData(mData.matches[0]);
-        }
-      }
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
   useEffect(() => {
+    const fetchJob = async () => {
+      try {
+        const res = await fetch(`/api/jobs/${id}`);
+        if (!res.ok) throw new Error('Job not found');
+        const data = await res.json();
+        setJob(data);
+
+        const matchRes = await fetch(`/api/jobs/match?jobId=${id}&ai=true`);
+        if (matchRes.ok) {
+          const mData = await matchRes.json();
+          if (mData.matches && mData.matches.length > 0) {
+            setMatchData(mData.matches[0]);
+          }
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchJob();
-  }, [fetchJob]);
+  }, [id]);
 
   const loadCvrExports = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -121,8 +120,8 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
          setShowModal(false);
          router.push('/student/applications');
       }, 2000);
-    } catch (e: any) {
-      setApplyError(e.message);
+    } catch (e) {
+      setApplyError(e instanceof Error ? e.message : String(e));
     } finally {
       setApplying(false);
     }

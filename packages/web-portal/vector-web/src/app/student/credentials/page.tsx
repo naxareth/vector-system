@@ -8,13 +8,13 @@ interface VerifiedCredential {
   skill_name: string;
   issued_at?: string;
   certificate_number?: string;
-  credential_data?: any;
+  credential_data?: Record<string, unknown>;
 }
 
 interface Submission {
   id: string;
   file_name: string;
-  extracted_data?: any;
+  extracted_data?: Record<string, unknown>;
   status: string;
   fraud_score?: number;
   reviewer_notes?: string;

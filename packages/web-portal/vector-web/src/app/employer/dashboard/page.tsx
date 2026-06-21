@@ -7,7 +7,7 @@ import EmployerLayout from '@/components/dashboard/EmployerLayout';
 interface DashboardStats {
   activeJobs: number;
   totalApplicants: number;
-  recentApplications: any[];
+  recentApplications: unknown[];
 }
 
 export default function EmployerDashboard() {

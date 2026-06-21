@@ -9,8 +9,7 @@ export default function CredentialUploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
-  const [extractedData, setExtractedData] = useState<any>(null);
-  const [fraudFlags, setFraudFlags] = useState<any[]>([]);
+  const [fraudFlags, setFraudFlags] = useState<{description: string}[]>([]);
   const [fraudScore, setFraudScore] = useState<number>(0);
   
   // Step 2 Form State
@@ -70,7 +69,6 @@ export default function CredentialUploadPage() {
       if (!extractRes.ok) throw new Error('Extraction failed');
       const data = await extractRes.json();
       
-      setExtractedData(data.extracted_data);
       setFraudFlags(data.fraud_flags || []);
       setFraudScore(data.fraud_score || 0);
 
@@ -270,7 +268,7 @@ export default function CredentialUploadPage() {
                   </svg>
                   <div>
                     <p className="font-bold">Looks good</p>
-                    <p className="text-sm opacity-90">Our AI didn't find any significant issues with this document.</p>
+                    <p className="text-sm opacity-90">Our AI didn&apos;t find any significant issues with this document.</p>
                   </div>
                 </div>
               ) : fraudScore < 0.6 ? (
