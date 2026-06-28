@@ -234,6 +234,7 @@ model credential_submissions {
   extracted_data    Json?
   fraud_flags       Json?
   fraud_score       Float?    @default(0)
+  email_domain_match Json?
   status            String    @default("pending")  // pending, ai_reviewed, approved, rejected
   reviewer_id       String?   @db.Uuid
   reviewer_notes    String?
