@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { generateText } from '@/lib/ai-provider';
+import { checkEmailDomainMatch } from '@/lib/institution-domains';
 
 export async function POST(req: Request) {
   const cookieStore = await cookies();
@@ -124,12 +125,18 @@ If the document looks legitimate, return score 0.0 with empty issues array.
 
     const aiData = JSON.parse(jsonStr);
 
+    const emailCheck = checkEmailDomainMatch(
+      user.email || '',
+      aiData.extracted?.institution_name || ''
+    );
+
     const updated = await prisma.credential_submissions.update({
       where: { id: submission.id },
       data: {
         extracted_data: aiData.extracted,
         fraud_flags: aiData.flags.issues,
         fraud_score: aiData.flags.score,
+        email_domain_match: emailCheck,
         status: 'ai_reviewed'
       }
     });
@@ -138,6 +145,7 @@ If the document looks legitimate, return score 0.0 with empty issues array.
       extracted_data: updated.extracted_data,
       fraud_flags: updated.fraud_flags,
       fraud_score: updated.fraud_score,
+      email_domain_match: emailCheck,
     });
   } catch (error) {
     console.error('AI Extraction Error:', error);
