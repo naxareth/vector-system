@@ -65,6 +65,7 @@ export async function GET() {
       extracted_data: sub.extracted_data,
       fraud_flags: sub.fraud_flags,
       fraud_score: sub.fraud_score,
+      email_domain_match: sub.email_domain_match,
       status: sub.status,
       created_at: sub.created_at,
     }));

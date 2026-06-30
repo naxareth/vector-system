@@ -80,6 +80,12 @@ export default function RegistrarDashboard() {
     student_email: string;
     extracted_data?: Record<string, string>;
     fraud_score: number;
+    email_domain_match?: {
+      matched: boolean;
+      domain: string;
+      confidence: 'high' | 'partial' | 'none';
+      reason: string;
+    };
     fraud_flags?: Array<{ type: string; description: string; severity: string }>;
     created_at: string;
     file_url: string;
@@ -424,10 +430,21 @@ export default function RegistrarDashboard() {
                             <a href={item.file_url} target="_blank" rel="noreferrer" className="text-xs text-[#06B4C9] hover:underline mt-1 inline-block">View Document: {item.file_name}</a>
                           </div>
                         </div>
-                        <div className="md:text-right">
+                        <div className="md:text-right flex flex-col items-end gap-2">
                           <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${isHighRisk ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20' : isMediumRisk ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20' : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20'}`}>
                             {isHighRisk ? '🔴 High Risk' : isMediumRisk ? '🟡 Medium Risk' : '🟢 Low Risk'} ({(fraudScore * 100).toFixed(0)}%)
                           </div>
+                          {item.email_domain_match && (
+                            <div title={item.email_domain_match.reason} className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${
+                              item.email_domain_match.confidence === 'high' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20' :
+                              item.email_domain_match.confidence === 'partial' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20' :
+                              'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-500/10 dark:text-gray-400 dark:border-gray-500/20'
+                            }`}>
+                              {item.email_domain_match.confidence === 'high' ? '🟢 Email Verified' :
+                               item.email_domain_match.confidence === 'partial' ? '🔵 Institutional Email' :
+                               '⚪ Personal Email'}
+                            </div>
+                          )}
                         </div>
                       </div>
 

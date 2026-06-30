@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Link from 'next/link';
+import { EmailDomainResult } from '@/lib/institution-domains';
 
 export default function CredentialUploadPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -11,6 +12,7 @@ export default function CredentialUploadPage() {
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [fraudFlags, setFraudFlags] = useState<{description: string}[]>([]);
   const [fraudScore, setFraudScore] = useState<number>(0);
+  const [emailDomainMatch, setEmailDomainMatch] = useState<EmailDomainResult | null>(null);
   
   // Step 2 Form State
   const [formData, setFormData] = useState({
@@ -71,6 +73,7 @@ export default function CredentialUploadPage() {
       
       setFraudFlags(data.fraud_flags || []);
       setFraudScore(data.fraud_score || 0);
+      setEmailDomainMatch(data.email_domain_match || null);
 
       setFormData({
         institution_name: data.extracted_data?.institution_name || '',
@@ -298,6 +301,30 @@ export default function CredentialUploadPage() {
                         <li key={i}>{flag.description}</li>
                       ))}
                     </ul>
+                  </div>
+                </div>
+              )}
+
+              {emailDomainMatch && (
+                <div className={`p-4 rounded-lg mb-6 flex items-start gap-3 border ${
+                  emailDomainMatch.confidence === 'high' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
+                  emailDomainMatch.confidence === 'partial' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
+                  'bg-gray-500/10 border-gray-500/20 text-gray-400'
+                }`}>
+                  <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <div>
+                    <p className="font-bold">
+                      {emailDomainMatch.confidence === 'high' ? 'Email Domain Verified' :
+                       emailDomainMatch.confidence === 'partial' ? 'Institutional Email Detected' :
+                       'Standard Email'}
+                    </p>
+                    <p className="text-sm opacity-90 mt-1">
+                      {emailDomainMatch.confidence === 'high' ? `Your email @${emailDomainMatch.domain} matches this institution — this helps verify your credential faster.` :
+                       emailDomainMatch.confidence === 'partial' ? `Your email @${emailDomainMatch.domain} is from an educational institution.` :
+                       `Your email @${emailDomainMatch.domain} is not from an institutional domain — your credential will still be reviewed normally.`}
+                    </p>
                   </div>
                 </div>
               )}
