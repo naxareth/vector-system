@@ -5,6 +5,7 @@ import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
 import SchemaBuilder from '@/components/dashboard/SchemaBuilder';
 import HelpTip from '@/components/shared/HelpTip';
 import { supabase } from '@/lib/supabaseClient';
+import type { EmailDomainResult } from '@/lib/institution-domains';
 
 interface CredentialSchema {
   id: string;
@@ -80,12 +81,7 @@ export default function RegistrarDashboard() {
     student_email: string;
     extracted_data?: Record<string, string>;
     fraud_score: number;
-    email_domain_match?: {
-      matched: boolean;
-      domain: string;
-      confidence: 'high' | 'partial' | 'none';
-      reason: string;
-    };
+    email_domain_match?: EmailDomainResult;
     fraud_flags?: Array<{ type: string; description: string; severity: string }>;
     created_at: string;
     file_url: string;

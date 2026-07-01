@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import Link from 'next/link';
-import { EmailDomainResult } from '@/lib/institution-domains';
+import type { EmailDomainResult } from '@/lib/institution-domains';
 
 export default function CredentialUploadPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -435,6 +435,7 @@ export default function CredentialUploadPage() {
                   onClick={() => {
                     setStep(1);
                     setFile(null);
+                    setEmailDomainMatch(null);
                   }}
                   className="bg-[#1E2536] hover:bg-[#2A3441] text-white px-6 py-2 rounded-lg font-medium transition-colors"
                 >
