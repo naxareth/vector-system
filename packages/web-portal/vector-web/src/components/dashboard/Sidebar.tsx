@@ -14,18 +14,18 @@ export default function Sidebar({ isCollapsed = false }: SidebarProps) {
   const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  
+
   let theme: 'light' | 'dark' = 'light';
-  let toggleTheme = () => {};
-  
+  let toggleTheme = () => { };
+
   try {
     const themeContext = useTheme();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     theme = themeContext.theme;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     toggleTheme = themeContext.toggleTheme;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {}
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) { }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -63,7 +63,7 @@ export default function Sidebar({ isCollapsed = false }: SidebarProps) {
           ),
         },
         {
-          name: 'Career Co-Pilot',
+          name: 'Career Intelligence',
           href: '/student/coach',
           icon: (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,15 +167,13 @@ export default function Sidebar({ isCollapsed = false }: SidebarProps) {
       )}
 
       {/* Sidebar with Tour ID */}
-      <div 
-        id="tour-sidebar" 
+      <div
+        id="tour-sidebar"
         onMouseEnter={() => isCollapsed && setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`fixed left-0 top-0 h-screen bg-[#FFFFFF] dark:bg-[#0E1220] border-r border-gray-200 dark:border-[#1E2536] flex flex-col z-40 transition-all duration-300 lg:translate-x-0 ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${
-          isExpanded ? 'w-64' : 'w-20'
-        }`}
+        className={`fixed left-0 top-0 h-screen bg-[#FFFFFF] dark:bg-[#0E1220] border-r border-gray-200 dark:border-[#1E2536] flex flex-col z-40 transition-all duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          } ${isExpanded ? 'w-64' : 'w-20'
+          }`}
       >
         {/* Logo */}
         <div className="p-6 border-b border-gray-200 dark:border-[#1E2536]">
@@ -211,11 +209,10 @@ export default function Sidebar({ isCollapsed = false }: SidebarProps) {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2 transition-all relative rounded-lg ${
-                        isActive
+                      className={`flex items-center gap-3 px-3 py-2 transition-all relative rounded-lg ${isActive
                           ? 'text-[#06B4C9] dark:bg-[#06B4C9]/10'
                           : 'text-gray-900 dark:text-[#94A3B8] hover:bg-gray-100/60 dark:hover:bg-white/5'
-                      }`}
+                        }`}
                       title={!isExpanded ? item.name : undefined}
                     >
                       {isActive && (

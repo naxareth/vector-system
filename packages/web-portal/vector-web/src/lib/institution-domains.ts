@@ -50,12 +50,12 @@ export const EDU_DOMAIN_SUFFIXES = [
   '.ac.th',      // Thailand academic
 ];
 
-export interface EmailDomainResult {
+export type EmailDomainResult = {
   matched: boolean;
   domain: string;
   confidence: 'high' | 'partial' | 'none';
   reason: string;
-}
+};
 
 /**
  * Check if a student's email domain matches the institution claimed on a credential.

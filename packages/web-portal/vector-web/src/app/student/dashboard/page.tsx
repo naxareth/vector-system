@@ -162,17 +162,22 @@ export default function StudentDashboard() {
           })
         });
 
-        analysisJson = await res.json();
+        if (!res.ok) {
+          console.warn(`[Pipeline] /api/analyze returned ${res.status} — skipping AI analysis.`);
+          analysisJson = null;
+        } else {
+          analysisJson = await res.json();
 
-        if (analysisJson.status === 'success') {
-          try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({
-              timestamp: Date.now(),
-              credentialCount: dbCreds.length,
-              data: analysisJson
-            }));
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          } catch (e) { /* ignore quota errors */ }
+          if (analysisJson.status === 'success') {
+            try {
+              localStorage.setItem(CACHE_KEY, JSON.stringify({
+                timestamp: Date.now(),
+                credentialCount: dbCreds.length,
+                data: analysisJson
+              }));
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            } catch (e) { /* ignore quota errors */ }
+          }
         }
       }
 
@@ -232,8 +237,13 @@ export default function StudentDashboard() {
   useEffect(() => {
     const initDashboard = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
+        // Try local session first (no network call), fall back to getUser() if null
+        let user = (await supabase.auth.getSession()).data.session?.user ?? null;
+        if (!user) {
+          const { data } = await supabase.auth.getUser();
+          user = data.user;
+        }
+        if (!user) {
           router.push('/login');
           return;
         }
@@ -241,14 +251,14 @@ export default function StudentDashboard() {
         const { data: profile } = await supabase
           .from('users')
           .select('*, profiles(phone, bio, university, major, graduation_year)')
-          .eq('id', session.user.id)
+          .eq('id', user.id)
           .maybeSingle();
 
         if (profile) {
           if (!profile.student_id) {
             const newId = generateStudentId();
-            console.log(`[LazyInit] Generating student ID for ${session.user.email}: ${newId}`);
-            await supabase.from('users').update({ student_id: newId }).eq('id', session.user.id);
+            console.log(`[LazyInit] Generating student ID for ${user.email}: ${newId}`);
+            await supabase.from('users').update({ student_id: newId }).eq('id', user.id);
             profile.student_id = newId;
           }
 
@@ -275,7 +285,7 @@ export default function StudentDashboard() {
           const { data: cvrExports } = await supabase
             .from('cvr_exports')
             .select('id')
-            .eq('user_id', session.user.id)
+            .eq('user_id', user.id)
             .limit(1);
           if (cvrExports && cvrExports.length > 0) setHasCVRExport(true);
 
@@ -290,7 +300,7 @@ export default function StudentDashboard() {
           }
 
 
-          await refreshPipeline(profile.student_id || session.user.id);
+          await refreshPipeline(profile.student_id || user.id);
         }
       } catch (error) {
         console.error("Init Error:", error);

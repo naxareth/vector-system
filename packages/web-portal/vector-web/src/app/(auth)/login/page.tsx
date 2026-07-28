@@ -170,8 +170,6 @@ function LoginForm() {
       }
 
       // 4. No MFA? Proceed to standard redirect
-      router.refresh();
-
       const returnUrl = searchParams.get('redirectTo');
       
       if (returnUrl) {
@@ -229,7 +227,6 @@ function LoginForm() {
               if (pendingRole === 'employer') target = '/employer/dashboard';
               if (pendingRole === 'super_admin') target = '/admin/dashboard';
               
-              router.refresh();
               router.push(target);
           }} 
           onCancel={() => { 
@@ -408,6 +405,7 @@ function LoginForm() {
             src={isRegistrarFlow ? registrarImg : mockupImg}
             alt={isRegistrarFlow ? "Registrar portal preview" : "Vector platform preview"}
             fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             className={isRegistrarFlow ? "object-cover" : "object-contain p-2 drop-shadow-2xl"}
             priority
           />

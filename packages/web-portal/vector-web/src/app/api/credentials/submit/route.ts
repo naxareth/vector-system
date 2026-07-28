@@ -96,7 +96,7 @@ export async function POST(req: Request) {
         user_id: r.id,
         title: 'New Credential Submission',
         message: `${profile.full_name || 'A student'} submitted a ${confirmed_data.credential_type || 'credential'} for review`,
-        type: 'submission',
+        type: 'info',
         link_url: '/registrar/dashboard',
       }))
     });

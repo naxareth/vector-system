@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
@@ -63,8 +64,14 @@ export async function POST(req: Request) {
   const uuid = uuidv4();
   const filePath = `${user.id}/${uuid}.${ext}`;
 
+  // We can create a dedicated admin client to bypass RLS for storage since we just validated auth.
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   // Upload to Supabase Storage
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await supabaseAdmin.storage
     .from('credential-uploads')
     .upload(filePath, file);
 
@@ -74,7 +81,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to upload file to storage.' }, { status: 500 });
   }
 
-  const { data: publicUrlData } = supabase.storage
+  const { data: publicUrlData } = supabaseAdmin.storage
     .from('credential-uploads')
     .getPublicUrl(filePath);
 
@@ -96,7 +103,7 @@ export async function POST(req: Request) {
         user_id: r.id,
         title: 'New Credential Upload',
         message: 'A student has uploaded a new credential for review.',
-        type: 'system',
+        type: 'info',
         link_url: '/registrar/dashboard'
       }))
     });

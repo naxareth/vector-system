@@ -47,6 +47,10 @@ export default function CredentialUploadPage() {
     if (!file) return;
     setUploading(true);
 
+    const csrfToken = typeof document !== 'undefined'
+      ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1] || ''
+      : '';
+
     try {
       // 1. Upload
       const fd = new FormData();
@@ -54,6 +58,9 @@ export default function CredentialUploadPage() {
       
       const uploadRes = await fetch('/api/credentials/upload', {
         method: 'POST',
+        headers: {
+          'x-csrf-token': csrfToken,
+        },
         body: fd,
       });
 
@@ -64,7 +71,10 @@ export default function CredentialUploadPage() {
       // 2. Extract
       const extractRes = await fetch('/api/credentials/extract', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({ submission_id: id }),
       });
 
@@ -113,10 +123,17 @@ export default function CredentialUploadPage() {
   const handleSubmitReview = async () => {
     if (!submissionId) return;
 
+    const csrfToken = typeof document !== 'undefined'
+      ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1] || ''
+      : '';
+
     try {
       const res = await fetch('/api/credentials/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({
           submission_id: submissionId,
           confirmed_data: {
@@ -135,7 +152,10 @@ export default function CredentialUploadPage() {
         if (confirmBypass) {
           await fetch('/api/credentials/submit', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-csrf-token': csrfToken,
+            },
             body: JSON.stringify({
               submission_id: submissionId,
               confirmed_data: {

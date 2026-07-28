@@ -18,8 +18,8 @@ const CSRF_HEADER_NAME = 'x-csrf-token';
  * Generates a unique CSRF token and attaches it as a Secure, HttpOnly cookie.
  * Returns the token string to be sent to the client (usually in a meta tag or hidden input).
  */
-export function generateCsrfToken(response: NextResponse): string {
-    const token = crypto.randomUUID();
+export function generateCsrfToken(response: NextResponse, existingToken?: string): string {
+    const token = existingToken || crypto.randomUUID();
     
     // Set the token in a cookie for server-side verification
     // httpOnly: false allows the frontend to read it for the x-csrf-token header

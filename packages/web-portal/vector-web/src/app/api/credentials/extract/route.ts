@@ -69,7 +69,9 @@ export async function POST(req: Request) {
     const arrayBuffer = await fileData.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     try {
-      const pdfParseLib = (await import('pdf-parse')).default || await import('pdf-parse');
+      // Import the library module directly to avoid the buggy pdf-parse/index.js initialization
+      const mod = await import('pdf-parse/lib/pdf-parse.js');
+      const pdfParseLib = mod.default || mod;
       const pdfData = await pdfParseLib(buffer);
       documentText = pdfData.text;
     } catch (e) {
@@ -115,27 +117,54 @@ If the document looks legitimate, return score 0.0 with empty issues array.
   try {
     const aiResponseText = await generateText(prompt);
     
-    // Parse the JSON. Clean markdown fences if any.
+    // Parse the JSON by extracting everything from the first '{' to the last '}'
     let jsonStr = aiResponseText.trim();
-    if (jsonStr.startsWith('\`\`\`json')) {
-      jsonStr = jsonStr.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
-    } else if (jsonStr.startsWith('\`\`\`')) {
-      jsonStr = jsonStr.replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim();
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+    
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    } else {
+      // AI completely ignored instructions and returned plain text (e.g. "I cannot process this.")
+      jsonStr = "{}";
     }
 
-    const aiData = JSON.parse(jsonStr);
+    let aiData;
+    try {
+      aiData = JSON.parse(jsonStr);
+    } catch (parseError) {
+      console.warn("AI returned malformed JSON, using fallback data:", parseError);
+      // If the AI completely hallucinates invalid JSON (very common with random/unrelated PDFs),
+      // we fallback to a high-risk dummy object instead of throwing a 500 server error.
+      aiData = {
+        extracted: {
+          institution_name: null,
+          credential_type: "other",
+          field_of_study: null,
+          date_issued: null,
+          student_name: null,
+          credential_number: null,
+          skills: []
+        },
+        flags: {
+          score: 1.0,
+          issues: [
+            { type: "content", description: "Document could not be parsed into valid structured data. Likely an invalid or irrelevant PDF.", severity: "high" }
+          ]
+        }
+      };
+    }
 
     const emailCheck = checkEmailDomainMatch(
       user.email || '',
-      aiData.extracted?.institution_name || ''
+      aiData?.extracted?.institution_name || ''
     );
 
     const updated = await prisma.credential_submissions.update({
       where: { id: submission.id },
       data: {
-        extracted_data: aiData.extracted,
-        fraud_flags: aiData.flags.issues,
-        fraud_score: aiData.flags.score,
+        extracted_data: aiData?.extracted || null,
+        fraud_flags: aiData?.flags?.issues || [],
+        fraud_score: aiData?.flags?.score ?? 1.0,
         email_domain_match: emailCheck,
         status: 'ai_reviewed'
       }

@@ -81,15 +81,19 @@ export default function ProfilePage() {
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
+        // Try local session first (no network call), fall back to getUser() if null
+        let user = (await supabase.auth.getSession()).data.session?.user ?? null;
+        if (!user) {
+          const { data } = await supabase.auth.getUser();
+          user = data.user;
+        }
+        if (!user) {
           router.push('/login');
           return;
         }
 
-        setUserId(session.user.id);
-        const userEmail = session.user.email || '';
+        setUserId(user.id);
+        const userEmail = user.email || '';
 
         const { data: userRecord, error } = await supabase
           .from('users')
@@ -97,7 +101,7 @@ export default function ProfilePage() {
             full_name, student_id, avatar_url, location,
             profiles ( phone, bio, university, major, graduation_year, specialization, industry_sector, work_experience, education_history )
           `)
-          .eq('id', session.user.id)
+          .eq('id', user.id)
           .single();
 
         if (error) {

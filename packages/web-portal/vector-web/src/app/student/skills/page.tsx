@@ -130,8 +130,13 @@ export default function SkillsPage() {
   useEffect(() => {
     const fetchCredentials = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) { setCredentialsLoading(false); return; }
+        // Try local session first (no network call), fall back to getUser() if null
+        let user = (await supabase.auth.getSession()).data.session?.user ?? null;
+        if (!user) {
+          const { data } = await supabase.auth.getUser();
+          user = data.user;
+        }
+        if (!user) { setCredentialsLoading(false); return; }
 
 
 

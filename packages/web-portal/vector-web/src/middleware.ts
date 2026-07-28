@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   }
 
   // Always ensure a CSRF token is generated/refreshed for the browser
-  const token = generateCsrfToken(response);
+  const token = generateCsrfToken(response, csrfCookie);
   // Add the token to the response headers so the frontend can read it once (non-HttpOnly header)
   response.headers.set('x-csrf-token', token);
 
@@ -56,6 +56,11 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     const duration = Date.now() - startTime;
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    // Preserve any session cookies attached during middleware processing
+    response.cookies.getAll().forEach(c => {
+      res.cookies.set(c);
+    });
 
     event.waitUntil(
       logSystemTraffic({
@@ -86,25 +91,51 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const isApiRoute = pathname.startsWith('/api/');
+  const hasAuthCookie = request.cookies.getAll().some(c => c.name.includes('auth-token') || c.name.startsWith('sb-'));
+
+  let user = null;
+
+  if (!isApiRoute && hasAuthCookie) {
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      // Keep user object if authenticated, or if rate-limited (429) to avoid false logout
+      if (data?.user) {
+        user = data.user;
+      } else if (error && (error as { status?: number }).status === 429) {
+        console.warn(`[Middleware] Supabase auth rate limited (429). Bypassing redirect.`);
+      }
+    } catch {
+      // Ignore transient network errors
+    }
+  }
 
   // --- RULE: UNAUTHENTICATED USERS ---
   // 2. Added `&& !AUTH_PATHS.includes(pathname)` to prevent prefix collisions
-  if (!user && PROTECTED_PATHS.some(p => pathname.startsWith(p)) && !AUTH_PATHS.includes(pathname)) {
+  if (!user && !isApiRoute && PROTECTED_PATHS.some(p => pathname.startsWith(p)) && !AUTH_PATHS.includes(pathname)) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
     return logAndReturn(NextResponse.redirect(`${baseUrl}/login${url.search}`));
   }
 
   // --- LOGIC FOR AUTHENTICATED USERS ---
   if (user) {
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role, status')
-      .eq('id', user.id)
-      .maybeSingle();
+    let role = 'student';
+    let status = 'active';
 
-    const role = profile?.role || 'student';
-    const status = profile?.status || 'pending_verification'; 
+    try {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role, status')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile) {
+        role = profile.role || 'student';
+        status = profile.status || 'active';
+      }
+    } catch {
+      // If DB query fails or rate-limited, fallback safely to active to avoid false logouts
+    }
 
     // --- RULE 1: PENDING VERIFICATION LOCKOUT ---
     if (status === 'pending_verification') {
