@@ -189,7 +189,7 @@ export async function PATCH(req: Request) {
           user_id: submission.user_id,
           title: 'Credential Verified! ✓',
           message: `Your ${extractedData.credential_type || 'credential'} from ${extractedData.institution_name || 'the institution'} has been verified.`,
-          type: 'credential_approved',
+          type: 'info',
           link_url: '/student/credentials',
         }
       });
@@ -212,7 +212,7 @@ export async function PATCH(req: Request) {
           user_id: submission.user_id,
           title: 'Credential Rejected ✗',
           message: `Your ${extractedData.credential_type || 'credential'} submission was rejected. Reason: ${notes || 'Not provided'}`,
-          type: 'credential_rejected',
+          type: 'info',
           link_url: '/student/credentials',
         }
       });
