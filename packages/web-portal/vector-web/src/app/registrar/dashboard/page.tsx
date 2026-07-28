@@ -191,9 +191,17 @@ export default function RegistrarDashboard() {
   const handleReviewAction = async (id: string, action: 'approve' | 'reject') => {
     setIssuanceProgress({ isOpen: true, progress: 50, status: 'processing', message: `Processing ${action}...` });
     try {
+      // 🛡️ CSRF - Extract token from cookies
+      const csrfToken = typeof document !== 'undefined' 
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
+        : '';
+
       const res = await fetch('/api/credentials/review', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || ''
+        },
         body: JSON.stringify({ submission_id: id, action, notes: reviewNotes[id] || '' })
       });
       if (!res.ok) throw new Error('Failed to process review');
