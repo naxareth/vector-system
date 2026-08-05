@@ -34,10 +34,12 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   
   if (isStateChangingApi && !pathname.includes('/api/auth')) {
     const headerToken = request.headers.get('x-csrf-token');
+    const requestOrigin = request.headers.get('origin');
+    const isSameOriginRequest = !requestOrigin || requestOrigin === url.origin;
     
-    // Fail-Safe: Only block if the cookie EXISTS but the header is wrong/missing.
-    // This prevents breaking the app before the frontend is fully updated.
-    if (csrfCookie && csrfCookie !== headerToken) {
+    // Backward compatibility: allow same-origin browser requests without a CSRF header.
+    // Cross-site requests must still provide a valid double-submit token.
+    if (csrfCookie && ((headerToken && csrfCookie !== headerToken) || (!headerToken && !isSameOriginRequest))) {
       console.warn(`🚨 CSRF Attempt Blocked: ${request.method} ${pathname}. Expected ${csrfCookie}, got ${headerToken}`);
       return NextResponse.json(
         { error: 'Invalid or missing CSRF token' }, 

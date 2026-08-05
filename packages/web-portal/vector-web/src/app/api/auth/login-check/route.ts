@@ -6,6 +6,7 @@ const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+const ENFORCE_LOGIN_RATE_LIMIT = process.env.ENFORCE_LOGIN_RATE_LIMIT === 'true';
 
 export async function POST(req: Request) {
   try {
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
       const lastAttempt = new Date(limitRecord.last_attempt).getTime();
       const timeDiffMins = (Date.now() - lastAttempt) / 60000;
 
-      if (timeDiffMins < WINDOW_MINUTES && limitRecord.attempts >= MAX_ATTEMPTS) {
+      if (ENFORCE_LOGIN_RATE_LIMIT && timeDiffMins < WINDOW_MINUTES && limitRecord.attempts >= MAX_ATTEMPTS) {
         return NextResponse.json(
           { success: false, message: 'Too many login attempts. Please try again in 15 minutes.' },
           { status: 429 }

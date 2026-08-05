@@ -51,6 +51,7 @@ export default function JobPostingsManagement() {
         setLoading(false);
       }
     };
+
     fetchPostings();
   }, []);
 
@@ -60,6 +61,10 @@ export default function JobPostingsManagement() {
     setCreateError('');
 
     try {
+      const csrfToken = typeof document !== 'undefined'
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1] || ''
+        : '';
+
       const payload = {
          ...formData,
          required_skills: formData.required_skills.split(',').map(s => s.trim()).filter(Boolean),
@@ -68,7 +73,10 @@ export default function JobPostingsManagement() {
 
       const res = await fetch('/api/jobs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify(payload)
       });
 
@@ -81,8 +89,14 @@ export default function JobPostingsManagement() {
       setFormData({
         title: '', description: '', location: '', job_type: 'Full-time', salary_range: '', required_skills: '', preferred_skills: ''
       });
-      setLoading(true);
-      fetchPostings();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const refreshedPostingsResponse = await fetch(`/api/jobs?employer_id=${user.id}`);
+        if (refreshedPostingsResponse.ok) {
+          const refreshedData = await refreshedPostingsResponse.json();
+          setPostings(refreshedData.jobs || []);
+        }
+      }
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -172,6 +186,13 @@ export default function JobPostingsManagement() {
                {createError && (
                  <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200">
                    {createError}
+                   {createError === 'Employer profile required' && (
+                     <div className="mt-2">
+                       <Link href="/employer/profile" className="font-semibold underline">
+                         Complete your company profile first
+                       </Link>
+                     </div>
+                   )}
                  </div>
                )}
 

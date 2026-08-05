@@ -41,9 +41,16 @@ export default function JobApplicants({ params }: { params: Promise<{ id: string
 
   const updateStatus = async (application_id: string, new_status: string) => {
     try {
+      const csrfToken = typeof document !== 'undefined'
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1] || ''
+        : '';
+
       const res = await fetch(`/api/jobs/${id}/applicants`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({ application_id, status: new_status })
       });
       if (res.ok) {
