@@ -4,6 +4,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import Tooltip from '../shared/Tooltip';
+import Image from 'next/image';
+import Link from 'next/link';
 
 interface UserProfile {
   id: string;
@@ -24,14 +26,75 @@ interface NotificationItem {
 
 interface TopBarProps {
   onToggleSidebar?: () => void;
+  showNavLinks?: boolean;
 }
 
-export default function TopBar({ onToggleSidebar }: TopBarProps) {
+// ─── Navigation items (previously in Sidebar) ────────────────────────────────
+const navItems = [
+  {
+    name: 'Home',
+    href: '/student/dashboard',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Verification',
+    href: '/student/skills',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Jobs',
+    href: '/student/jobs',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Applications',
+    href: '/student/applications',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Insights',
+    href: '/student/coach',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Resume',
+    href: '/student/cvr',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    ),
+  },
+];
+
+export default function TopBar({ onToggleSidebar, showNavLinks = false }: TopBarProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   // ✅ Fix: render date only after mount so server and client agree on the
   // initial HTML. On the server this stays null (renders nothing), on the
@@ -50,6 +113,8 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentDate(
       new Date().toLocaleDateString('en-US', {
         weekday: 'long',
@@ -58,6 +123,11 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
       })
     );
   }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   const getPageTitle = (path: string) => {
     // Check for specific route segments - order matters for overlapping paths
@@ -277,35 +347,94 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white dark:bg-[#0E1220] border-b border-gray-200 dark:border-[#1E2536] px-4 sm:px-6 lg:px-8 py-3">
-        <div className="flex items-center justify-between gap-4">
+      {/* ── Top Navigation Bar ── */}
+      <header className="sticky top-0 z-30 bg-white dark:bg-[#0E1220] border-b border-gray-200 dark:border-[#1E2536] shadow-sm">
+        <div className="max-w-[1128px] mx-auto px-4 flex items-center justify-between h-14 gap-2">
 
-          {/* Left Section: Hamburger Menu + Page Title */}
-          <div className="flex items-center gap-3">
-            {/* Hamburger Menu Icon */}
-            <button
-              onClick={onToggleSidebar}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
-              aria-label="Menu"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          {/* ── Logo ── */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Image
+              src="/logo/VectorLogo.png"
+              alt="Vector Logo"
+              width={28}
+              height={28}
+              className="rounded-lg"
+              style={{ width: 'auto', height: 'auto' }}
+            />
+            <span className="text-base font-bold text-[#011018] dark:text-white tracking-tight hidden sm:block">
+              Vector
+            </span>
+          </div>
+
+          {/* ── Search bar (desktop) ── */}
+          <div className="hidden md:flex items-center flex-1 max-w-xs mx-4">
+            <div className="relative w-full">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-            </button>
-
-            {/* Page Title */}
-            <div className="hidden sm:block">
-              <h1 className="text-base font-semibold text-gray-900 dark:text-white">
-                {getPageTitle(pathname)}
-              </h1>
+              <input
+                type="text"
+                placeholder="Search jobs, skills, credential IDs"
+                className="w-full pl-9 pr-3 py-1.5 text-sm bg-gray-100 dark:bg-[#1E2536] border border-transparent focus:border-[#06B4C9] focus:bg-white dark:focus:bg-[#131825] rounded-full outline-none transition-all text-gray-700 dark:text-gray-200 placeholder-gray-400"
+              />
             </div>
           </div>
 
-          {/* Right Section: Icons */}
-          <div className="flex items-center gap-3">
+          {/* ── Nav Links (inline, icon + label stacked, like LinkedIn) ── */}
+          {showNavLinks && (
+            <nav className="hidden md:flex items-center gap-1" id="tour-sidebar">
+              {navItems.map((item) => {
+                const isActive = mounted && pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg text-xs font-medium transition-all relative group ${
+                      isActive
+                        ? 'text-[#06B4C9]'
+                        : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    <span className={`transition-colors ${isActive ? 'text-[#06B4C9]' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'}`}>
+                      {item.icon}
+                    </span>
+                    <span>{item.name}</span>
+                    {isActive && (
+                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[#06B4C9] rounded-full" />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
+
+          {/* ── Legacy hamburger toggle (when showNavLinks is false) ── */}
+          {!showNavLinks && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onToggleSidebar}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
+                aria-label="Menu"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <div className="hidden sm:block">
+                <h1 className="text-base font-semibold text-gray-900 dark:text-white">
+                  {getPageTitle(pathname)}
+                </h1>
+              </div>
+            </div>
+          )}
+
+          {/* ── Right Section: theme + bell + profile ── */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+
+            {/* Theme toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-500 dark:text-[#94A3B8]"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? (
@@ -321,19 +450,19 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
 
             {/* Notification Bell */}
             <div id="tour-notifications" className="relative" ref={notificationsRef}>
-                <button
-                  onClick={handleOpenNotifications}
-                  className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-600 dark:text-[#94A3B8]"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  {unreadCount > 0 && (
-                    <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
+              <button
+                onClick={handleOpenNotifications}
+                className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-500 dark:text-[#94A3B8]"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
 
               {isNotificationsOpen && (
                 <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#131825] rounded-xl shadow-lg border border-gray-200 dark:border-[#1E2536] overflow-hidden z-50 animate-fade-in-up">
@@ -383,7 +512,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
                     ) : (
                       <div className="px-4 py-8 text-center">
                         <svg className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
                         <p className="text-sm text-gray-400 dark:text-gray-500">No notifications yet.</p>
                       </div>
@@ -400,9 +529,9 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
                   onClick={() => setIsProfileMenuOpen(prev => !prev)}
                   className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-gray-200 dark:bg-[#1E2536] rounded-full flex items-center justify-center">
-                    <span className="text-gray-700 dark:text-[#94A3B8] font-semibold text-sm">
-                      {user ? getInitials(user.full_name) : '...'}
+                  <div className="w-8 h-8 bg-[#06B4C9] rounded-full flex items-center justify-center">
+                    <span className="text-white font-semibold text-sm">
+                      {user ? getInitials(user.full_name) : '·'}
                     </span>
                   </div>
                 </button>
@@ -415,7 +544,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
                     <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user?.role || 'student'}</p>
                   </div>
                   <button onClick={handleViewProfile} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1E2536] flex items-center gap-2 transition-colors">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 0 0-7-7z" /></svg>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                     View Profile
                   </button>
                   <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2 transition-colors">
@@ -425,8 +554,44 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
                 </div>
               )}
             </div>
+
+            {/* Mobile hamburger (when showNavLinks is true) */}
+            {showNavLinks && (
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-500"
+                aria-label="Toggle menu"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isMobileMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
+
+        {/* ── Mobile Nav Drawer ── */}
+        {showNavLinks && isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 dark:border-[#1E2536] bg-white dark:bg-[#0E1220] px-4 py-2">
+            {navItems.map((item) => {
+              const isActive = mounted && pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    isActive
+                      ? 'text-[#06B4C9] bg-[#06B4C9]/5'
+                      : 'text-gray-600 dark:text-[#94A3B8] hover:bg-gray-50 dark:hover:bg-white/5'
+                  }`}
+                >
+                  {item.icon}
+                  {item.name}
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </header>
 
       {/* Logout Dialog */}

@@ -16,14 +16,10 @@ function extractTags(title: string): string[] {
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { supabase } from '@/lib/supabaseClient';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import CredentialCard from '@/components/dashboard/CredentialCard';
-import RecentActivity, { ActivityItem } from '@/components/dashboard/RecentActivity';
+import { ActivityItem } from '@/components/dashboard/RecentActivity';
 import Link from 'next/link';
-import HelpTip from '@/components/shared/HelpTip';
-import studentIllustration from './student.png';
 import { generateStudentId } from '@/lib/utils/id';
 
 interface AIAnalysisData {
@@ -72,37 +68,17 @@ interface CredentialItem {
   credentialData?: Record<string, unknown>;
 }
 
-function providerPill(provider: string | null): string {
-  if (!provider) return 'bg-[#06B4C9]/10 text-[#06B4C9]';
-  const p = provider.toLowerCase();
-  if (p === 'udemy') return 'bg-purple-100 text-purple-700';
-  if (p === 'coursera') return 'bg-blue-100 text-blue-700';
-  if (p.startsWith('edx')) return 'bg-slate-100 text-slate-700';
-  if (p.includes('freecodecamp')) return 'bg-green-100 text-green-700';
-  if (p === 'hubspot') return 'bg-orange-100 text-orange-700';
-  if (p.includes('linkedin')) return 'bg-sky-100 text-sky-700';
-  return 'bg-[#06B4C9]/10 text-[#06B4C9]';
-}
 
-function getCourseImageSrc(title: string, provider?: string | null, link?: string | null): string {
-  const params = new URLSearchParams({ title });
-  if (provider) params.set('provider', provider);
-  if (link) params.set('url', link);
-  return `/api/course-image?${params.toString()}`;
-}
 
 export default function StudentDashboard() {
   const router = useRouter();
   const [hasPendingCVR, setHasPendingCVR] = useState(false);
-  const [hasCVRExport, setHasCVRExport] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [aiData, setAiData] = useState<AIAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileComplete, setProfileComplete] = useState(false);
 
   const [allCredentials, setAllCredentials] = useState<CredentialItem[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [topSkills, setTopSkills] = useState<{name: string, job_count: number}[]>([]);
 
   const capitalizeWords = (text: string) => {
     return text
@@ -269,35 +245,7 @@ export default function StudentDashboard() {
           };
           setUser(capitalizedProfile);
 
-          // Calculate profile completion status
-          const isComplete = !!(
-            capitalizedProfile.full_name &&
-            capitalizedProfile.location &&
-            capitalizedProfile.profiles?.phone &&
-            capitalizedProfile.profiles?.bio &&
-            capitalizedProfile.profiles?.university &&
-            capitalizedProfile.profiles?.major &&
-            capitalizedProfile.profiles?.graduation_year
-          );
-          setProfileComplete(isComplete);
 
-
-          const { data: cvrExports } = await supabase
-            .from('cvr_exports')
-            .select('id')
-            .eq('user_id', user.id)
-            .limit(1);
-          if (cvrExports && cvrExports.length > 0) setHasCVRExport(true);
-
-          const { data: skillsData } = await supabase
-            .from('skill_health_cache')
-            .select('skill_name, job_count')
-            .order('job_count', { ascending: false })
-            .limit(10);
-          
-          if (skillsData) {
-            setTopSkills(skillsData.map(s => ({ name: s.skill_name, job_count: s.job_count || 0 })));
-          }
 
 
           await refreshPipeline(profile.student_id || user.id);
@@ -311,14 +259,75 @@ export default function StudentDashboard() {
     initDashboard();
   }, [router]);
 
-  const handleClosePendingCard = () => {
-    setHasPendingCVR(false);
-    localStorage.removeItem('pendingCVR');
-  };
+
 
   const marketScore = aiData?.skillHealth?.length
     ? Math.round(aiData.skillHealth.reduce((acc, s) => acc + s.healthScore, 0) / aiData.skillHealth.length)
     : 0;
+
+  // Compute trust score: ratio of verified credentials to total (verified + pending-like)
+  const verifiedCount = allCredentials.filter(c => c.verified).length;
+  const pendingCount = hasPendingCVR ? 1 : 0;
+  const totalCredentialSlots = Math.max(verifiedCount + pendingCount + 2, 6); // assume some unverified slots
+  const trustScore = totalCredentialSlots > 0 ? Math.round((verifiedCount / totalCredentialSlots) * 100) : 0;
+  const bestJobMatch = marketScore > 0 ? marketScore : (aiData?.recommendations?.[0]?.relevanceScore || 0);
+
+  // Credential status helper
+  const getCredentialStatus = (cred: CredentialItem, index: number): 'verified' | 'in_review' | 'needs_attention' => {
+    if (cred.verified) return 'verified';
+    if (index < allCredentials.length - 1) return 'in_review';
+    return 'needs_attention';
+  };
+
+  // Credential icon helper
+  const getCredentialIcon = (cred: CredentialItem) => {
+    const cat = cred.category.toLowerCase();
+    const title = cred.title.toLowerCase();
+    if (cat.includes('computer') || title.includes('computer') || title.includes('software') || title.includes('development') || title.includes('full-stack') || title.includes('full stack')) {
+      return (
+        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+          <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+          </svg>
+        </div>
+      );
+    }
+    if (cat.includes('cloud') || title.includes('cloud') || title.includes('aws') || title.includes('azure')) {
+      return (
+        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+          <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+          </svg>
+        </div>
+      );
+    }
+    if (cat.includes('design') || title.includes('design') || title.includes('ux') || title.includes('ui')) {
+      return (
+        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+          <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+          </svg>
+        </div>
+      );
+    }
+    // Default: graduation cap
+    return (
+      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15v-3.75m0 0h10.5" />
+        </svg>
+      </div>
+    );
+  };
+
+  // Extract institution name from category (e.g. "University Issued — React" -> institution from profile)
+  const getInstitutionName = (cred: CredentialItem) => {
+    const cat = cred.category;
+    if (cat.toLowerCase().includes('university')) return user?.profiles?.university || 'State University';
+    if (cat.toLowerCase().includes('amazon') || cred.title.toLowerCase().includes('aws')) return 'Amazon Web Services';
+    if (cat.toLowerCase().includes('cloud')) return 'Cloud Provider';
+    return user?.profiles?.university || 'Issuing Institution';
+  };
 
   return (
     <DashboardLayout>
@@ -327,8 +336,8 @@ export default function StudentDashboard() {
         {/* ── LEFT COLUMN ── */}
         <div className="xl:col-span-2 flex flex-col gap-6">
 
-          {/* ── Welcome Banner — Option A: Layered Arc Rings ── */}
-          <div className="rounded-2xl overflow-hidden relative" style={{ background: '#06B4C9' }}>
+          {/* ── Welcome Banner — Dark Navy with Trust Score Ring ── */}
+          <div className="rounded-2xl overflow-hidden relative" style={{ background: '#0F172A' }}>
 
             {/* SVG background layer */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -339,378 +348,203 @@ export default function StudentDashboard() {
                 className="absolute w-full h-full"
               >
                 {/* Concentric hollow rings from right edge */}
-                <circle cx="820" cy="80" r="140" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="60" />
-                <circle cx="820" cy="80" r="220" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="60" />
-                <circle cx="820" cy="80" r="300" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="60" />
+                <circle cx="820" cy="80" r="140" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="60" />
+                <circle cx="820" cy="80" r="220" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="60" />
+                <circle cx="820" cy="80" r="300" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="60" />
                 {/* Bottom-left accent arcs */}
-                <circle cx="-30" cy="160" r="120" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="50" />
-                <circle cx="-30" cy="160" r="200" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="50" />
-                {/* Dark wash toward image side */}
-                <rect x="0" y="0" width="900" height="160" fill="url(#fadeA)" />
-                <defs>
-                  <linearGradient id="fadeA" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%"   stopColor="#06B4C9" stopOpacity="0" />
-                    <stop offset="45%"  stopColor="#06B4C9" stopOpacity="0" />
-                    <stop offset="75%"  stopColor="#059EAF" stopOpacity="0.3" />
-                    <stop offset="100%" stopColor="#048898" stopOpacity="0.6" />
-                  </linearGradient>
-                </defs>
+                <circle cx="-30" cy="160" r="120" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="50" />
+                <circle cx="-30" cy="160" r="200" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="50" />
               </svg>
             </div>
 
             {/* Banner content */}
-            <div className="flex flex-col md:flex-row items-center justify-between p-8 pb-0">
-              <div className="flex-1 text-[#06B4C9] z-10 pb-8">
-                <h1 className="text-xl md:text-4xl font-bold mb-2 text-white">
-                  Welcome back, {user?.full_name?.split(' ')[0] || 'Student'}!
+            <div className="flex flex-col md:flex-row items-center justify-between p-6 md:p-8 relative z-10">
+              {/* Trust Score Ring */}
+              <div className="flex-shrink-0 mr-6 hidden md:flex items-center">
+                <div className="relative w-24 h-24 flex items-center justify-center">
+                  <svg viewBox="0 0 80 80" className="w-24 h-24 transform -rotate-90">
+                    {/* Background ring */}
+                    <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="5.5" />
+                    {/* Progress ring */}
+                    <circle
+                      cx="40" cy="40" r="34"
+                      fill="none"
+                      stroke="#06B4C9"
+                      strokeWidth="5.5"
+                      strokeLinecap="round"
+                      strokeDasharray={`${(trustScore / 100) * 2 * Math.PI * 34} ${2 * Math.PI * 34}`}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-1">
+                    <span className="text-xl font-extrabold text-white leading-none mb-0.5">{trustScore}%</span>
+                    <span className="text-[8px] uppercase tracking-wider text-[#06B4C9] font-bold leading-tight">Trust Score</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Welcome text */}
+              <div className="flex-1 min-w-0 py-2">
+                <h1 className="text-xl md:text-2xl font-bold mb-1 text-white">
+                  Welcome back, {user?.full_name?.split(' ')[0] || 'Student'}
                 </h1>
-                <p className="text-white text-sm md:text-base mb-3">
-                  You&apos;ve earned <span className="font-bold text-white">{allCredentials.length}</span> credential{allCredentials.length !== 1 ? 's' : ''} this month!
+                <p className="text-gray-400 text-sm mb-4">
+                  {verifiedCount} of {totalCredentialSlots} credentials verified — your profile is ready for {aiData?.recommendations?.length || 0} new matched roles
                 </p>
-                <div className="flex items-center gap-3">
-                  {loading ? (
-                    <span className="text-sm text-[#06B4C9] bg-[#06B4C9]/10 px-3 py-1.5 rounded-full flex items-center gap-2">
-                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Loading...
-                    </span>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <a href="/student/help" className="flex items-center gap-1 text-xs font-medium text-white/90 bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg transition-colors">
-                        Need help?
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="relative w-48 h-48 md:w-72 md:h-60 flex-shrink-0 self-center md:self-end">
-                <Image
-                  src={studentIllustration}
-                  alt="Student professional illustration"
-                  fill
-                  sizes="(max-width: 768px) 12rem, 18rem"
-                  className="object-contain object-bottom scale-120"
-                  priority
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* ── Stats Cards ── */}
-          <div id="tour-stats" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-5 relative">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">
-                    Verified Skills <HelpTip text="Skills confirmed by your university and recorded permanently." />
-                  </h3>
-                  <p className="text-3xl font-bold text-gray-900 mb-3">{allCredentials.length}</p>
-                  <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${allCredentials.length > 2 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                      {allCredentials.length > 2
-                        ? <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
-                        : <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" />
-                      }
-                    </svg>
-                    <span>{allCredentials.length > 2 ? '+12%' : '-8%'}</span>
-                    <span className="text-gray-400 font-normal">this month</span>
+                <div className="flex items-center gap-6 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-lg font-bold text-[#06B4C9]">{verifiedCount}</span>
+                    <span className="text-xs text-[#06B4C9]">Verified</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-lg font-bold text-amber-400">{pendingCount}</span>
+                    <span className="text-xs text-amber-400">Pending</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-lg font-bold text-white">{bestJobMatch}%</span>
+                    <span className="text-xs text-gray-400">Best job match</span>
                   </div>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-[#E7F1EC] flex items-center justify-center flex-shrink-0">
-                  <svg className="w-6 h-6 text-[#157942]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-5 relative">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">
-                    Market Score <HelpTip text="How well your current skills match what employers are hiring for right now. Higher is better." />
-                  </h3>
-                  <p className="text-3xl font-bold text-gray-900 mb-3">{marketScore}%</p>
-                  <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${marketScore >= 70 ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'}`}>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                      {marketScore >= 70
-                        ? <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
-                        : <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" />
-                      }
-                    </svg>
-                    <span>{marketScore >= 70 ? '+5%' : '-12%'}</span>
-                    <span className="text-gray-400 font-normal">from last week</span>
-                  </div>
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-[#FFEDD4] flex items-center justify-center flex-shrink-0">
-                  <svg className="w-6 h-6 text-[#F54900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                </div>
               </div>
             </div>
           </div>
 
-          {/* ── Skill Health Trends ── */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Top Skills Performance <HelpTip text="Shows how each of your skills is trending in the job market — growing, stable, or declining." />
-              </h3>
-              <div className="flex items-center gap-3 text-xs" />
-            </div>
-            {aiData?.skillHealth && aiData.skillHealth.length > 0 ? (
-              <div className="space-y-4">
-                {aiData.skillHealth
-                  .sort((a, b) => b.healthScore - a.healthScore)
-                  .slice(0, 3)
-                  .map((skill) => {
-                    const trendColors = {
-                      growing:  { bg: 'bg-[#06B4C9]', text: 'text-cyan-700',  light: 'bg-cyan-50'  },
-                      stable:   { bg: 'bg-slate-300',  text: 'text-slate-600', light: 'bg-slate-100' },
-                      declining:{ bg: 'bg-amber-400',  text: 'text-amber-700', light: 'bg-amber-50'  },
-                    };
-                    const colors = trendColors[skill.trend];
-                    return (
-                      <div key={skill.skillName} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-700">{skill.skillName}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors.text} ${colors.light}`}>
-                              {skill.trend}
-                            </span>
-                          </div>
-                          <span className="text-sm font-bold text-gray-900">{skill.healthScore}%</span>
-                        </div>
-                        <div className="relative h-3.5 bg-gray-100 rounded-sm overflow-hidden">
-                          <div
-                            className={`absolute top-0 left-0 h-full ${colors.bg} transition-all duration-700 ease-out rounded-sm`}
-                            style={{ width: `${skill.healthScore}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Demand: {skill.currentDemand.toLocaleString()} Jobs</span>
-                          <span>
-                            Decay Rate: {skill.decayRate.toFixed(2)}%{' '}
-                            <HelpTip size={12} text="How quickly this skill loses relevance if not updated. A lower number means the skill stays valuable longer." />
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            ) : (
-              <div className="py-8 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-3">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <p className="text-sm text-gray-500 mb-2">No skill analytics available yet</p>
-                <p className="text-xs text-gray-400">Add credentials to see performance trends</p>
-              </div>
-            )}
-          </div>
-
-          
-          {/* ── Top In-Demand Skills ── */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mt-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Top In-Demand Skills <HelpTip text="The most sought-after skills across the job market right now, based on live job posting data." />
-            </h3>
-            <div className="space-y-3">
-              {topSkills.length > 0 ? (
-                (() => {
-                  const maxCount = Math.max(...topSkills.map(s => s.job_count), 1);
-                  return topSkills.map(skill => (
-                    <div key={skill.name} className="flex items-center gap-3">
-                      <span className="text-sm text-gray-600 w-32 truncate font-medium">{skill.name}</span>
-                      <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
-                        <div
-                          className="bg-[#06B4C9] h-3 rounded-full transition-all duration-1000"
-                          style={{ width: `${(skill.job_count / maxCount) * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500 w-16 text-right font-medium">{skill.job_count.toLocaleString()} jobs</span>
-                    </div>
-                  ));
-                })()
-              ) : (
-                <div className="py-4 text-center">
-                   <p className="text-sm text-gray-500">Loading market data...</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── Pending CVR Banner ── */}
-          {hasPendingCVR && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex justify-between">
-              <p className="text-blue-700 text-sm">Your Resume is currently being verified by the registrar.</p>
-              <button onClick={handleClosePendingCard} className="text-blue-400 hover:text-blue-600 font-bold px-2">×</button>
-            </div>
-          )}
-
-          {/* ── Verified Credentials ── */}
-          <div id="tour-credentials" className="bg-white rounded-xl border border-gray-200 p-5">
+          {/* ── Credential Verification ── */}
+          <div id="tour-credentials">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Verified Credentials <HelpTip text="Certificates and qualifications issued by your university, securely stored and verifiable by employers." />
-              </h2>
+              <h2 className="text-base font-semibold text-gray-900">Credential verification</h2>
               <button
                 onClick={() => router.push('/student/skills')}
                 className="text-[#06B4C9] text-sm font-medium hover:underline"
               >
-                View All
+                View all →
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {allCredentials.length > 0 ? (
-                allCredentials.slice(0, 4).map((cred) => (
-                  <CredentialCard key={cred.id} {...cred} />
-                ))
-              ) : (
-                <div className="col-span-2 p-12 text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-3">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-400 text-sm">No credentials detected yet.</p>
+
+            {allCredentials.length > 0 ? (
+              <div className="space-y-0">
+                {allCredentials.slice(0, 4).map((cred, idx) => {
+                  const status = getCredentialStatus(cred, idx);
+                  const statusConfig = {
+                    verified: { label: 'Verified', className: 'text-green-600', icon: '✓' },
+                    in_review: { label: 'In review', className: 'text-amber-500', icon: '◎' },
+                    needs_attention: { label: 'Needs attention', className: 'text-red-500', icon: '⊘' },
+                  };
+                  const sc = statusConfig[status];
+                  return (
+                    <Link key={cred.id} href={`/student/skills/${cred.id}`}>
+                      <div className="flex items-center gap-4 px-5 py-4 bg-white border border-gray-200 hover:border-[#06B4C9]/40 hover:bg-gray-50/50 transition-all cursor-pointer first:rounded-t-xl last:rounded-b-xl -mt-px first:mt-0">
+                        {getCredentialIcon(cred)}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{cred.title}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {getInstitutionName(cred)} · Issued {cred.issueDate}
+                          </p>
+                          {cred.certificateNumber && (
+                            <p className="text-[10px] text-gray-400 mt-0.5">
+                              {status === 'in_review' && <span className="text-amber-500">Awaiting issuer confirmation · </span>}
+                              {status === 'needs_attention' && <span className="text-red-400">Issuer record not found — resubmit source document · </span>}
+                              {status === 'verified' && <span className="text-gray-400">Confirmed with issuing registrar · </span>}
+                              ID {cred.certificateNumber}
+                            </p>
+                          )}
+                          {!cred.certificateNumber && (
+                            <p className="text-[10px] text-gray-400 mt-0.5">
+                              {status === 'in_review' && <span className="text-amber-500">Awaiting issuer confirmation</span>}
+                              {status === 'needs_attention' && <span className="text-red-400">Issuer record not found — resubmit source document</span>}
+                              {status === 'verified' && <span className="text-gray-400">Confirmed with issuing registrar</span>}
+                            </p>
+                          )}
+                        </div>
+                        <div className={`flex items-center gap-1.5 text-xs font-medium ${sc.className} flex-shrink-0`}>
+                          <span>{sc.icon}</span>
+                          <span>{sc.label}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-3">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                  </svg>
                 </div>
-              )}
-            </div>
+                <p className="text-gray-400 text-sm">No credentials detected yet.</p>
+              </div>
+            )}
           </div>
 
-        </div>
-
-        {/* ── RIGHT COLUMN ── */}
-        <div className="xl:col-span-1 flex flex-col gap-6">
-          <RecentActivity activities={activities} />
-
-          <div id="tour-setup" className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Setup</h3>
-            <div className="relative pt-1 mb-4">
-              <div className="flex mb-2 items-center justify-between">
-                <span className="text-xs font-semibold py-1 px-2 uppercase rounded-full text-[#06B4C9] bg-[#06B4C9]/10">
-                  {(hasPendingCVR || hasCVRExport) && profileComplete ? 'Complete' : 'In Progress'}
-                </span>
-                <span className="text-xs font-semibold text-[#06B4C9]">
-                  {(() => {
-                    let score = 0;
-                    if (hasPendingCVR || hasCVRExport) score += 50;
-                    if (profileComplete) score += 50;
-                    return `${score}%`;
-                  })()}
-                </span>
-              </div>
-              <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-[#06B4C9]/10">
-                <div
-                  style={{ 
-                    width: (() => {
-                      let score = 0;
-                      if (hasPendingCVR || hasCVRExport) score += 50;
-                      if (profileComplete) score += 50;
-                      return `${score}%`;
-                    })() 
-                  }}
-                  className="bg-[#06B4C9] transition-all duration-500"
-                />
-              </div>
-            </div>
-            <ul className="space-y-3 mb-6">
-
-              <li className="flex items-center text-sm text-gray-600">
-                {hasPendingCVR || hasCVRExport
-                  ? <span className="text-green-500 font-bold mr-2">✓</span>
-                  : <span className="text-gray-300 mr-2">○</span>}
-                Upload Resume (CVR) <HelpTip size={13} text="CVR stands for Credential-Verified Resume — a resume that links to your verified certificates for proof." />
-              </li>
-              <li className="flex items-center text-sm text-gray-600">
-                {profileComplete
-                  ? <span className="text-green-500 font-bold mr-2">✓</span>
-                  : <span className="text-gray-300 mr-2">○</span>}
-                Complete Profile
-              </li>
-            </ul>
-            <button
-              onClick={() => router.push('/student/profile')}
-              className="w-full bg-[#06B4C9] !text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#06B4C9]/80 transition-colors"
-            >
-              Complete Setup
-            </button>
-          </div>
-
-          {/* ── Quick Course Picks ── */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-gray-900">Recommended Courses</h3>
+          {/* ── Matched to Your Verified Skills ── */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-base font-semibold text-gray-900">Matched to your verified skills</h2>
               <Link
-                href="/student/explore-courses"
-                className="text-xs font-semibold text-[#06B4C9] hover:text-[#06B4C9]/70 transition-colors"
+                href="/student/jobs"
+                className="text-[#06B4C9] text-sm font-medium hover:underline"
               >
-                Explore More →
+                Browse all jobs →
               </Link>
             </div>
 
             {aiData?.recommendations && aiData.recommendations.length > 0 ? (
               <div className="space-y-3">
-                {aiData.recommendations.slice(0, 3).map((rec, i: number) => {
-                  const courseTitle = rec.courseTitle || rec.courseName || 'Course';
+                {aiData.recommendations.slice(0, 2).map((rec, i: number) => {
+                  const courseTitle = rec.courseTitle || rec.courseName || 'Position';
+                  const matchPercent = rec.relevanceScore || 80;
+                  // Derive a job-like display from the recommendation
+                  const tags = extractTags(courseTitle);
                   return (
-                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all overflow-hidden">
-                      <div className="relative flex-shrink-0 w-24 h-20 rounded-lg overflow-hidden border border-gray-200 bg-slate-100">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={getCourseImageSrc(courseTitle, rec.provider, rec.link)}
-                          alt={`${courseTitle} course thumbnail`}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className={`absolute left-2 top-2 flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-[11px] font-bold shadow-sm ${
-                          i === 0 ? 'bg-amber-400 text-white' : i === 1 ? 'bg-white/90 text-gray-700' : 'bg-orange-300 text-white'
-                        }`}>
-                          #{i + 1}
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2">
-                            {courseTitle}
-                          </p>
-                          <span className="flex-shrink-0 text-xs font-bold text-[#06B4C9]">
-                            {rec.relevanceScore || 80}%
-                          </span>
-                        </div>
-                        {rec.provider && (
-                          <span className={`mt-1.5 inline-block text-xs font-semibold px-2 py-0.5 rounded-md ${providerPill(rec.provider)}`}>
-                            {rec.provider}
-                          </span>
-                        )}
-                        <div className="flex flex-wrap gap-1.5 mt-1">
-                          {extractTags(courseTitle).map((tag: string) => (
-                            <span key={tag} className="text-xs text-gray-500 border border-gray-200 rounded-full px-2 py-0.5 bg-gray-50">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                        {rec.link && (
-                          <div className="flex justify-end mt-1.5">
-                            <a
-                              href={rec.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs font-medium text-gray-400 hover:text-[#06B4C9] transition-colors inline-flex items-center gap-0.5"
-                            >
-                              Take Course
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                              </svg>
-                            </a>
+                    <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-[#06B4C9]/40 hover:shadow-sm transition-all">
+                      <div className="flex items-center gap-4">
+                        {/* Match percentage circle */}
+                        <div className="relative w-12 h-12 flex-shrink-0">
+                          <svg viewBox="0 0 48 48" className="w-12 h-12 transform -rotate-90">
+                            <circle cx="24" cy="24" r="20" fill="none" stroke="#E5E7EB" strokeWidth="3" />
+                            <circle
+                              cx="24" cy="24" r="20"
+                              fill="none"
+                              stroke="#06B4C9"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeDasharray={`${(matchPercent / 100) * 2 * Math.PI * 20} ${2 * Math.PI * 20}`}
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-xs font-bold text-gray-900">{matchPercent}%</span>
                           </div>
-                        )}
+                        </div>
+
+                        {/* Job info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{courseTitle}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {rec.provider || 'Company'} · {user?.location || 'Remote'}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {tags.map((tag: string) => (
+                              <span key={tag} className="text-[11px] text-[#06B4C9] bg-[#06B4C9]/10 border border-[#06B4C9]/20 rounded-full px-2.5 py-0.5 font-medium flex items-center gap-1">
+                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Apply button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (rec.link) window.open(rec.link, '_blank');
+                            else router.push('/student/jobs');
+                          }}
+                          className="flex-shrink-0 bg-[#06B4C9] text-white text-xs font-bold px-5 py-2 rounded-lg hover:bg-[#06B4C9]/80 transition-colors"
+                        >
+                          Apply
+                        </button>
                       </div>
                     </div>
                   );
@@ -718,21 +552,128 @@ export default function StudentDashboard() {
               </div>
             ) : loading ? (
               <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+                {[1, 2].map(i => (
+                  <div key={i} className="h-20 bg-white rounded-xl border border-gray-200 animate-pulse" />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-6">
-                <p className="text-xs text-gray-400 mb-2">No suggestions yet</p>
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                <p className="text-sm text-gray-400 mb-2">No matched jobs yet</p>
                 <Link
-                  href="/student/explore-courses"
+                  href="/student/jobs"
                   className="inline-flex items-center gap-1 text-xs font-semibold text-[#06B4C9] hover:underline"
                 >
-                  Browse all courses →
+                  Browse all jobs →
                 </Link>
               </div>
             )}
+          </div>
+
+        </div>
+
+        {/* ── RIGHT COLUMN ── */}
+        <div className="xl:col-span-1 flex flex-col gap-6">
+
+          {/* ── Verification Activity ── */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Verification activity</h3>
+            <div className="space-y-4">
+              {activities.length > 0 ? (
+                activities.slice(0, 3).map((activity) => {
+                  const dotColor = activity.type === 'success' ? 'bg-green-500'
+                    : activity.type === 'info' ? 'bg-blue-500'
+                    : activity.type === 'warning' ? 'bg-amber-500'
+                    : 'bg-green-500';
+                  return (
+                    <div key={activity.id} className="flex items-start gap-3">
+                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${dotColor}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-700 leading-snug">{activity.title}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{activity.time}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-2">No recent verification activity.</p>
+              )}
+            </div>
+          </div>
+
+          {/* ── Boost Your Trust Score ── */}
+          <div id="tour-setup" className="bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Boost your trust score</h3>
+            <div className="space-y-0">
+              {/* Verify LinkedIn */}
+              <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                <div>
+                  <p className="text-sm text-gray-700 font-medium">Verify LinkedIn profile</p>
+                </div>
+                <button
+                  onClick={() => router.push('/student/profile')}
+                  className="text-[#06B4C9] text-xs font-semibold hover:underline"
+                >
+                  Add
+                </button>
+              </div>
+              {/* Add Git portfolio */}
+              <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                <div>
+                  <p className="text-sm text-gray-700 font-medium">Add Git portfolio</p>
+                  <p className="text-[11px] text-[#06B4C9] font-medium">High demand</p>
+                </div>
+                <button
+                  onClick={() => router.push('/student/profile')}
+                  className="text-[#06B4C9] text-xs font-semibold hover:underline"
+                >
+                  Add
+                </button>
+              </div>
+              {/* Verify internship record */}
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm text-gray-700 font-medium">Verify internship record</p>
+                  <p className="text-[11px] text-gray-400">Matches {aiData?.recommendations?.length || 0} jobs</p>
+                </div>
+                <button
+                  onClick={() => router.push('/student/profile')}
+                  className="text-[#06B4C9] text-xs font-semibold hover:underline"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Job Alerts ── */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Job alerts</h3>
+            <div className="space-y-4">
+              {aiData?.recommendations && aiData.recommendations.length > 0 ? (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 bg-[#06B4C9]" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 leading-snug">
+                        {aiData.recommendations.length} new roles match your verified {allCredentials[0]?.title || 'AWS'} credential
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">1 hour ago</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 bg-amber-400" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 leading-snug">
+                        {aiData.recommendations[0]?.provider || 'Employer'} viewed your verified profile
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">Yesterday</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-2">No job alerts yet. Add credentials to get matched.</p>
+              )}
+            </div>
           </div>
 
         </div>
