@@ -3,9 +3,9 @@
 // Extract up to 3 meaningful keyword tags from the course title
 function extractTags(title: string): string[] {
   const stop = new Set([
-    'and','the','of','in','for','to','a','an','with','on','at','by',
-    'i','ii','iii','iv','introduction','advanced','fundamentals','complete','guide',
-    'course','bootcamp','certification','essentials','mastery','professional'
+    'and', 'the', 'of', 'in', 'for', 'to', 'a', 'an', 'with', 'on', 'at', 'by',
+    'i', 'ii', 'iii', 'iv', 'introduction', 'advanced', 'fundamentals', 'complete', 'guide',
+    'course', 'bootcamp', 'certification', 'essentials', 'mastery', 'professional'
   ]);
   return title
     .replace(/[():,]/g, '')
@@ -109,7 +109,7 @@ export default function StudentDashboard() {
             cachedData = parsed.data;
           }
         }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) { /* ignore parsing errors */ }
 
       let analysisJson;
@@ -118,15 +118,15 @@ export default function StudentDashboard() {
         analysisJson = cachedData;
       } else {
         // 🛡️ CSRF - Extract token from cookies (Task 9 integration)
-        const csrfToken = typeof document !== 'undefined' 
+        const csrfToken = typeof document !== 'undefined'
           ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1]
           : '';
 
         const res = await fetch('/api/analyze', {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
-            'x-csrf-token': csrfToken || '' 
+            'x-csrf-token': csrfToken || ''
           },
           body: JSON.stringify({
             studentId: identifier,
@@ -151,7 +151,7 @@ export default function StudentDashboard() {
                 credentialCount: dbCreds.length,
                 data: analysisJson
               }));
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (e) { /* ignore quota errors */ }
           }
         }
@@ -465,15 +465,71 @@ export default function StudentDashboard() {
                 })}
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-3">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-2">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                   </svg>
                 </div>
                 <p className="text-gray-400 text-sm">No credentials detected yet.</p>
               </div>
             )}
+          </div>
+
+          {/* ── Top Skills Performance ── */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-base font-semibold text-gray-900">Top Skills Performance</h2>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              {aiData?.skillHealth && aiData.skillHealth.length > 0 ? (
+                <div className="space-y-4">
+                  {aiData.skillHealth
+                    .sort((a, b) => b.healthScore - a.healthScore)
+                    .slice(0, 3)
+                    .map((skill) => {
+                      const trendColors = {
+                        growing: { bg: 'bg-[#06B4C9]', text: 'text-cyan-700', light: 'bg-cyan-50' },
+                        stable: { bg: 'bg-slate-400', text: 'text-slate-600', light: 'bg-slate-100' },
+                        declining: { bg: 'bg-amber-400', text: 'text-amber-700', light: 'bg-amber-50' },
+                      };
+                      const colors = trendColors[skill.trend] || trendColors.stable;
+                      return (
+                        <div key={skill.skillName} className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-700">{skill.skillName}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors.text} ${colors.light}`}>
+                                {skill.trend}
+                              </span>
+                            </div>
+                            <span className="text-sm font-bold text-gray-900">{skill.healthScore}%</span>
+                          </div>
+                          <div className="relative h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className={`absolute top-0 left-0 h-full ${colors.bg} transition-all duration-700 ease-out rounded-full`}
+                              style={{ width: `${skill.healthScore}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-gray-400">
+                            <span>Demand: {skill.currentDemand.toLocaleString()} Jobs</span>
+                            <span>Decay Rate: {skill.decayRate.toFixed(2)}%</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="py-6 text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-2">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <p className="text-xs text-gray-400">No skill analytics available yet</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ── Matched to Your Verified Skills ── */}
@@ -558,15 +614,77 @@ export default function StudentDashboard() {
               </div>
             ) : (
               <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                <p className="text-sm text-gray-400 mb-2">No matched jobs yet</p>
-                <Link
-                  href="/student/jobs"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#06B4C9] hover:underline"
-                >
-                  Browse all jobs →
-                </Link>
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-2">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-sm text-gray-400">No matched jobs yet</p>
               </div>
             )}
+          </div>
+
+          {/* ── Recommended Courses ── */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-base font-semibold text-gray-900">Recommended Courses</h2>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              {aiData?.recommendations && aiData.recommendations.length > 0 ? (
+                <div className="space-y-3">
+                  {aiData.recommendations.slice(0, 3).map((rec, i: number) => {
+                    const courseTitle = rec.courseTitle || rec.courseName || 'Course';
+                    const tags = extractTags(courseTitle);
+                    return (
+                      <div key={i} className="p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50/50 transition-all">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-1">
+                            {courseTitle}
+                          </p>
+                          <span className="flex-shrink-0 text-xs font-bold text-[#06B4C9]">
+                            {rec.relevanceScore || 80}% Match
+                          </span>
+                        </div>
+                        {rec.provider && (
+                          <span className="mt-1 inline-block text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                            {rec.provider}
+                          </span>
+                        )}
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {tags.map((tag: string) => (
+                            <span key={tag} className="text-[11px] text-gray-500 border border-gray-200 rounded-full px-2 py-0.5 bg-gray-50">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        {rec.link && (
+                          <div className="flex justify-end mt-2">
+                            <a
+                              href={rec.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-semibold text-[#06B4C9] hover:underline"
+                            >
+                              View Course →
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-2">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <p className="text-xs text-gray-400">No course suggestions available yet</p>
+                </div>
+              )}
+            </div>
           </div>
 
         </div>
@@ -574,16 +692,16 @@ export default function StudentDashboard() {
         {/* ── RIGHT COLUMN ── */}
         <div className="xl:col-span-1 flex flex-col gap-6">
 
-          {/* ── Verification Activity ── */}
+          {/* ── Activity ── */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Verification activity</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Activity</h3>
             <div className="space-y-4">
               {activities.length > 0 ? (
                 activities.slice(0, 3).map((activity) => {
                   const dotColor = activity.type === 'success' ? 'bg-green-500'
                     : activity.type === 'info' ? 'bg-blue-500'
-                    : activity.type === 'warning' ? 'bg-amber-500'
-                    : 'bg-green-500';
+                      : activity.type === 'warning' ? 'bg-amber-500'
+                        : 'bg-green-500';
                   return (
                     <div key={activity.id} className="flex items-start gap-3">
                       <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${dotColor}`} />
@@ -595,7 +713,7 @@ export default function StudentDashboard() {
                   );
                 })
               ) : (
-                <p className="text-sm text-gray-400 text-center py-2">No recent verification activity.</p>
+                <p className="text-sm text-gray-400 text-center py-2">No recent activity.</p>
               )}
             </div>
           </div>
