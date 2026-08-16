@@ -73,26 +73,57 @@ const SimplePreview = ({ color }: { color: string }) => (
   </div>
 );
 
-const templates = [
+const TwoColumnPreview = ({ color }: { color: string }) => (
+  <div className="h-full bg-white dark:bg-[#1A2030] flex">
+    <div className="w-2/3 p-2 space-y-1.5">
+      <div className="w-3/5 h-2 rounded-sm" style={{ backgroundColor: color }} />
+      <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-sm" />
+      <div className="w-5/6 h-1 bg-gray-200 dark:bg-gray-700 rounded-sm" />
+      <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-sm" />
+      <div className="w-4/6 h-1 bg-gray-200 dark:bg-gray-700 rounded-sm" />
+    </div>
+    <div className="w-1/3 p-2 space-y-1.5 border-l border-gray-100 dark:border-gray-700" style={{ backgroundColor: `${color}08` }}>
+      <div className="w-full h-1.5 rounded-sm" style={{ backgroundColor: `${color}60` }} />
+      <div className="w-3/4 h-1 bg-gray-200 dark:bg-gray-600 rounded-sm" />
+      <div className="w-full h-1 bg-gray-200 dark:bg-gray-600 rounded-sm" />
+      <div className="w-2/3 h-1 bg-gray-200 dark:bg-gray-600 rounded-sm" />
+    </div>
+  </div>
+);
+
+export const templateList = [
   {
     id: 'professional',
-    label: 'Professional',
-    description: 'Clean, structured layout for corporate roles.',
+    label: 'ATS Minimal',
+    description: 'Clean, parser-friendly layout',
     Preview: ProfessionalPreview,
+    recommended: true,
   },
   {
     id: 'modern',
-    label: 'Modern',
-    description: 'Two-column design with skills sidebar.',
+    label: 'Modern Dark',
+    description: 'Bold header, mint accents',
     Preview: ModernPreview,
+    recommended: false,
   },
   {
     id: 'simple',
-    label: 'Simple',
-    description: 'Traditional and minimal.',
+    label: 'Technical Mono',
+    description: 'Monospace accents for devs',
     Preview: SimplePreview,
+    recommended: false,
+  },
+  {
+    id: 'two-column',
+    label: 'Two-Column Split',
+    description: 'Sidebar for skills & contact',
+    Preview: TwoColumnPreview,
+    recommended: false,
   },
 ];
+
+// Keep backwards-compatible alias
+const templates = templateList;
 
 export default function TemplateSelector({
   selectedTemplate,
@@ -131,7 +162,7 @@ export default function TemplateSelector({
       </div>
 
       {/* Template Cards — compact row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {templates.map((tpl) => {
           const isSelected = selectedTemplate === tpl.id;
           return (
