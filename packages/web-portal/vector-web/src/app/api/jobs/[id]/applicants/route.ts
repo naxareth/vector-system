@@ -32,7 +32,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     if (job.employer.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     // Fetch applications
-    const applications = await prisma.job_applications.findMany({
+    const rawApplications = await prisma.job_applications.findMany({
       where: { job_id: id },
       include: {
         student: {
@@ -45,6 +45,38 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       },
       orderBy: { applied_at: 'desc' }
     });
+
+    const requiredSkills = job.required_skills || [];
+
+    const applications = await Promise.all(
+      rawApplications.map(async (app) => {
+        const credentials = await prisma.verified_credentials.findMany({
+          where: { user_id: app.student.id },
+          select: { skill_tags: true }
+        });
+
+        const studentSkills = Array.from(new Set(credentials.flatMap(c => c.skill_tags || [])));
+        const matchedSkills = requiredSkills.filter(s =>
+          studentSkills.some(ss => ss.toLowerCase() === s.toLowerCase())
+        );
+        const missingSkills = requiredSkills.filter(s =>
+          !studentSkills.some(ss => ss.toLowerCase() === s.toLowerCase())
+        );
+        const matchScore = requiredSkills.length > 0 ? matchedSkills.length / requiredSkills.length : 0;
+        const isVerified = credentials.length > 0;
+
+        return {
+          ...app,
+          matchScore,
+          matchedSkills,
+          missingSkills,
+          studentSkills,
+          isVerified
+        };
+      })
+    );
+
+    applications.sort((a, b) => b.matchScore - a.matchScore);
 
     return NextResponse.json({ applications });
   } catch (error) {
@@ -104,7 +136,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           user_id: application.student_id,
           title: 'Application Status Updated',
           message: `Your application for ${application.job.title} is now ${status}`,
-          type: 'application_update',
+          type: 'info',
           link_url: '/student/applications'
         }
       });

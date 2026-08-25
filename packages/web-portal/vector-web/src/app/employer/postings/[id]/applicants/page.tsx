@@ -10,6 +10,10 @@ interface Applicant {
   applied_at: string;
   cover_note: string | null;
   cvr_export_id: string | null;
+  matchScore?: number;
+  matchedSkills?: string[];
+  missingSkills?: string[];
+  isVerified?: boolean;
   student: {
     id: string;
     full_name: string;
@@ -71,7 +75,7 @@ export default function JobApplicants({ params }: { params: Promise<{ id: string
            Back to Postings
         </Link>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Applicant Tracking</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Review candidates for this position.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Review candidates for this position, ranked by verified skill alignment.</p>
       </div>
 
       <div className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] overflow-hidden">
@@ -92,6 +96,7 @@ export default function JobApplicants({ params }: { params: Promise<{ id: string
               <thead className="bg-gray-50 dark:bg-[#1A2030] border-b border-gray-200 dark:border-[#1E2536] text-gray-700 dark:text-gray-400 text-xs uppercase font-semibold">
                 <tr>
                   <th className="px-6 py-4">Applicant</th>
+                  <th className="px-6 py-4">Skill Match</th>
                   <th className="px-6 py-4">Applied Date</th>
                   <th className="px-6 py-4">CVR</th>
                   <th className="px-6 py-4">Cover Note</th>
@@ -105,6 +110,24 @@ export default function JobApplicants({ params }: { params: Promise<{ id: string
                     <td className="px-6 py-4">
                        <p className="font-semibold text-gray-900 dark:text-white">{app.student.full_name}</p>
                        <p className="text-xs text-gray-500 mt-0.5">{app.student.email}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {app.matchScore !== undefined && (
+                          <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${
+                            app.matchScore >= 0.7 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                            app.matchScore >= 0.3 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                            'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                          }`}>
+                            {Math.round(app.matchScore * 100)}%
+                          </span>
+                        )}
+                        {app.isVerified && (
+                          <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 px-1.5 py-0.5 rounded font-semibold flex items-center gap-0.5">
+                            ✓ Verified
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">{new Date(app.applied_at).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
