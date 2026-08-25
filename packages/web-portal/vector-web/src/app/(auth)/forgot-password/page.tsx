@@ -17,7 +17,7 @@ const otpSchema = z.object({
 
 // Strong Password Policy
 const passwordSchema = z.object({
-  password: z.string().regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{12,}$/, {
+  password: z.string().regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])[^\s]{12,}$/, {
     message: "Password must be 12+ chars, include uppercase, lowercase, number, and special char.",
   }),
   confirmPassword: z.string(),

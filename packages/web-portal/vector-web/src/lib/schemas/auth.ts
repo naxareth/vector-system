@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // OWASP Recommended Password Regex
 const passwordValidation = new RegExp(
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{12,}$/
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])[^\s]{12,}$/
 );
 
 // Base schema for shared fields
