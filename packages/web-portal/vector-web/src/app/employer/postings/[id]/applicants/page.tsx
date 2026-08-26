@@ -108,7 +108,9 @@ export default function JobApplicants({ params }: { params: Promise<{ id: string
                 {applicants.map((app) => (
                   <tr key={app.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4">
-                       <p className="font-semibold text-gray-900 dark:text-white">{app.student.full_name}</p>
+                       <Link href={`/employer/postings/${id}/applicants/${app.id}/resume`} className="font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-[#06B4C9] transition-colors">
+                         {app.student.full_name}
+                       </Link>
                        <p className="text-xs text-gray-500 mt-0.5">{app.student.email}</p>
                     </td>
                     <td className="px-6 py-4">
@@ -132,8 +134,11 @@ export default function JobApplicants({ params }: { params: Promise<{ id: string
                     <td className="px-6 py-4">{new Date(app.applied_at).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
                        {app.cvr_export_id ? (
-                         <Link href={`/verify/cvr/${app.cvr_export_id}`} target="_blank" className="text-blue-600 hover:underline">
-                           View CVR
+                         <Link
+                           href={`/employer/postings/${id}/applicants/${app.id}/resume`}
+                           className="text-blue-600 dark:text-[#06B4C9] font-medium hover:underline flex items-center gap-1"
+                         >
+                           <span>View Resume</span>
                          </Link>
                        ) : (
                          <span className="text-gray-400">Not provided</span>
