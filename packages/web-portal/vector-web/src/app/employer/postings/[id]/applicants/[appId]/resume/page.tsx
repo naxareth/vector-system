@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import EmployerLayout from '@/components/dashboard/EmployerLayout';
+import StatusDropdown from '@/components/dashboard/StatusDropdown';
 import ResumeDocumentRenderer from '@/components/cvr/ResumeDocumentRenderer';
 import { CVRData } from '@/lib/schemas/cvr';
 
@@ -237,18 +238,11 @@ export default function ApplicantResumePage({
 
               <div className="border-l border-gray-200 dark:border-[#283042] pl-4">
                 <p className="text-[11px] uppercase font-semibold tracking-wider text-gray-400 mb-1">Status</p>
-                <select
+                <StatusDropdown
                   value={application.status}
                   disabled={updatingStatus}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  className="text-xs font-semibold bg-gray-50 dark:bg-[#0E1220] border border-gray-200 dark:border-[#283042] text-gray-800 dark:text-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-[#06B4C9]"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="reviewing">Reviewing</option>
-                  <option value="interview">Interview</option>
-                  <option value="offered">Offered</option>
-                  <option value="rejected">Rejected</option>
-                </select>
+                  onChange={(newStatus) => handleStatusChange(newStatus)}
+                />
               </div>
             </div>
           </div>

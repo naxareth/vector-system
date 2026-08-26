@@ -194,6 +194,7 @@ body {
   background-color: #151C2A !important;
   color: #E2E8F0 !important;
   border-color: #283042 !important;
+  color-scheme: dark !important;
 }
 
 .dark input::placeholder,
@@ -251,6 +252,7 @@ body {
   background-color: #ffffff !important;
   color: #111827 !important;
   border: 1px solid #d1d5db !important;
+  color-scheme: light !important;
 }
 
 :root input::placeholder,
@@ -259,15 +261,28 @@ body {
   opacity: 1 !important;
 }
 
-/* Force dark text on colored badge backgrounds in light mode */
-:root:not(.dark) [class*="bg-orange-"],
-:root:not(.dark) [class*="bg-blue-"],
-:root:not(.dark) [class*="bg-green-"],
-:root:not(.dark) [class*="bg-purple-"] {
+/* Select option dropdown contrast fix */
+select option,
+option {
+  background-color: #ffffff !important;
   color: #111827 !important;
 }
 
-:root:not(.dark) span[class*="bg-"] {
+.dark select option,
+.dark option {
+  background-color: #131825 !important;
+  color: #F1F5F9 !important;
+}
+
+/* Force dark text on light badge backgrounds only (never buttons or white text) */
+:root:not(.dark) span[class*="bg-orange-50"],
+:root:not(.dark) span[class*="bg-orange-100"],
+:root:not(.dark) span[class*="bg-blue-50"],
+:root:not(.dark) span[class*="bg-blue-100"],
+:root:not(.dark) span[class*="bg-green-50"],
+:root:not(.dark) span[class*="bg-green-100"],
+:root:not(.dark) span[class*="bg-purple-50"],
+:root:not(.dark) span[class*="bg-purple-100"] {
   color: #111827 !important;
 }
 

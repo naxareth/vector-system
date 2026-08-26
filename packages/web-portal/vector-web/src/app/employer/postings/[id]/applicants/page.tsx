@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import EmployerLayout from '@/components/dashboard/EmployerLayout';
+import StatusDropdown from '@/components/dashboard/StatusDropdown';
 
 interface Applicant {
   id: string;
@@ -70,7 +71,7 @@ export default function JobApplicants({ params }: { params: Promise<{ id: string
   return (
     <EmployerLayout>
       <div className="mb-6">
-        <Link href="/employer/postings" className="text-blue-600 text-sm font-medium hover:underline inline-flex items-center gap-1 mb-4">
+        <Link href="/employer/postings" className="text-blue-600 dark:text-[#06B4C9] text-sm font-medium hover:underline inline-flex items-center gap-1 mb-4">
            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
            Back to Postings
         </Link>
@@ -78,7 +79,7 @@ export default function JobApplicants({ params }: { params: Promise<{ id: string
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Review candidates for this position, ranked by verified skill alignment.</p>
       </div>
 
-      <div className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] overflow-hidden">
+      <div className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] overflow-hidden shadow-sm">
         {loading ? (
            <div className="py-12 text-center text-sm text-gray-500">Loading applicants...</div>
         ) : applicants.length === 0 ? (
@@ -152,20 +153,29 @@ export default function JobApplicants({ params }: { params: Promise<{ id: string
                        )}
                     </td>
                     <td className="px-6 py-4">
-                      <select 
-                        value={app.status}
-                        onChange={(e) => updateStatus(app.id, e.target.value)}
-                        className="text-xs bg-gray-50 dark:bg-[#0E1220] border border-gray-200 dark:border-[#283042] rounded-md px-2 py-1 focus:ring-blue-500"
-                      >
-                         <option value="pending">Pending</option>
-                         <option value="reviewing">Reviewing</option>
-                         <option value="interview">Interview</option>
-                         <option value="offered">Offered</option>
-                         <option value="rejected">Rejected</option>
-                      </select>
+                       <StatusDropdown
+                         value={app.status}
+                         onChange={(newStatus) => updateStatus(app.id, newStatus)}
+                       />
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {/* Can add more actions here like Send Email */}
+                       <div className="flex items-center justify-end gap-2">
+                         <Link
+                           href={`/employer/postings/${id}/applicants/${app.id}/resume`}
+                           className="px-3 py-1.5 text-xs font-semibold bg-[#06B4C9] hover:bg-[#06B4C9]/90 !text-white rounded-lg transition-colors shadow-sm inline-flex items-center gap-1"
+                         >
+                           Review
+                         </Link>
+                         <a
+                           href={`mailto:${app.student.email}`}
+                           title="Email Applicant"
+                           className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors inline-flex items-center"
+                         >
+                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                           </svg>
+                         </a>
+                       </div>
                     </td>
                   </tr>
                 ))}

@@ -184,7 +184,7 @@ export default function EmployerProfilePage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg disabled:opacity-50"
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 !text-white font-semibold rounded-lg disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Profile'}
               </button>
