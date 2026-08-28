@@ -27,7 +27,14 @@ export async function GET(req: Request) {
   const job_type = searchParams.get('job_type');
   const employer_id = searchParams.get('employer_id');
 
-  const where: import('@prisma/client').Prisma.job_postingsWhereInput = { status: 'active' };
+  const now = new Date();
+  const where: import('@prisma/client').Prisma.job_postingsWhereInput = {
+    status: 'active',
+    OR: [
+      { expires_at: null },
+      { expires_at: { gt: now } },
+    ],
+  };
 
   if (skillsParam) {
     const skills = skillsParam.split(',').map(s => s.trim()).filter(Boolean);
@@ -49,6 +56,7 @@ export async function GET(req: Request) {
     where.employer = { user_id: employer_id };
     // If querying by employer, don't restrict to 'active' status so they see all their jobs
     delete where.status;
+    delete where.OR;
   }
 
   try {
@@ -116,7 +124,7 @@ export async function POST(req: Request) {
         required_skills: parsed.required_skills,
         preferred_skills: parsed.preferred_skills,
         status: parsed.status,
-        expires_at: parsed.expires_at ? new Date(parsed.expires_at) : null
+        expires_at: parsed.expires_at ? new Date(parsed.expires_at) : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
       }
     });
 

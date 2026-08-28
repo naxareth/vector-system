@@ -17,6 +17,7 @@ interface JobPosting {
   preferred_skills: string[];
   status: string;
   created_at: string;
+  expires_at: string | null;
   employer: {
     company_name: string;
     industry: string | null;
@@ -162,7 +163,26 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
                 {Math.round(matchData.matchScore * 100)}% Match
               </div>
             )}
-            <h1 className="text-2xl font-bold text-gray-900 mb-2 mt-2">{job.title}</h1>
+            
+            <div className="flex items-center gap-3 mt-2 mb-2">
+              <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
+              {job.expires_at && (() => {
+                const daysLeft = Math.ceil((new Date(job.expires_at).getTime() - Date.now()) / (1000 * 3600 * 24));
+                if (daysLeft < 0) {
+                  return (
+                    <span className="text-xs font-semibold px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 rounded-md">
+                      Expired
+                    </span>
+                  );
+                }
+                return (
+                  <span className={`text-xs font-semibold px-2.5 py-1 border rounded-md ${daysLeft === 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                    {daysLeft === 0 ? 'Closes today' : `Closes in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`}
+                  </span>
+                );
+              })()}
+            </div>
+            
             <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-6">
               <span className="flex items-center gap-1.5 font-medium">
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>

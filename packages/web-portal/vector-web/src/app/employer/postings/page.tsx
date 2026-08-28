@@ -10,6 +10,7 @@ interface JobPosting {
   title: string;
   status: string;
   created_at: string;
+  expires_at: string | null;
   _count?: {
     applications: number;
   };
@@ -104,6 +105,39 @@ export default function JobPostingsManagement() {
     }
   };
 
+  const handleRenew = async (jobId: string) => {
+    try {
+      const csrfToken = typeof document !== 'undefined'
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1] || ''
+        : '';
+        
+      const res = await fetch(`/api/jobs/${jobId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({
+          expires_at: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'active'
+        })
+      });
+
+      if (res.ok) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const refreshedPostingsResponse = await fetch(`/api/jobs?employer_id=${user.id}`);
+          if (refreshedPostingsResponse.ok) {
+            const refreshedData = await refreshedPostingsResponse.json();
+            setPostings(refreshedData.jobs || []);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to renew job:', e);
+    }
+  };
+
   return (
     <EmployerLayout>
       <div className="mb-6 flex items-center justify-between gap-4">
@@ -141,31 +175,52 @@ export default function JobPostingsManagement() {
                   <th className="px-6 py-4">Job Title</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Posted Date</th>
+                  <th className="px-6 py-4">Expires</th>
                   <th className="px-6 py-4">Applicants</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-[#1E2536]">
-                {postings.map((job) => (
-                  <tr key={job.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{job.title}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${job.status === 'open' ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' : 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-                         {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">{new Date(job.created_at).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 font-medium">{job._count?.applications || 0}</td>
-                    <td className="px-6 py-4 text-right">
-                      <Link 
-                        href={`/employer/postings/${job.id}/applicants`}
-                        className="text-blue-600 hover:text-blue-700 font-medium text-sm hover:underline"
-                      >
-                        View Applicants
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {postings.map((job) => {
+                  const now = new Date();
+                  const isExpired = job.expires_at ? new Date(job.expires_at) < now : false;
+                  const daysLeft = job.expires_at ? Math.ceil((new Date(job.expires_at).getTime() - now.getTime()) / (1000 * 3600 * 24)) : null;
+                  
+                  return (
+                    <tr key={job.id} className={`transition-colors ${isExpired ? 'bg-red-50/30 dark:bg-red-900/10 hover:bg-red-50/50 dark:hover:bg-red-900/20' : 'hover:bg-gray-50/50 dark:hover:bg-white/5'}`}>
+                      <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{job.title}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${isExpired ? 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' : job.status === 'active' ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' : 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+                           {isExpired ? 'Expired' : job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-xs">{new Date(job.created_at).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-xs font-medium">
+                        {isExpired ? (
+                          <span className="text-red-600 dark:text-red-400">Expired</span>
+                        ) : daysLeft !== null ? (
+                          <span className={daysLeft <= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500'}>{daysLeft} days left</span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 font-medium">{job._count?.applications || 0}</td>
+                      <td className="px-6 py-4 text-right flex items-center justify-end gap-3">
+                        {isExpired && (
+                          <button onClick={() => handleRenew(job.id)} className="text-xs font-semibold px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 rounded-md transition-colors">
+                            Renew (15d)
+                          </button>
+                        )}
+                        <Link 
+                          href={`/employer/postings/${job.id}/applicants`}
+                          className="text-blue-600 hover:text-blue-700 font-medium text-sm hover:underline"
+                        >
+                          View Applicants
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

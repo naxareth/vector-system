@@ -44,19 +44,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (job.employer.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
+
+    // Only update fields that are explicitly provided in the request body
+    const data: Record<string, unknown> = {};
+    if ('title' in body) data.title = body.title;
+    if ('description' in body) data.description = body.description;
+    if ('location' in body) data.location = body.location;
+    if ('job_type' in body) data.job_type = body.job_type;
+    if ('salary_range' in body) data.salary_range = body.salary_range;
+    if ('required_skills' in body) data.required_skills = body.required_skills;
+    if ('preferred_skills' in body) data.preferred_skills = body.preferred_skills;
+    if ('status' in body) data.status = body.status;
+    if ('expires_at' in body) data.expires_at = body.expires_at ? new Date(body.expires_at) : null;
+
     const updated = await prisma.job_postings.update({
       where: { id },
-      data: {
-        title: body.title,
-        description: body.description,
-        location: body.location,
-        job_type: body.job_type,
-        salary_range: body.salary_range,
-        required_skills: body.required_skills,
-        preferred_skills: body.preferred_skills,
-        status: body.status,
-        expires_at: body.expires_at ? new Date(body.expires_at) : null
-      }
+      data
     });
 
     return NextResponse.json(updated);
