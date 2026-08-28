@@ -39,12 +39,11 @@ export async function GET(req: Request) {
     const now = new Date();
     const jobs = await prisma.job_postings.findMany({
       where: { 
-         status: 'active', 
-         OR: [
-           { expires_at: null },
-           { expires_at: { gt: now } }
-         ],
-         ...(jobId ? { id: jobId } : {}) 
+         AND: [
+           { status: 'active' },
+           { OR: [{ expires_at: null }, { expires_at: { gt: now } }] },
+           ...(jobId ? [{ id: jobId }] : [])
+         ]
       },
       include: { 
          employer: true, 
