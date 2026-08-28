@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface StatusDropdownProps {
   value: string;
@@ -56,7 +57,9 @@ const STATUS_CONFIG: Record<
 
 export default function StatusDropdown({ value, onChange, disabled }: StatusDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const current = STATUS_CONFIG[value] || {
     label: value,
@@ -67,22 +70,58 @@ export default function StatusDropdown({ value, onChange, disabled }: StatusDrop
     dot: 'bg-gray-400',
   };
 
+  const updatePosition = useCallback(() => {
+    if (!btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const menuHeight = 5 * 32 + 8; // 5 options ~32px each + padding
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openAbove = spaceBelow < menuHeight && rect.top > menuHeight;
+
+    setMenuPos({
+      top: openAbove ? rect.top - menuHeight - 4 : rect.bottom + 4,
+      left: Math.max(8, rect.right - 144), // 144 = w-36 = 9rem
+    });
+  }, []);
+
+  const handleToggle = () => {
+    if (disabled) return;
+    if (!isOpen) updatePosition();
+    setIsOpen((o) => !o);
+  };
+
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        btnRef.current && !btnRef.current.contains(target) &&
+        menuRef.current && !menuRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
+
+    const handleScroll = () => updatePosition();
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleScroll);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [isOpen, updatePosition]);
 
   return (
-    <div className="relative inline-block text-left" ref={containerRef}>
+    <>
       <button
+        ref={btnRef}
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className={`inline-flex items-center justify-between gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg border shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#06B4C9] disabled:opacity-50 cursor-pointer ${current.bg} ${current.darkBg} ${current.text} ${current.darkText}`}
       >
         <span className={`w-2 h-2 rounded-full ${current.dot}`} />
@@ -97,38 +136,44 @@ export default function StatusDropdown({ value, onChange, disabled }: StatusDrop
         </svg>
       </button>
 
-      {isOpen && (
-        <div className="absolute right-0 z-50 mt-1 w-36 bg-white dark:bg-[#131825] border border-gray-200 dark:border-[#283042] rounded-xl shadow-xl py-1 overflow-hidden animate-fadeIn">
-          {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
-            const isSelected = key === value;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  onChange(key);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                  isSelected
-                    ? 'bg-gray-100 dark:bg-[#1E2536] text-gray-900 dark:text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                  <span>{cfg.label}</span>
-                </div>
-                {isSelected && (
-                  <svg className="w-3.5 h-3.5 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+      {isOpen &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="fixed z-[9999] w-36 bg-white dark:bg-[#131825] border border-gray-200 dark:border-[#283042] rounded-xl shadow-2xl py-1 overflow-hidden animate-fadeIn"
+            style={{ top: menuPos.top, left: menuPos.left }}
+          >
+            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
+              const isSelected = key === value;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    onChange(key);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                    isSelected
+                      ? 'bg-gray-100 dark:bg-[#1E2536] text-gray-900 dark:text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                    <span>{cfg.label}</span>
+                  </div>
+                  {isSelected && (
+                    <svg className="w-3.5 h-3.5 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>,
+          document.body
+        )}
+    </>
   );
 }
