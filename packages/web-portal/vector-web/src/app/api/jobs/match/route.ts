@@ -36,9 +36,15 @@ export async function GET(req: Request) {
 
     const jobId = url.searchParams.get('jobId');
 
-    // 2. Fetch active jobs
+    const now = new Date();
     const jobs = await prisma.job_postings.findMany({
-      where: { status: 'active', ...(jobId ? { id: jobId } : {}) },
+      where: { 
+         AND: [
+           { status: 'active' },
+           { OR: [{ expires_at: null }, { expires_at: { gt: now } }] },
+           ...(jobId ? [{ id: jobId }] : [])
+         ]
+      },
       include: { 
          employer: true, 
          _count: { select: { applications: true } } 

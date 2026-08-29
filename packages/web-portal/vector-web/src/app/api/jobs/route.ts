@@ -27,8 +27,15 @@ export async function GET(req: Request) {
   const job_type = searchParams.get('job_type');
   const employer_id = searchParams.get('employer_id');
 
+  const now = new Date();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = { status: 'active' };
+  const where: any = {
+    status: 'active',
+    OR: [
+      { expires_at: null },
+      { expires_at: { gt: now } },
+    ],
+  };
 
   if (skillsParam) {
     const skills = skillsParam.split(',').map(s => s.trim()).filter(Boolean);
@@ -49,6 +56,7 @@ export async function GET(req: Request) {
   if (employer_id) {
     where.employer = { user_id: employer_id };
     delete where.status;
+    delete where.OR;
   }
 
   try {
@@ -134,7 +142,7 @@ export async function POST(req: Request) {
         required_skills: parsed.required_skills,
         preferred_skills: parsed.preferred_skills,
         status: parsed.status || 'active',
-        expires_at: parsed.expires_at ? new Date(parsed.expires_at) : null
+        expires_at: parsed.expires_at ? new Date(parsed.expires_at) : new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
       }
     });
 

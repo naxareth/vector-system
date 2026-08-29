@@ -406,6 +406,39 @@ export default function JobPostingsManagement() {
 
   const inputCls = "w-full px-3 py-2.5 bg-white dark:bg-[#0E1220] border border-gray-200 dark:border-[#283042] rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#4A5568] focus:outline-none focus:ring-2 focus:ring-[#06B4C9]/40 focus:border-[#06B4C9] transition-colors";
 
+  const handleRenew = async (jobId: string) => {
+    try {
+      const csrfToken = typeof document !== 'undefined'
+        ? document.cookie.split('; ').find(row => row.startsWith('vector-csrf-token='))?.split('=')[1] || ''
+        : '';
+        
+      const res = await fetch(`/api/jobs/${jobId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({
+          expires_at: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'active'
+        })
+      });
+
+      if (res.ok) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const refreshedPostingsResponse = await fetch(`/api/jobs?employer_id=${user.id}`);
+          if (refreshedPostingsResponse.ok) {
+            const refreshedData = await refreshedPostingsResponse.json();
+            setPostings(refreshedData.jobs || []);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to renew job:', e);
+    }
+  };
+
   return (
     <EmployerLayout>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
@@ -876,7 +909,7 @@ export default function JobPostingsManagement() {
                 <div className="space-y-3">
                   {/* Section header */}
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-[#06B4C9]/10 text-[#06B4C9] border border-[#06B4C9]/20">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       Employer Questions
                     </span>

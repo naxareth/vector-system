@@ -34,6 +34,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
 
     if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    if (job.expires_at && new Date(job.expires_at) < new Date()) {
+      return NextResponse.json({ error: 'This job posting has expired' }, { status: 410 });
+    }
 
     const application = await prisma.job_applications.create({
       data: {
