@@ -196,7 +196,7 @@ function StatCard({ label, value, icon, loading, iconBg }: {
   label: string; value: number; icon: React.ReactNode; loading: boolean; iconBg: string;
 }) {
   return (
-    <div className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] p-5 flex items-center justify-between gap-4 hover:shadow-md dark:hover:shadow-[0_4px_24px_rgba(0,0,0,0.3)] transition-shadow">
+    <div className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] p-5 flex items-center justify-between gap-4">
       <div>
         <p className="text-xs font-semibold text-gray-500 dark:text-[#64748B] uppercase tracking-wide mb-1.5">{label}</p>
         {loading
@@ -514,7 +514,7 @@ export default function EmployerDashboard() {
       <div className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-[#1E2536]">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Recent applications</h3>
-          <Link href="/employer/postings" className="text-xs font-semibold text-[#06B4C9] hover:underline flex items-center gap-1">
+          <Link href="/employer/candidates" className="text-xs font-semibold text-[#06B4C9] hover:underline flex items-center gap-1">
             View all
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
           </Link>

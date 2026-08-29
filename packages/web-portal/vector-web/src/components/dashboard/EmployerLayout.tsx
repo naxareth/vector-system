@@ -81,33 +81,61 @@ function EmployerShell({ children }: { children: React.ReactNode }) {
     return name.slice(0, 2).toUpperCase();
   };
 
-  const navigation = [
+  const navSections = [
     {
-      name: 'Dashboard Overview',
-      href: '/employer/dashboard',
-      icon: (
-        <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-        </svg>
-      ),
+      title: 'GENERAL',
+      items: [
+        {
+          name: 'Dashboard Overview',
+          href: '/employer/dashboard',
+          icon: (
+            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          ),
+        },
+        {
+          name: 'Manage Postings',
+          href: '/employer/postings',
+          icon: (
+            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          ),
+        },
+        {
+          name: 'Candidates',
+          href: '/employer/candidates',
+          icon: (
+            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          ),
+        },
+        {
+          name: 'Company Profile',
+          href: '/employer/profile',
+          icon: (
+            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          ),
+        },
+      ],
     },
     {
-      name: 'Manage Postings',
-      href: '/employer/postings',
-      icon: (
-        <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
-    },
-    {
-      name: 'Company Profile',
-      href: '/employer/profile',
-      icon: (
-        <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-      ),
+      title: 'HELP CENTER',
+      items: [
+        {
+          name: 'Settings & Support',
+          href: '/employer/help',
+          icon: (
+            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ),
+        },
+      ],
     },
   ];
 
@@ -147,38 +175,43 @@ function EmployerShell({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1">
-            {navigation.map((item) => {
+          <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+            {navSections.map((section) => (
+              <div key={section.title} className="space-y-1">
+                <p className="px-4 text-[10px] font-bold text-gray-400 dark:text-[#4A5568] uppercase tracking-wider mb-2">
+                  {section.title}
+                </p>
+                {section.items.map((item) => {
+                  const isActuallyActive = item.href === '/employer/dashboard' ? pathname === item.href : pathname.startsWith(item.href);
 
-              // Exact match for dashboard, startsWith for others to handle dynamic routes
-              const isActuallyActive = item.href === '/employer/dashboard' ? pathname === item.href : pathname.startsWith(item.href);
-
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium relative transition-all ${
-                    isActuallyActive
-                      ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20'
-                      : 'text-gray-600 dark:text-[#94A3B8] hover:bg-gray-100/60 dark:hover:bg-white/5'
-                  }`}
-                >
-                  {isActuallyActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-6 bg-blue-600 dark:bg-blue-400 rounded-r-full" />
-                  )}
-                  {item.icon}
-                  {item.name}
-                </Link>
-              );
-            })}
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium relative transition-all ${
+                        isActuallyActive
+                          ? 'text-[#06B4C9] bg-[#06B4C9]/10 dark:text-[#06B4C9] dark:bg-[#06B4C9]/20 font-semibold'
+                          : 'text-gray-600 dark:text-[#94A3B8] hover:bg-gray-100/60 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      {isActuallyActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-6 bg-[#06B4C9] rounded-r-full" />
+                      )}
+                      {item.icon}
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
 
           {/* User Footer */}
           <div className="p-4 border-t border-gray-200 dark:border-[#1E2536]">
             <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-white/5 rounded-lg justify-between">
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold text-xs">
+                <div className="w-9 h-9 bg-[#06B4C9] rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold text-xs">
                   {getInitials(user?.full_name || '')}
                 </div>
                 <div className="min-w-0">
