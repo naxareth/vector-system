@@ -385,26 +385,75 @@ export default function RegistrarDashboard() {
 
   return (
     <RegistrarLayout>
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-gray-200 dark:border-[#1E2536] pb-4 gap-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Certificate Workspace <HelpTip text="This is your main workspace for managing student certificates. Use the tabs to issue individual certificates, upload in bulk, or design new certificate templates. Every certificate you issue is permanently recorded and verifiable." /></h1>
-          <div className="flex bg-gray-100 dark:bg-[#131825] p-1 rounded-lg">
-            <button onClick={() => setActiveTab('issue')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'issue' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
+      <div className="max-w-7xl mx-auto pb-12">
+        {/* Page Top Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Certificate Workspace</h1>
+            <HelpTip text="This is your main workspace for managing student certificates. Use the tabs to issue individual certificates, upload in bulk, or design new certificate templates. Every certificate you issue is permanently recorded and verifiable." />
+          </div>
+          <p className="text-sm text-gray-500 dark:text-[#94A3B8] mb-5">
+            Issue, batch-import, and review the credentials your institution has verified.
+          </p>
+
+          {/* Horizontal Navigation Tabs */}
+          <div className="flex items-center border-b border-gray-200 dark:border-[#1E2536] gap-8">
+            <button
+              onClick={() => setActiveTab('issue')}
+              className={`pb-3 text-sm font-semibold border-b-2 transition-colors relative ${
+                activeTab === 'issue'
+                  ? 'border-[#06B4C9] text-[#06B4C9]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#94A3B8] dark:hover:text-white'
+              }`}
+            >
               Issue Certificate
             </button>
-            <button onClick={() => setActiveTab('batch')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'batch' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
+            <button
+              onClick={() => setActiveTab('batch')}
+              className={`pb-3 text-sm font-semibold border-b-2 transition-colors relative ${
+                activeTab === 'batch'
+                  ? 'border-[#06B4C9] text-[#06B4C9]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#94A3B8] dark:hover:text-white'
+              }`}
+            >
               Batch Import
             </button>
-            <button onClick={() => setActiveTab('build')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'build' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
+            <button
+              onClick={() => setActiveTab('build')}
+              className={`pb-3 text-sm font-semibold border-b-2 transition-colors relative ${
+                activeTab === 'build'
+                  ? 'border-[#06B4C9] text-[#06B4C9]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#94A3B8] dark:hover:text-white'
+              }`}
+            >
               Template Builder
             </button>
-            <button onClick={() => setActiveTab('review')} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'review' ? 'bg-white dark:bg-[#1E2536] shadow-sm text-[#06B4C9]' : 'text-gray-500 dark:text-[#94A3B8] hover:text-gray-700 dark:hover:text-white'}`}>
-              Credential Reviews {reviewQueue.length > 0 && <span className="ml-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{reviewQueue.length}</span>}
+            <button
+              onClick={() => setActiveTab('review')}
+              className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-1.5 ${
+                activeTab === 'review'
+                  ? 'border-[#06B4C9] text-[#06B4C9]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-[#94A3B8] dark:hover:text-white'
+              }`}
+            >
+              Credential Reviews
+              {reviewQueue.length > 0 && (
+                <span className="bg-[#F97316] text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
+                  {reviewQueue.length}
+                </span>
+              )}
             </button>
           </div>
+
+          {/* Required Fields Sub-label */}
+          {activeTab === 'issue' && (
+            <div className="mt-3 text-xs text-red-500 font-medium">
+              * Indicates a required field
+            </div>
+          )}
         </div>
 
-                {activeTab === 'review' ? (
+        {activeTab === 'review' ? (
           <div className="bg-white dark:bg-[#0E1220] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1E2536] p-8">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Pending Credential Reviews</h2>
             {reviewQueue.length === 0 ? (
@@ -754,180 +803,318 @@ export default function RegistrarDashboard() {
             </div>
           </div>
         ) : (
-          <div className="bg-white dark:bg-[#0E1220] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1E2536] p-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Issue Certificate <HelpTip text="Fill out the form below to create and send a verified certificate to one student. You'll need to select a student, choose a template, and fill in the details. The certificate will be permanently recorded." /></h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {/* Student Search */}
-              <div className="md:col-span-2 relative" ref={searchRef}>
-                <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-2">Find Student</label>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); setSelectedStudent(null); }}
-                  onFocus={() => setShowDropdown(true)}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-[#283042] rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none bg-white dark:bg-[#131825] dark:text-white"
-                  placeholder="Search by name or student ID..."
-                />
-                {validationErrors['student'] && (
-                  <p className="text-xs text-red-500 mt-1">{validationErrors['student']}</p>
-                )}
-                {showDropdown && searchQuery && (
-                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-[#131825] border border-gray-200 dark:border-[#283042] rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                    {filteredStudents.length === 0 ? (
-                      <div className="px-4 py-6 text-center">
-                        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#1E2536] flex items-center justify-center mx-auto mb-2">
-                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                        </div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-[#94A3B8]">No student found</p>
-                        <p className="text-xs text-gray-400 dark:text-[#64748B] mt-0.5">Try a different name or student ID</p>
-                      </div>
-                    ) : filteredStudents.map((s) => (
-                      <div key={s.id} onClick={() => { setSelectedStudent(s); setSearchQuery(`${s.full_name}${s.student_id ? ` (${s.student_id})` : ''}`); setShowDropdown(false); }} className="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 border-b border-gray-100 dark:border-[#1E2536] flex justify-between items-center">
-                        <div>
-                          <p className="text-sm font-bold text-gray-900 dark:text-white">{s.full_name}</p>
-                          <p className="text-xs text-gray-500 dark:text-[#64748B]">ID: {s.student_id || 'Not Assigned'}</p>
-                        </div>
-                        <span className="text-[10px] bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 px-2 py-1 rounded font-bold">Verified User ✓</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {selectedStudent && (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-[#94A3B8]">
-                    <span className="font-medium">Selected:</span>
-                    <span className="text-gray-900 dark:text-white font-semibold">{selectedStudent.full_name}</span>
-                    <span className="text-gray-400">•</span>
-                    <span className="font-mono">ID: {selectedStudent.student_id || 'Not Assigned'}</span>
-                  </div>
-                )}
-              </div>
+          /* Issue Certificate Main Two-Column Layout */
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Main Column (8 cols) */}
+            <div className="lg:col-span-8 space-y-6">
               
-              {/* Schema Selection */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-2">Certificate Template <HelpTip text="Each template defines different fields to fill in. For example, an Academic Degree template asks for degree name, GPA, and graduation date, while a Bootcamp template asks for program name and hours completed. Create new templates under the 'Template Builder' tab." /></label>
+              {/* CARD 1: Find Student */}
+              <div className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] p-6">
+                <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">Find Student</h2>
+                <div className="relative" ref={searchRef}>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-[#CBD5E1] mb-1.5">
+                    Search by name or student ID <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); setSelectedStudent(null); }}
+                      onFocus={() => setShowDropdown(true)}
+                      className="w-full pl-10 pr-8 py-2.5 text-sm border border-gray-300 dark:border-[#283042] rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none bg-white dark:bg-[#151C2A] text-gray-900 dark:text-white placeholder-gray-400"
+                      placeholder="Start typing a name or student ID..."
+                    />
+                    {selectedStudent && (
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedStudent(null); setSearchQuery(''); }}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {validationErrors['student'] && (
+                    <p className="text-xs text-red-500 mt-1">{validationErrors['student']}</p>
+                  )}
+
+                  {showDropdown && searchQuery && (
+                    <div className="absolute z-20 w-full mt-1 bg-white dark:bg-[#131825] border border-gray-200 dark:border-[#283042] rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                      {filteredStudents.length === 0 ? (
+                        <div className="px-4 py-6 text-center">
+                          <p className="text-sm font-medium text-gray-600 dark:text-[#94A3B8]">No student found</p>
+                          <p className="text-xs text-gray-400 dark:text-[#64748B] mt-0.5">Try a different name or student ID</p>
+                        </div>
+                      ) : filteredStudents.map((s) => (
+                        <div
+                          key={s.id}
+                          onClick={() => {
+                            setSelectedStudent(s);
+                            setSearchQuery(`${s.full_name}${s.student_id ? ` (${s.student_id})` : ''}`);
+                            setShowDropdown(false);
+                          }}
+                          className="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 border-b border-gray-100 dark:border-[#1E2536] flex justify-between items-center"
+                        >
+                          <div>
+                            <p className="text-sm font-bold text-gray-900 dark:text-white">{s.full_name}</p>
+                            <p className="text-xs text-gray-500 dark:text-[#64748B]">ID: {s.student_id || 'Not Assigned'}</p>
+                          </div>
+                          <span className="text-[10px] bg-[#06B4C9]/10 text-[#06B4C9] px-2 py-0.5 rounded font-bold">Verified User ✓</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedStudent && (
+                    <div className="mt-2.5 flex items-center gap-2 text-xs text-[#06B4C9] bg-[#06B4C9]/5 p-2.5 rounded-lg border border-[#06B4C9]/20">
+                      <span className="font-semibold">Selected Student:</span>
+                      <span className="font-bold text-gray-900 dark:text-white">{selectedStudent.full_name}</span>
+                      <span className="text-gray-400">•</span>
+                      <span className="font-mono">ID: {selectedStudent.student_id || 'N/A'}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* CARD 2: Certificate Template */}
+              <div className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] p-6">
+                <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">Certificate Template</h2>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-[#CBD5E1] mb-1.5">
+                  Choose a template <span className="text-red-500">*</span>
+                </label>
                 <select
                   value={selectedSchema?.id || ''}
                   onChange={(e) => handleSchemaChange(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-[#283042] rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none bg-white dark:bg-[#131825] dark:text-white"
+                  className="w-full px-4 py-2.5 text-sm border border-gray-300 dark:border-[#283042] rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none bg-white dark:bg-[#151C2A] text-gray-900 dark:text-white"
                 >
                   {schemas.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                 </select>
+                {validationErrors['schema'] && (
+                  <p className="text-xs text-red-500 mt-1">{validationErrors['schema']}</p>
+                )}
               </div>
 
-              {/* Dynamic Fields Renderer */}
+              {/* CARD 3: Fields in this template */}
               {selectedSchema && (
-                <div className="md:col-span-2 bg-[#06B4C9]/5 dark:bg-[#06B4C9]/10 p-6 rounded-xl border border-[#06B4C9]/20 dark:border-[#06B4C9]/30 space-y-4">
-                  <h3 className="text-sm font-bold text-gray-800 dark:text-white border-b border-[#06B4C9]/20 dark:border-[#06B4C9]/30 pb-2 mb-4 flex items-center gap-1">
-                    Fields in this template
-                    <HelpTip text="These are the specific details required for the selected certificate type. Fill in each field with the student's information. Fields marked with * are required and must be completed before you can issue the certificate." />
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(selectedSchema.json_schema.properties).map(([key, fieldDetails]) => {
-                      const isSkillTags = key === 'skill_tags';
-                      // Humanize label: use display title, or convert snake_case to Title Case
-                      const humanLabel = fieldDetails.title && fieldDetails.title !== key
-                        ? fieldDetails.title
-                        : key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                      // Date field constraints: today to 2 years from now
-                      const isDateField = fieldDetails.type === 'date' || key.includes('date') || key.includes('until') || key.includes('expir') || key.includes('graduation');
-                      const today = new Date().toISOString().split('T')[0];
-                      // eslint-disable-next-line react-hooks/purity
-                      const maxDate = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                      return (
-                        <div key={key} className={isSkillTags ? 'md:col-span-2' : ''}>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-1">
-                            {humanLabel}
-                            {selectedSchema.json_schema.required?.includes(key) && <span className="text-red-500 ml-1">*</span>}
-                            {FIELD_HINTS[key] && !isSkillTags && <HelpTip size={13} text={FIELD_HINTS[key]} />}
-                            {isSkillTags && (
-                              <span className="ml-2 text-xs text-[#06B4C9] bg-[#06B4C9]/10 px-2 py-0.5 rounded font-semibold">
-                                Suggested Skills
-                              </span>
-                            )}
-                          </label>
-                          {isSkillTags ? (
-                            <>
-                              <input
-                                type="text"
-                                onChange={(e) => handleDynamicInputChange(key, e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#131825] dark:text-white"
-                                placeholder="e.g. React, Node.js, PostgreSQL, Express"
-                              />
-                              <p className="text-xs text-[#06B4C9] mt-1">
-                                These become the student&apos;s skill tags shown on their profile.
-                              </p>
-                            </>
-                          ) : fieldDetails.type === 'boolean' ? (
-                            <select
-                              onChange={(e) => handleDynamicInputChange(key, e.target.value === 'true')}
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#131825] dark:text-white"
-                            >
-                              <option value="">Select...</option>
-                              <option value="true">Yes</option>
-                              <option value="false">No</option>
-                            </select>
-                          ) : isDateField ? (
-                            <>
-                              <input
-                                type="date"
-                                min={key.includes('graduation') || key.includes('issued') || key.includes('completed') ? undefined : today}
-                                max={maxDate}
-                                onChange={(e) => handleDynamicInputChange(key, e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#131825] dark:text-white"
-                              />
-                              {(key.includes('until') || key.includes('expir') || key.includes('valid')) && (
-                                <p className="text-xs text-gray-500 dark:text-[#64748B] mt-1">
-                                  Select a future date (up to 2 years from today).
+                <div className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] p-6">
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">Fields in this template</h2>
+                  
+                  {/* Cyan Tint Box */}
+                  <div className="bg-[#06B4C9]/5 dark:bg-[#06B4C9]/10 border border-[#06B4C9]/20 dark:border-[#06B4C9]/30 rounded-xl p-5 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Object.entries(selectedSchema.json_schema.properties).map(([key, fieldDetails]) => {
+                        const isSkillTags = key === 'skill_tags';
+                        const humanLabel = fieldDetails.title && fieldDetails.title !== key
+                          ? fieldDetails.title
+                          : key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                        const isDateField = fieldDetails.type === 'date' || key.includes('date') || key.includes('until') || key.includes('expir') || key.includes('graduation');
+                        const today = new Date().toISOString().split('T')[0];
+                        const maxDate = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+                        const currentSkillVal = String(dynamicData['skill_tags'] || '');
+                        const parsedSkills = parseSkillTags(currentSkillVal);
+                        const sampleSkills = ['React', 'Node.js', 'PostgreSQL', 'Express'];
+                        const displaySkills = parsedSkills.length > 0 ? parsedSkills : sampleSkills;
+
+                        return (
+                          <div key={key} className={isSkillTags ? 'md:col-span-2' : ''}>
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-[#CBD5E1] mb-1">
+                              {humanLabel}
+                              {selectedSchema.json_schema.required?.includes(key) && <span className="text-red-500 ml-1">*</span>}
+                              {FIELD_HINTS[key] && !isSkillTags && <HelpTip size={13} text={FIELD_HINTS[key]} />}
+                            </label>
+                            
+                            {isSkillTags ? (
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  value={currentSkillVal}
+                                  onChange={(e) => handleDynamicInputChange(key, e.target.value)}
+                                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#151C2A] text-gray-900 dark:text-white"
+                                  placeholder="e.g. React, Node.js, PostgreSQL, Express"
+                                />
+                                <p className="text-xs text-[#06B4C9] font-medium">
+                                  These become the student&apos;s verified skill tags shown on their profile.
                                 </p>
-                              )}
-                            </>
-                          ) : (
-                            <input
-                              type={fieldDetails.type === 'number' ? 'number' : 'text'}
-                              onChange={(e) => handleDynamicInputChange(key, fieldDetails.type === 'number' ? Number(e.target.value) : e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#131825] dark:text-white"
-                              placeholder={`Enter ${humanLabel.toLowerCase()}...`}
-                            />
-                          )}
-                          {validationErrors[key] && (
-                            <p className="text-xs text-red-500 mt-1">{validationErrors[key]}</p>
-                          )}
-                        </div>
-                      );
-                    })}
+
+                                {/* Capsule Pills */}
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  {displaySkills.map((tag, idx) => {
+                                    const isIncluded = parsedSkills.includes(tag);
+                                    return (
+                                      <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => {
+                                          if (!isIncluded) {
+                                            const newTags = parsedSkills.concat(tag).join(', ');
+                                            handleDynamicInputChange(key, newTags);
+                                          } else {
+                                            const newTags = parsedSkills.filter(t => t !== tag).join(', ');
+                                            handleDynamicInputChange(key, newTags);
+                                          }
+                                        }}
+                                        className={`text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 transition-all ${
+                                          isIncluded
+                                            ? 'bg-[#06B4C9] text-white'
+                                            : 'bg-white dark:bg-[#192030] text-[#06B4C9] border border-[#06B4C9]/30 hover:bg-[#06B4C9]/10'
+                                        }`}
+                                      >
+                                        <span>+</span>
+                                        <span>{tag}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ) : fieldDetails.type === 'boolean' ? (
+                              <select
+                                value={dynamicData[key] === true ? 'true' : dynamicData[key] === false ? 'false' : ''}
+                                onChange={(e) => handleDynamicInputChange(key, e.target.value === 'true')}
+                                className="w-full px-3.5 py-2 text-sm border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#151C2A] text-gray-900 dark:text-white"
+                              >
+                                <option value="">Select...</option>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                              </select>
+                            ) : isDateField ? (
+                              <>
+                                <input
+                                  type="date"
+                                  min={key.includes('graduation') || key.includes('issued') || key.includes('completed') ? undefined : today}
+                                  max={maxDate}
+                                  value={String(dynamicData[key] || '')}
+                                  onChange={(e) => handleDynamicInputChange(key, e.target.value)}
+                                  className="w-full px-3.5 py-2 text-sm border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#151C2A] text-gray-900 dark:text-white"
+                                />
+                                {(key.includes('until') || key.includes('expir') || key.includes('valid')) && (
+                                  <p className="text-xs text-gray-500 dark:text-[#64748B] mt-1">
+                                    Select a future date (up to 2 years from today).
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <input
+                                type={fieldDetails.type === 'number' ? 'number' : 'text'}
+                                value={dynamicData[key] !== undefined && dynamicData[key] !== null ? String(dynamicData[key]) : ''}
+                                onChange={(e) => handleDynamicInputChange(key, fieldDetails.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
+                                className="w-full px-3.5 py-2 text-sm border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#151C2A] text-gray-900 dark:text-white placeholder-gray-400"
+                                placeholder={`Enter ${humanLabel.toLowerCase()}...`}
+                              />
+                            )}
+                            {validationErrors[key] && (
+                              <p className="text-xs text-red-500 mt-1">{validationErrors[key]}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Static Metadata */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-2">Certificate / Serial Number <HelpTip text="Enter a unique identifier for this certificate (like a serial number on a diploma). This helps you track and reference it later. Use any format your institution prefers, e.g. CERT-2027-001 or CS-BSc-0042." /></label>
-                <input
-                  type="text"
-                  onChange={(e) => setStaticData({ ...staticData, certificateNumber: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#131825] dark:text-white"
-                  placeholder="e.g. CERT-2027-001"
-                />
+              {/* CARD 4: Additional Metadata & Action */}
+              <div className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-[#CBD5E1] mb-1.5">
+                    Certificate / Serial Number <HelpTip text="Enter a unique identifier for this certificate. E.g. CERT-2027-001" />
+                  </label>
+                  <input
+                    type="text"
+                    value={staticData.certificateNumber}
+                    onChange={(e) => setStaticData({ ...staticData, certificateNumber: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#151C2A] text-gray-900 dark:text-white"
+                    placeholder="e.g. CERT-2027-001"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-[#CBD5E1] mb-1.5">
+                    Internal Notes <HelpTip text="Optional private notes only visible to registrars." />
+                  </label>
+                  <textarea
+                    value={staticData.privateNotes}
+                    onChange={(e) => setStaticData({ ...staticData, privateNotes: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-sm border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#151C2A] text-gray-900 dark:text-white"
+                    rows={2}
+                    placeholder="Internal notes (only visible to registrars)..."
+                  />
+                </div>
+
+                <button
+                  onClick={handleIssueCredential}
+                  className="w-full py-3.5 bg-[#06B4C9] hover:bg-[#0496a3] text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 mt-2"
+                >
+                  Issue Verified Certificate
+                </button>
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-[#CBD5E1] mb-2">Internal Notes <HelpTip text="Optional private notes only visible to registrars. Use this for internal memos, special circumstances, or anything you want to remember about this certificate. Students will not see these notes." /></label>
-                <textarea
-                  onChange={(e) => setStaticData({ ...staticData, privateNotes: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-[#283042] rounded-lg outline-none focus:ring-2 focus:ring-[#06B4C9] bg-white dark:bg-[#131825] dark:text-white"
-                  rows={3}
-                  placeholder="Internal notes (only visible to registrars)..."
-                />
-              </div>
             </div>
 
-            <button
-              onClick={handleIssueCredential}
-              className="w-full py-4 bg-accent text-white font-bold rounded-xl hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-2"
-            >
-              Issue Verified Certificate
-            </button>
+            {/* Right Sidebar Column (4 cols) */}
+            <div className="lg:col-span-4 sticky top-6">
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-[#CBD5E1] mb-3">Live Certificate Preview</h2>
+              <div className="border-2 border-[#06B4C9] rounded-2xl p-6 bg-white dark:bg-[#131825] relative overflow-hidden">
+                
+                {/* Circular Cyan Badge with Checkmark */}
+                <div className="w-10 h-10 rounded-full border-2 border-[#06B4C9] text-[#06B4C9] flex items-center justify-center absolute top-6 right-6 bg-[#06B4C9]/5">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+
+                <p className="text-[11px] font-bold text-[#06B4C9] tracking-wider uppercase mb-1">CERTIFICATE OF COMPLETION</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
+                  {selectedStudent ? selectedStudent.full_name : 'Select a student'}
+                </h3>
+                <p className="text-xs text-gray-400 dark:text-[#64748B] mt-0.5 mb-6">
+                  {selectedStudent ? `ID: ${selectedStudent.student_id || 'N/A'}` : 'Choose a template and student to begin'}
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-[#64748B] tracking-wider uppercase">PROGRAM</p>
+                    <p className="text-sm font-medium italic text-gray-700 dark:text-gray-200">
+                      {String(dynamicData['program_name'] || selectedSchema?.title || 'Full-Stack Web Development Bootcamp')}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-[#64748B] tracking-wider uppercase">HOURS COMPLETED</p>
+                    <p className={`text-sm font-medium italic ${dynamicData['hours_completed'] ? 'text-gray-700 dark:text-gray-200' : 'text-gray-400 dark:text-[#64748B]'}`}>
+                      {dynamicData['hours_completed'] ? `${dynamicData['hours_completed']} hours` : 'Not yet entered'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-[#64748B] tracking-wider uppercase">VERIFIED SKILLS</p>
+                    {dynamicData['skill_tags'] && String(dynamicData['skill_tags']).trim() ? (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {parseSkillTags(String(dynamicData['skill_tags'])).map((sk, i) => (
+                          <span key={i} className="text-xs bg-[#06B4C9]/10 text-[#06B4C9] px-2 py-0.5 rounded font-semibold border border-[#06B4C9]/20">
+                            {sk}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium italic text-gray-400 dark:text-[#64748B]">Not yet entered</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-dashed border-gray-300 dark:border-[#1E2536] my-6" />
+
+                <p className="font-mono text-xs text-gray-500 dark:text-[#94A3B8]">
+                  Serial: {staticData.certificateNumber ? staticData.certificateNumber : 'pending'}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
