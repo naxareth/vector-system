@@ -173,9 +173,13 @@ function LoginForm() {
       const returnUrl = searchParams.get('redirectTo');
       
       if (returnUrl) {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('vector_login_success', 'true');
+          localStorage.setItem('vector_login_success', 'true');
+        }
         router.push(returnUrl);
       } else {
-        let target = '/student/dashboard'; 
+        let target = '/student/dashboard?login=success'; 
         
         if (userData.role === 'registrar') {
           target = '/registrar/dashboard';
@@ -183,6 +187,11 @@ function LoginForm() {
           target = '/employer/dashboard';
         } else if (userData.role === 'super_admin') {
           target = '/admin/dashboard';
+        } else {
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('vector_login_success', 'true');
+            localStorage.setItem('vector_login_success', 'true');
+          }
         }
         
         router.push(target);
@@ -222,10 +231,15 @@ function LoginForm() {
         <ChallengeMFA 
           factorId={mfaFactorId} 
           onVerified={() => {
-              let target = '/student/dashboard';
+              let target = '/student/dashboard?login=success';
               if (pendingRole === 'registrar') target = '/registrar/dashboard';
-              if (pendingRole === 'employer') target = '/employer/dashboard';
-              if (pendingRole === 'super_admin') target = '/admin/dashboard';
+              else if (pendingRole === 'employer') target = '/employer/dashboard';
+              else if (pendingRole === 'super_admin') target = '/admin/dashboard';
+              else {
+                if (typeof window !== 'undefined') {
+                  sessionStorage.setItem('vector_login_success', 'true');
+                }
+              }
               
               router.push(target);
           }} 

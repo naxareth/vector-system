@@ -2,22 +2,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabaseClient';
-import { z } from 'zod';
-import HelpTip from '@/components/shared/HelpTip';
 
-// ── Validation Schema ─────────────────────────────────────────────────
-const profileSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters").max(50, "First name too long").regex(/^[a-zA-Z\s]*$/, "Name can only contain letters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters").max(50, "Last name too long"),
-  phone: z.string().regex(/^\+?[0-9\s-]{7,12}$/, "Phone must be 7-12 characters").optional().or(z.literal('')),
-  bio: z.string().max(100, "Bio must be under 100 characters").optional(),
-  university: z.string().optional().or(z.literal("")),
-  major: z.string().max(100, "Major name too long").optional(),
-  graduationYear: z.string().regex(/^\d{4}$/, "Year must be 4 digits (e.g. 2026)").optional().or(z.literal('')),
-  location: z.string().max(100).optional(),
-});
+
 
 // ── Types ─────────────────────────────────────────────────────────────
 interface ProfileData {
@@ -99,10 +86,6 @@ function ProfileScoreRing({ score, size = 48 }: { score: number; size?: number }
 export default function ProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  // 2FA
-  const [mfa2faEnabled, setMfa2faEnabled] = useState(false);
 
   // Highlights tab state
   const [highlightTab, setHighlightTab] = useState<HighlightTab>('professional');
@@ -143,7 +126,6 @@ export default function ProfilePage() {
           return;
         }
 
-        setUserId(user.id);
         const userEmail = user.email || '';
 
         const { data: userRecord, error } = await supabase
@@ -264,119 +246,7 @@ export default function ProfilePage() {
     return skills;
   }, [credentials]);
 
-  // ── Work experience helpers ─────────────────────────────────────
-  const addWorkExperience = () => {
-    setFormData({ ...formData, workExperience: [...formData.workExperience, { title: '', company: '', start_date: '', end_date: '', current: false, description: '' }] });
-  };
 
-  const updateWorkExperience = (index: number, field: string, value: string | boolean) => {
-    const updated = [...formData.workExperience];
-    updated[index] = { ...updated[index], [field]: value };
-    setFormData({ ...formData, workExperience: updated });
-  };
-
-  const removeWorkExperience = (index: number) => {
-    const updated = formData.workExperience.filter((_, i) => i !== index);
-    setFormData({ ...formData, workExperience: updated });
-  };
-
-  // ── Handle form changes ─────────────────────────────────────────
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    let sanitizedValue = value;
-
-    if (name === 'phone') {
-      sanitizedValue = value.replace(/[^0-9\s+-]/g, '');
-      if (sanitizedValue.length > 12) return;
-    } else if (name === 'firstName' || name === 'lastName') {
-      sanitizedValue = value.replace(/[^a-zA-Z\s]/g, '');
-      sanitizedValue = sanitizedValue.split(' ').map(word => {
-        if (word.length === 0) return word;
-        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-      }).join(' ');
-    } else if (name === 'graduationYear') {
-      sanitizedValue = value.replace(/[^0-9]/g, '');
-    } else if (name === 'bio' || name === 'location' || name === 'major' || name === 'university') {
-      sanitizedValue = value.replace(/[^a-zA-Z0-9\s.,'\-()]/g, '');
-    }
-
-    if (name === 'bio' && sanitizedValue.length > 100) return;
-
-    if (name !== 'phone') {
-      sanitizedValue = sanitizedValue.replace(/\s{3,}/g, '  ');
-    }
-
-    setFormData({ ...formData, [name]: sanitizedValue });
-    if (errors[name]) {
-       setErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors[name];
-          return newErrors;
-       });
-    }
-  };
-
-  // ── Submit handler ──────────────────────────────────────────────
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userId) return;
-    setSaving(true);
-    setErrors({});
-
-    const validationResult = profileSchema.safeParse(formData);
-
-    if (!validationResult.success) {
-      const fieldErrors: Record<string, string> = {};
-      validationResult.error.issues.forEach(issue => {
-        if (issue.path[0]) fieldErrors[issue.path[0].toString()] = issue.message;
-      });
-      setErrors(fieldErrors);
-      setSaving(false);
-      return;
-    }
-    
-    try {
-      const { error: userError } = await supabase
-        .from('users')
-        .update({
-          full_name: `${formData.firstName} ${formData.lastName}`.trim(),
-          location: formData.location,
-        })
-        .eq('id', userId);
-
-      if (userError) throw userError;
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({ 
-          id: userId,
-          phone: formData.phone,
-          bio: formData.bio,
-          university: formData.university,
-          major: formData.major,
-          graduation_year: formData.graduationYear,
-          specialization: formData.specialization,
-          industry_sector: formData.industrySector,
-          work_experience: formData.workExperience,
-          education_history: formData.educationHistory
-        });
-
-      if (profileError) throw profileError;
-      
-      setIsEditing(false);
-      alert('Profile updated successfully!');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Failed to update profile.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setErrors({});
-  };
 
   // ── Loading state ───────────────────────────────────────────────
   if (loading) {

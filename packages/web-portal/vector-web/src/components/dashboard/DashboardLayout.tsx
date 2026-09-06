@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import SessionTimeout from '../shared/SessionTimeout';
 // 1. Import Tour
 import DashboardTour from '../shared/DashboardTour';
+import LoginSuccessModal from '../auth/LoginSuccessModal';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* 2. Global Components */}
         <SessionTimeout />
         <DashboardTour />
+        <LoginSuccessModal />
 
         {/* Tour Anchor for Welcome Step */}
         <div id="tour-welcome" className="absolute top-0 left-0 w-full h-20 pointer-events-none" />

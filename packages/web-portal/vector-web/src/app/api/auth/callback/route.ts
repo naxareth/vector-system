@@ -56,7 +56,7 @@ export async function GET(request: Request) {
       // 4. Determine Redirect
       const role = userProfile?.role || 'student';
       
-      let redirectUrl = '/student/dashboard';
+      let redirectUrl = '/student/dashboard?login=success';
       if (role === 'registrar') {
         redirectUrl = '/registrar/dashboard';
       } else if (role === 'super_admin') {
