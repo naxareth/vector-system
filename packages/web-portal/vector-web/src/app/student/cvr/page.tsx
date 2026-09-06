@@ -1113,18 +1113,18 @@ export default function CVRPage() {
           {/* ── Page Header ────────────────────────────────────────────── */}
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight leading-tight mb-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight mb-1">
                 My resumes
                 <HelpTip text="A CVR is a resume where your certificates are linked to tamper-proof records, so employers can instantly verify they're real." />
               </h1>
               <p className="text-sm text-gray-400 font-normal">
-                Manage drafts and see which resumes are strong enough to send
+                Manage drafts, apply templates, and see which resumes are strong enough to send
               </p>
             </div>
             <button
               type="button"
               onClick={handleCreateNew}
-              className="flex-shrink-0 px-5 py-2.5 bg-[#0F172A] hover:bg-[#1e293b] text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-1.5"
+              className="flex-shrink-0 px-5 py-2.5 bg-[#0F172A] dark:bg-white dark:text-[#0F172A] hover:bg-[#1e293b] text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-1.5"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1133,62 +1133,135 @@ export default function CVRPage() {
             </button>
           </div>
 
-          {/* ── Filter & Sort Bar ──────────────────────────────────────── */}
+          {/* ── Templates Section ──────────────────────────────────────── */}
+          <div className="mb-8">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Templates</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {templateList.map((tpl) => (
+                <div
+                  key={tpl.id}
+                  className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] overflow-hidden flex flex-col hover:border-gray-300 dark:hover:border-[#283042] hover:shadow-sm transition-all duration-200"
+                >
+                  {/* Thumbnail */}
+                  <div className="relative h-[110px] border-b border-gray-100 dark:border-[#1E2536] overflow-hidden">
+                    <tpl.Preview color={selectedColor} />
+                    {tpl.recommended && (
+                      <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+                        Recommended
+                      </span>
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="px-3 pt-2.5 pb-1">
+                    <p className="text-xs font-bold text-gray-900 dark:text-white leading-tight">{tpl.label}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">{tpl.description}</p>
+                  </div>
+                  {/* Use template button */}
+                  <div className="px-3 pb-3 mt-auto pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleUseTemplate(tpl.id)}
+                      className="w-full py-1.5 bg-[#0F172A] dark:bg-white hover:bg-[#1e293b] dark:hover:bg-gray-100 text-white dark:text-[#0F172A] text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      Use template
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Filter & Sort Bar — always visible ─────────────────────── */}
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            {/* Filter Pills */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {([
+                { key: 'all' as FilterType, label: 'All', color: 'bg-gray-500', count: filterCounts.all },
+                { key: 'strong' as FilterType, label: 'Strong', color: 'bg-emerald-500', count: filterCounts.strong },
+                { key: 'needs-work' as FilterType, label: 'Needs work', color: 'bg-amber-500', count: filterCounts['needs-work'] },
+                { key: 'weak' as FilterType, label: 'Weak', color: 'bg-red-500', count: filterCounts.weak },
+              ]).map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => { setActiveFilter(f.key); setHistoryPage(1); }}
+                  disabled={f.count === 0 && f.key !== 'all'}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    f.count === 0 && f.key !== 'all'
+                      ? 'opacity-40 cursor-not-allowed bg-white dark:bg-[#131825] text-gray-400 border-gray-200 dark:border-[#1E2536]'
+                      : activeFilter === f.key
+                      ? 'bg-[#0F172A] text-white border-[#0F172A]'
+                      : 'bg-white dark:bg-[#131825] text-gray-600 dark:text-gray-300 border-gray-200 dark:border-[#1E2536] hover:border-gray-300'
+                  }`}
+                >
+                  {f.key !== 'all' && (
+                    <span className={`w-2 h-2 rounded-full ${f.color} ${activeFilter === f.key ? 'opacity-80' : ''}`} />
+                  )}
+                  {f.label}
+                  <span className={`ml-0.5 ${activeFilter === f.key ? 'text-white/70' : 'text-gray-400'}`}>
+                    {f.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => { setSortBy(e.target.value as SortType); setHistoryPage(1); }}
+                className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#131825] border border-gray-200 dark:border-[#1E2536] rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#06B4C9] cursor-pointer"
+              >
+                <option value="strongest">Strongest first</option>
+                <option value="weakest">Weakest first</option>
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+              </select>
+            </div>
+          </div>
+
+          {/* ── Resume Cards Grid (only when resumes exist) ──────────────── */}
           {scoredHistory.length > 0 && (
             <>
-              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                {/* Filter Pills */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  {([
-                    { key: 'all' as FilterType, label: 'All', color: 'bg-gray-500', count: filterCounts.all },
-                    { key: 'strong' as FilterType, label: 'Strong', color: 'bg-emerald-500', count: filterCounts.strong },
-                    { key: 'needs-work' as FilterType, label: 'Needs work', color: 'bg-amber-500', count: filterCounts['needs-work'] },
-                    { key: 'weak' as FilterType, label: 'Weak', color: 'bg-red-500', count: filterCounts.weak },
-                  ]).map((f) => (
-                    <button
-                      key={f.key}
-                      type="button"
-                      onClick={() => { setActiveFilter(f.key); setHistoryPage(1); }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                        activeFilter === f.key
-                          ? 'bg-[#0F172A] text-white border-[#0F172A]'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      {f.key !== 'all' && (
-                        <span className={`w-2 h-2 rounded-full ${f.color} ${activeFilter === f.key ? 'opacity-80' : ''}`} />
-                      )}
-                      {f.label}
-                      <span className={`ml-0.5 ${activeFilter === f.key ? 'text-white/70' : 'text-gray-400'}`}>
-                        {f.count}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Sort Dropdown */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Sort:</span>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => { setSortBy(e.target.value as SortType); setHistoryPage(1); }}
-                    className="text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#06B4C9] cursor-pointer"
-                  >
-                    <option value="strongest">Strongest first</option>
-                    <option value="weakest">Weakest first</option>
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                  </select>
-                </div>
-              </div>
 
               {/* ── Resume Cards Grid ────────────────────────────────────── */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {paginatedCards.map((cvr) => {
                   const strengthConfig = {
-                    strong: { label: 'Strong', icon: '✓', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
-                    'needs-work': { label: 'Needs work', icon: '⚠', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
-                    weak: { label: 'Weak', icon: '⊘', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', dot: 'bg-red-500' },
+                    strong: {
+                      label: 'Strong',
+                      bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+                      text: 'text-emerald-700 dark:text-emerald-400',
+                      border: 'border-emerald-200 dark:border-emerald-500/20',
+                      icon: (
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ),
+                    },
+                    'needs-work': {
+                      label: 'Needs work',
+                      bg: 'bg-amber-50 dark:bg-amber-500/10',
+                      text: 'text-amber-700 dark:text-amber-400',
+                      border: 'border-amber-200 dark:border-amber-500/20',
+                      icon: (
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        </svg>
+                      ),
+                    },
+                    weak: {
+                      label: 'Weak',
+                      bg: 'bg-red-50 dark:bg-red-500/10',
+                      text: 'text-red-700 dark:text-red-400',
+                      border: 'border-red-200 dark:border-red-500/20',
+                      icon: (
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ),
+                    },
                   };
                   const sc = strengthConfig[cvr.strength];
 
@@ -1217,13 +1290,13 @@ export default function CVRPage() {
                   return (
                     <div
                       key={cvr.id}
-                      className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md hover:border-gray-300 transition-all duration-200"
+                      className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] p-5 hover:shadow-md hover:border-gray-300 dark:hover:border-[#283042] transition-all duration-200"
                     >
                       {/* Top row: thumbnail + info + score */}
                       <div className="flex items-start gap-4 mb-3">
                         <MiniDocThumb template={cvr.template} />
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-bold text-gray-900 truncate">{cvr.name}</h3>
+                          <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{cvr.name}</h3>
                           <p className="text-[11px] text-gray-400 mt-0.5">
                             Edited {timeAgo(cvr.generated_at)} · {cvr.templateLabel}
                           </p>
@@ -1239,7 +1312,7 @@ export default function CVRPage() {
                       </div>
 
                       {/* Description */}
-                      <p className="text-xs text-gray-500 leading-relaxed mb-4 line-clamp-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4 line-clamp-2">
                         {description}
                       </p>
 
@@ -1255,14 +1328,14 @@ export default function CVRPage() {
                         <button
                           type="button"
                           onClick={() => handleDuplicateCvr(cvr)}
-                          className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-medium rounded-lg transition-colors"
+                          className="px-3.5 py-1.5 bg-white dark:bg-[#1E2536] border border-gray-200 dark:border-[#283042] hover:border-gray-300 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-lg transition-colors"
                         >
                           Duplicate
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDownloadCvr(cvr)}
-                          className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-medium rounded-lg transition-colors"
+                          className="px-3.5 py-1.5 bg-white dark:bg-[#1E2536] border border-gray-200 dark:border-[#283042] hover:border-gray-300 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-lg transition-colors"
                         >
                           Download
                         </button>
@@ -1272,7 +1345,7 @@ export default function CVRPage() {
                           onClick={() => handleCopyLink(cvr.id)}
                           className={`ml-auto p-1.5 rounded-lg transition-colors ${
                             copied === cvr.id
-                              ? 'bg-emerald-50 text-emerald-600'
+                              ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600'
                               : 'text-gray-400 hover:text-[#06B4C9] hover:bg-[#06B4C9]/5'
                           }`}
                           title={copied === cvr.id ? 'Copied!' : 'Copy verify link'}
@@ -1309,14 +1382,14 @@ export default function CVRPage() {
 
           {/* Empty state when no history */}
           {scoredHistory.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div className="bg-white dark:bg-[#131825] rounded-xl border border-gray-200 dark:border-[#1E2536] p-12 text-center">
               <div className="w-16 h-16 mx-auto mb-4 bg-[#06B4C9]/10 rounded-2xl flex items-center justify-center">
                 <svg className="w-8 h-8 text-[#06B4C9]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">No resumes yet</h3>
-              <p className="text-sm text-gray-500 mb-5 max-w-sm mx-auto">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">No resumes yet</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-sm mx-auto">
                 Create your first credential-verified resume to share with employers.
               </p>
               <button
