@@ -98,12 +98,8 @@ function ProfileScoreRing({ score, size = 48 }: { score: number; size?: number }
 // ═════════════════════════════════════════════════════════════════════
 export default function ProfilePage() {
   const router = useRouter();
-  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const { theme, toggleTheme } = useTheme();
   const [userId, setUserId] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // 2FA
   const [mfa2faEnabled, setMfa2faEnabled] = useState(false);
@@ -454,7 +450,7 @@ export default function ProfilePage() {
             <div className="flex items-center gap-2 flex-shrink-0 mt-2 sm:mt-0">
               <button
                 type="button"
-                onClick={() => { setIsEditing(true); setTimeout(() => document.getElementById('edit-section')?.scrollIntoView({ behavior: 'smooth' }), 100); }}
+                onClick={() => router.push('/student/profile/edit')}
                 className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg border border-white/20 transition-colors"
               >
                 Edit profile
@@ -706,192 +702,6 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-
-        {/* ════════════════════════════════════════════════════════
-            EDIT FORM (shown when isEditing)
-            ════════════════════════════════════════════════════════ */}
-        {isEditing && (
-          <div id="edit-section" className="mb-6 scroll-mt-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-[#06B4C9] rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">Edit Profile</h2>
-                <p className="text-xs text-gray-500">Make your changes and click Save when done</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              {/* Personal Information */}
-              <div className="bg-white rounded-xl border border-[#06B4C9] p-5 mb-4">
-                <h2 className="text-base font-semibold text-gray-900 mb-4">Personal Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">First Name</label>
-                    <input type="text" name="firstName" value={formData.firstName} onChange={handleChange}
-                      className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
-                    {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Last Name</label>
-                    <input type="text" name="lastName" value={formData.lastName} onChange={handleChange}
-                      className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
-                    {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-                    <input type="email" name="email" value={formData.email} disabled={true} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
-                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
-                      placeholder="+63 912 345 6789"
-                      className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
-                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Location</label>
-                    <input type="text" name="location" value={formData.location} onChange={handleChange} placeholder="e.g., Manila, Philippines" 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-sm font-medium text-gray-700">Bio</label>
-                      <span className={`text-xs ${formData.bio.length >= 100 ? 'text-red-500 font-semibold' : 'text-gray-500'}`}>
-                        {formData.bio.length}/100
-                      </span>
-                    </div>
-                    <textarea name="bio" value={formData.bio} onChange={handleChange} rows={3}
-                      placeholder="Tell us about yourself..."
-                      className={`w-full px-4 py-2 border rounded-lg outline-none resize-none ${errors.bio ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
-                    {errors.bio && <p className="text-red-500 text-xs mt-1">{errors.bio}</p>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Professional Details */}
-              <div className="bg-white rounded-xl border border-[#06B4C9] p-5 mb-4">
-                <h2 className="text-base font-semibold text-gray-900 mb-4">Professional Details</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Specialization</label>
-                    <select name="specialization" value={formData.specialization} onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none">
-                      <option value="">Select Specialization...</option>
-                      <option value="Information Technology">Information Technology</option>
-                      <option value="Computer Science">Computer Science</option>
-                      <option value="Engineering">Engineering</option>
-                      <option value="Business Administration">Business Administration</option>
-                      <option value="Education">Education</option>
-                      <option value="Healthcare">Healthcare</option>
-                      <option value="Arts & Humanities">Arts & Humanities</option>
-                      <option value="Sciences">Sciences</option>
-                      <option value="Others">Others</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Industry Sector</label>
-                    <select name="industrySector" value={formData.industrySector} onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none">
-                      <option value="">Select Industry...</option>
-                      <option value="Technology">Technology</option>
-                      <option value="Finance & Banking">Finance & Banking</option>
-                      <option value="Healthcare">Healthcare</option>
-                      <option value="Education">Education</option>
-                      <option value="Manufacturing">Manufacturing</option>
-                      <option value="Government">Government</option>
-                      <option value="Retail">Retail</option>
-                      <option value="Media">Media</option>
-                      <option value="Others">Others</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Work Experience */}
-              <div className="bg-white rounded-xl border border-[#06B4C9] p-5 mb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-semibold text-gray-900">Work Experience</h2>
-                  <button type="button" onClick={addWorkExperience} className="text-sm text-[#06B4C9] hover:underline">+ Add Experience</button>
-                </div>
-                {formData.workExperience.map((exp, index) => (
-                  <div key={index} className="mb-4 pb-4 border-b border-gray-100 last:mb-0 last:pb-0 last:border-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Job Title</label>
-                        <input type="text" value={exp.title} onChange={e => updateWorkExperience(index, 'title', e.target.value)}
-                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#06B4C9] outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Company</label>
-                        <input type="text" value={exp.company} onChange={e => updateWorkExperience(index, 'company', e.target.value)}
-                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#06B4C9] outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
-                        <input type="month" value={exp.start_date} onChange={e => updateWorkExperience(index, 'start_date', e.target.value)}
-                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#06B4C9] outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">End Date</label>
-                        <div className="flex gap-2 items-center">
-                          <input type="month" value={exp.end_date} onChange={e => updateWorkExperience(index, 'end_date', e.target.value)} disabled={exp.current}
-                            className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#06B4C9] outline-none disabled:bg-gray-50" />
-                          <label className="flex items-center gap-1 text-xs text-gray-600">
-                            <input type="checkbox" checked={exp.current} onChange={e => updateWorkExperience(index, 'current', e.target.checked)} /> Present
-                          </label>
-                        </div>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
-                        <textarea value={exp.description} onChange={e => updateWorkExperience(index, 'description', e.target.value)} rows={2}
-                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#06B4C9] outline-none" />
-                      </div>
-                    </div>
-                    <div className="mt-2 text-right">
-                      <button type="button" onClick={() => removeWorkExperience(index)} className="text-xs text-red-500 hover:underline">Remove</button>
-                    </div>
-                  </div>
-                ))}
-                {formData.workExperience.length === 0 && <p className="text-sm text-gray-500">No work experience added.</p>}
-              </div>
-
-              {/* Education */}
-              <div className="bg-white rounded-xl border border-[#06B4C9] p-5 mb-4">
-                <h2 className="text-base font-semibold text-gray-900 mb-4">Education</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">University</label>
-                    <input type="text" name="university" value={formData.university} onChange={handleChange}
-                      className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.university ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
-                    {errors.university && <p className="text-red-500 text-xs mt-1">{errors.university}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Major</label>
-                    <input type="text" name="major" value={formData.major} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06B4C9] outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Expected Graduation Year</label>
-                    <input type="text" name="graduationYear" value={formData.graduationYear} onChange={handleChange}
-                      className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.graduationYear ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-[#06B4C9]'}`} />
-                    {errors.graduationYear && <p className="text-red-500 text-xs mt-1">{errors.graduationYear}</p>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Save / Cancel */}
-              <div className="flex flex-col sm:flex-row justify-end gap-3 mb-4">
-                <button type="button" onClick={handleCancel} className="w-full sm:w-auto px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">Cancel</button>
-                <button type="submit" disabled={saving} className="w-full sm:w-auto px-6 py-2 bg-[#06B4C9] text-white rounded-lg hover:bg-[#06B4C9]/80 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );

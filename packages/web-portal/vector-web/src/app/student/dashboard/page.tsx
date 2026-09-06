@@ -403,6 +403,15 @@ export default function StudentDashboard() {
                     <span className="text-lg font-bold text-white">{bestJobMatch}%</span>
                     <span className="text-xs text-gray-400">Best job match</span>
                   </div>
+                  <Link
+                    href="/student/credentials/upload"
+                    className="ml-auto bg-[#06B4C9] hover:bg-[#0598A9] text-white px-4 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Upload Credential (AI Extract)
+                  </Link>
                 </div>
               </div>
             </div>
@@ -411,13 +420,32 @@ export default function StudentDashboard() {
           {/* ── Credential Verification ── */}
           <div id="tour-credentials">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-base font-semibold text-gray-900">Credential verification</h2>
-              <button
-                onClick={() => router.push('/student/skills')}
-                className="text-[#06B4C9] text-sm font-medium hover:underline"
-              >
-                View all →
-              </button>
+              <div className="flex items-center gap-3">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">Credential verification</h2>
+                <span className="text-xs font-medium bg-[#06B4C9]/10 text-[#06B4C9] px-2 py-0.5 rounded-full border border-[#06B4C9]/20 flex items-center gap-1">
+                  <svg className="w-3 h-3 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  AI Extraction Powered
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/student/credentials/upload"
+                  className="bg-[#06B4C9] hover:bg-[#0598A9] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Upload & Analyze
+                </Link>
+                <button
+                  onClick={() => router.push('/student/skills')}
+                  className="text-[#06B4C9] text-sm font-medium hover:underline"
+                >
+                  View all →
+                </button>
+              </div>
             </div>
 
             {allCredentials.length > 0 ? (
@@ -722,6 +750,19 @@ export default function StudentDashboard() {
           <div id="tour-setup" className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="text-base font-semibold text-gray-900 mb-4">Boost your trust score</h3>
             <div className="space-y-0">
+              {/* Upload & AI Analyze Credential */}
+              <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                <div>
+                  <p className="text-sm text-gray-700 font-medium">Upload & AI Analyze Credential</p>
+                  <p className="text-[11px] text-[#06B4C9] font-semibold">Instant AI Extraction</p>
+                </div>
+                <button
+                  onClick={() => router.push('/student/credentials/upload')}
+                  className="bg-[#06B4C9]/10 text-[#06B4C9] hover:bg-[#06B4C9] hover:text-white px-2.5 py-1 rounded text-xs font-semibold transition-colors"
+                >
+                  Upload
+                </button>
+              </div>
               {/* Verify LinkedIn */}
               <div className="flex items-center justify-between py-3 border-b border-gray-100">
                 <div>
