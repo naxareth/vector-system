@@ -6,6 +6,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const next = searchParams.get('next');
+  const requestedRole = searchParams.get('role');
 
   if (code) {
     const cookieStore = await cookies();
@@ -28,8 +29,7 @@ export async function GET(request: Request) {
     if (!error && session?.user) {
       console.log(`✅ Login Successful for: ${session.user.email}`);
 
-      // 2. GOD MODE CLIENT: Create a temporary admin client to fetch the role reliably
-      // We do this because RLS might block the standard client during the callback phase
+      // 2. GOD MODE CLIENT: Create a temporary admin client to fetch/create the profile reliably
       const adminClient = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!, // ⚠️ MUST BE SERVICE_ROLE_KEY
@@ -41,29 +41,52 @@ export async function GET(request: Request) {
       );
 
       // 3. Fetch Role using Admin Client
-      const { data: userProfile, error: profileError } = await adminClient
+      let { data: userProfile, error: profileError } = await adminClient
         .from('users')
         .select('role')
         .eq('id', session.user.id)
         .single();
 
-      if (profileError) {
-        console.error("❌ Critical: Failed to fetch user role even with Admin Client:", profileError.message);
-      } else {
-        console.log(`👉 Detected Role: ${userProfile?.role}`);
+      const metadataRole = session.user.user_metadata?.role;
+      const targetRole = requestedRole || metadataRole || 'student';
+
+      // If user profile does not exist yet in public.users (e.g. new Google OAuth signup)
+      if (profileError || !userProfile) {
+        console.log(`⚠️ User profile missing for ${session.user.id}, creating profile with role: ${targetRole}`);
+        const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
+
+        const { data: newProfile, error: insertError } = await adminClient
+          .from('users')
+          .insert({
+            id: session.user.id,
+            full_name: fullName,
+            email: session.user.email,
+            role: targetRole,
+          })
+          .select('role')
+          .single();
+
+        if (insertError) {
+          console.error("❌ Failed to create user profile during OAuth callback:", insertError.message);
+        } else if (newProfile) {
+          userProfile = newProfile;
+        }
       }
 
-      // 4. Determine Redirect
-      const role = userProfile?.role || 'student';
-      
+      const role = userProfile?.role || targetRole;
+      console.log(`👉 Final Resolved Role: ${role}`);
+
+      // 4. Determine Redirect URL based on role
       let redirectUrl = '/student/dashboard?login=success';
-      if (role === 'registrar') {
+      if (role === 'employer') {
+        redirectUrl = '/employer/dashboard';
+      } else if (role === 'registrar') {
         redirectUrl = '/registrar/dashboard';
       } else if (role === 'super_admin') {
         redirectUrl = '/admin/dashboard';
       }
 
-      // Prioritize 'next' param if it exists, unless it's just the default
+      // Prioritize 'next' param if it exists, unless it's just default
       if (next && next !== '/student/dashboard') {
         redirectUrl = next;
       }

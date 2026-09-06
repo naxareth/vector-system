@@ -13,7 +13,7 @@ function VerifyEmailForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [resendMessage, setResendMessage] = useState('');
-  const [timeLeft, setTimeLeft] = useState(300);
+  const [timeLeft, setTimeLeft] = useState(60);
 
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -71,8 +71,20 @@ function VerifyEmailForm() {
         throw new Error(data.message || 'Verification failed');
       }
 
-      // Success! Route to the login page so they can establish a fresh, verified session.
-      router.push('/login?verified=true');
+      // Success! Route based on role
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('vector_register_success', 'true');
+        localStorage.setItem('vector_register_success', 'true');
+      }
+
+      const targetRole = data.role || 'student';
+      if (targetRole === 'employer') {
+        router.push('/login?verified=true&portal=employer');
+      } else if (targetRole === 'registrar') {
+        router.push('/login?verified=true&portal=registrar');
+      } else {
+        router.push('/login?verified=true');
+      }
 
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'An error occurred during verification';
@@ -92,9 +104,9 @@ function VerifyEmailForm() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      setResendMessage('A new code has been sent to your email.');
-      setTimeLeft(300);
+      if (!res.ok || !data.success) throw new Error(data.message || 'Failed to resend verification email');
+      setResendMessage('A new verification code has been sent to your email.');
+      setTimeLeft(60);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to resend verification email';
       setError(errorMsg);
@@ -158,17 +170,18 @@ function VerifyEmailForm() {
 
       <div className="text-center mt-6">
         <p className="text-sm text-gray-600 mb-2">
-          {timeLeft > 0 ? (
-            <span>Code expires in <span className="font-semibold text-gray-900">{timeString}</span></span>
-          ) : (
-            <span className="text-red-500 font-semibold">Code expired</span>
-          )}
-        </p>
-        <p className="text-sm text-gray-600">
           Didn&apos;t receive the code?{' '}
-          <button onClick={handleResend} disabled={timeLeft > 0} type="button" className={`font-semibold outline-none transition-colors ${timeLeft > 0 ? 'text-gray-400 cursor-not-allowed' : 'text-[#06B4C9] hover:underline'}`}>
-            Resend Code
+          <button
+            onClick={handleResend}
+            disabled={timeLeft > 0}
+            type="button"
+            className={`font-semibold outline-none transition-colors ${timeLeft > 0 ? 'text-gray-400 cursor-not-allowed' : 'text-[#06B4C9] hover:underline'}`}
+          >
+            {timeLeft > 0 ? `Resend Code (${timeString})` : 'Resend Code'}
           </button>
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          💡 Can&apos;t find the email? Please check your <strong>Spam / Junk</strong> folder.
         </p>
         <p className="mt-4">
           <button

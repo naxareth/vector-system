@@ -158,8 +158,8 @@ export async function GET(req: Request) {
 
     if (fetchError) throw fetchError;
 
-    // 5. 🔓 DECRYPT ON SERVER
-    const processedData = credentials.map(cred => {
+    // 5. 🔓 DECRYPT ON SERVER AND NORMALIZE USER RELATION
+    const processedData = (credentials || []).map(cred => {
       let decryptedNote = null;
       if (cred.private_notes) {
         try {
@@ -171,8 +171,13 @@ export async function GET(req: Request) {
         }
       }
 
+      const userObj = Array.isArray(cred.user)
+        ? (cred.user[0] || null)
+        : (cred.user || null);
+
       return {
         ...cred,
+        user: userObj,
         private_notes: decryptedNote
       };
     });

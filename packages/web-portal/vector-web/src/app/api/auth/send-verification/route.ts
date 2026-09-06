@@ -27,8 +27,7 @@ export async function POST(req: Request) {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
-    // 3. Save to database
-    // We invalidate older codes by just letting them exist, but we could also delete them here to keep the table clean
+    // 3. Save to database & ensure public.users profile exists with correct role
     const { error: dbError } = await supabaseAdmin
       .from('verification_codes')
       .insert({
@@ -42,6 +41,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Failed to generate secure code" }, { status: 500 });
     }
 
+    // Ensure public.users profile exists with role from user_metadata if created via auth.signUp
+    try {
+      const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
+      const targetAuthUser = authUsers?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+      if (targetAuthUser) {
+        const userRole = targetAuthUser.user_metadata?.role || 'employer';
+        const fullName = targetAuthUser.user_metadata?.full_name || email.split('@')[0];
+
+        const { data: existingProfile } = await supabaseAdmin
+          .from('users')
+          .select('id, status')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (!existingProfile) {
+          await supabaseAdmin.from('users').insert({
+            id: targetAuthUser.id,
+            email: email,
+            full_name: fullName,
+            role: userRole,
+            status: 'pending_verification',
+          });
+        }
+      }
+    } catch (profileErr) {
+      console.warn("Could not pre-sync user profile during send-verification:", profileErr);
+    }
+
     // 4. Send the Email via Nodemailer
     const emailResult = await sendVerificationEmail(email, code);
 
@@ -52,8 +79,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, message: "Verification code sent successfully" });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Verification Route Error:", error);
-    return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }

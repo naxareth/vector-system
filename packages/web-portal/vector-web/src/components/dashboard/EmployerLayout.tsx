@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabaseClient';
 import SessionTimeout from '../shared/SessionTimeout';
+import LoginSuccessModal from '../auth/LoginSuccessModal';
 
 interface EmployerLayoutProps {
   children: React.ReactNode;
@@ -153,6 +154,7 @@ function EmployerShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0B0F19] flex">
       <SessionTimeout />
+      <LoginSuccessModal />
 
       {/* Sidebar */}
       <aside

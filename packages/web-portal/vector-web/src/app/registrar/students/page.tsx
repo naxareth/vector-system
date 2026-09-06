@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import RegistrarLayout from '@/components/dashboard/RegistrarLayout';
 import Pagination from '@/components/shared/Pagination';
 import HelpTip from '@/components/shared/HelpTip';
@@ -76,9 +77,25 @@ export default function ManageCredentials() {
 
   useEffect(() => {
     fetch('/api/registrar/credentials')
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(setCredentials)
-      .catch(err => console.error('Error fetching ledger:', err))
+      .then(async r => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok) {
+          throw new Error(data?.error || `HTTP error! status: ${r.status}`);
+        }
+        return data;
+      })
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCredentials(data);
+        } else {
+          console.error('Unexpected response format for credentials:', data);
+          setCredentials([]);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching ledger:', err);
+        setCredentials([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -93,9 +110,10 @@ export default function ManageCredentials() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setCredPage(1); }, [searchQuery, selectedStatus, selectedSkills]);
 
-  const allSkills = Array.from(new Set(credentials.map(c => c.skill_name))).sort();
+  const safeCredentials = Array.isArray(credentials) ? credentials : [];
+  const allSkills = Array.from(new Set(safeCredentials.map(c => c.skill_name))).sort();
 
-  const filtered = credentials.filter(cred => {
+  const filtered = safeCredentials.filter(cred => {
     const term = searchQuery.toLowerCase();
     const matchesSearch =
       (cred.user?.full_name?.toLowerCase() || '').includes(term) ||
@@ -109,7 +127,7 @@ export default function ManageCredentials() {
 
   const paginated = filtered.slice((credPage - 1) * ROWS_PER_PAGE, credPage * ROWS_PER_PAGE);
   const activeFilterCount = (selectedStatus !== 'All' ? 1 : 0) + selectedSkills.length;
-  const clearFilters = () => { setSelectedStatus('All'); setSelectedSkills([]); };
+  const clearFilters = () => { setSelectedStatus('All'); setSelectedSkills([]); setSearchQuery(''); };
 
   return (
     <RegistrarLayout>
@@ -122,16 +140,16 @@ export default function ManageCredentials() {
             <HelpTip text="A complete audit log of every certificate issued. Search by student name, certificate type, or serial number." />
           </h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-            {credentials.length > 0 ? `${credentials.length} total records issued` : 'Track and verify all issued certificates'}
+            {safeCredentials.length > 0 ? `${safeCredentials.length} total records issued` : 'Track and verify all issued certificates'}
           </p>
         </div>
 
         {/* Summary Stats */}
-        {credentials.length > 0 && (
+        {safeCredentials.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white dark:bg-[#0E1220] rounded-xl border border-gray-200 dark:border-[#1E2536] p-4">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Total Issued</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{credentials.length}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{safeCredentials.length}</p>
             </div>
             <div className="bg-white dark:bg-[#0E1220] rounded-xl border border-gray-200 dark:border-[#1E2536] p-4">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Certificate Types</p>
@@ -140,13 +158,13 @@ export default function ManageCredentials() {
             <div className="bg-white dark:bg-[#0E1220] rounded-xl border border-gray-200 dark:border-[#1E2536] p-4">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">Unique Students</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {new Set(credentials.map(c => c.user?.full_name).filter(Boolean)).size}
+                {new Set(safeCredentials.map(c => c.user?.full_name).filter(Boolean)).size}
               </p>
             </div>
             <div className="bg-white dark:bg-[#0E1220] rounded-xl border border-gray-200 dark:border-[#1E2536] p-4">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-slate-500">This Month</p>
               <p className="text-2xl font-bold text-[#06B4C9] mt-1">
-                {credentials.filter(c => {
+                {safeCredentials.filter(c => {
                   const d = new Date(c.issued_at);
                   const now = new Date();
                   return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
@@ -273,9 +291,27 @@ export default function ManageCredentials() {
                       <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-[#131825] flex items-center justify-center mb-1">
                         <svg className="w-6 h-6 text-gray-300 dark:text-[#283042]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                       </div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-slate-400">No records found</p>
-                      <p className="text-xs text-gray-400 dark:text-slate-600">Try adjusting your search or filters</p>
-                      {activeFilterCount > 0 && <button onClick={clearFilters} className="mt-1 text-xs text-[#06B4C9] hover:underline font-medium">Clear filters</button>}
+                      <p className="text-sm font-medium text-gray-600 dark:text-slate-400">
+                        {safeCredentials.length === 0 ? 'No issued certificates yet' : 'No matching records found'}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-slate-600">
+                        {safeCredentials.length === 0
+                          ? 'Get started by issuing your first verified certificate'
+                          : 'Try adjusting your search query or filters'}
+                      </p>
+                      {activeFilterCount > 0 || searchQuery ? (
+                        <button onClick={clearFilters} className="mt-1 text-xs text-[#06B4C9] hover:underline font-medium">Clear search & filters</button>
+                      ) : (
+                        <Link
+                          href="/registrar/dashboard"
+                          className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#06B4C9] hover:bg-[#059ab0] transition-all shadow-sm"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          Start Issuing Certificate
+                        </Link>
+                      )}
                     </div>
                   </td></tr>
                 ) : paginated.map((cred, i) => {

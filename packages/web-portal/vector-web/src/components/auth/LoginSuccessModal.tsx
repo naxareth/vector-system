@@ -9,6 +9,10 @@ interface LoginSuccessModalProps {
   onClose?: () => void;
   /** Force modal visibility for preview/testing */
   forceShow?: boolean;
+  /** Custom title text */
+  title?: string;
+  /** Custom subtitle text */
+  subtitle?: string;
 }
 
 const bgDots = [
@@ -41,9 +45,11 @@ const bgDots = [
   { top: '12%', left: '95%', size: 6, color: '#8EE0EA' },
 ];
 
-function LoginSuccessModalInternal({ onClose, forceShow = false }: LoginSuccessModalProps) {
+function LoginSuccessModalInternal({ onClose, forceShow = false, title, subtitle }: LoginSuccessModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState(title || 'Log in successfully!');
+  const [modalSubtitle, setModalSubtitle] = useState(subtitle || 'Let’s continue where you left off.');
   const searchParams = useSearchParams();
 
   const showModal = () => {
@@ -66,6 +72,8 @@ function LoginSuccessModalInternal({ onClose, forceShow = false }: LoginSuccessM
 
   useEffect(() => {
     if (forceShow) {
+      if (title) setModalTitle(title);
+      if (subtitle) setModalSubtitle(subtitle);
       showModal();
       return;
     }
@@ -74,29 +82,59 @@ function LoginSuccessModalInternal({ onClose, forceShow = false }: LoginSuccessM
       // 1. Synchronous native window.location check
       const search = typeof window !== 'undefined' ? window.location.search : '';
       const params = new URLSearchParams(search);
-      const urlHasLogin = params.get('login') === 'success' || params.get('signup') === 'success' || params.get('loginSuccess') === 'true';
 
-      // 2. Router searchParams check
-      const routerHasLogin = searchParams.get('login') === 'success' || searchParams.get('signup') === 'success' || searchParams.get('loginSuccess') === 'true';
+      const isRegistration = 
+        params.get('signup') === 'success' || 
+        params.get('registered') === 'success' || 
+        searchParams.get('signup') === 'success' || 
+        searchParams.get('registered') === 'success' ||
+        (typeof window !== 'undefined' && (
+          sessionStorage.getItem('vector_register_success') === 'true' || 
+          localStorage.getItem('vector_register_success') === 'true'
+        ));
 
-      // 3. Storage flags
-      const hasSessionFlag = typeof window !== 'undefined' && sessionStorage.getItem('vector_login_success') === 'true';
-      const hasLocalFlag = typeof window !== 'undefined' && localStorage.getItem('vector_login_success') === 'true';
+      const isLogin = 
+        params.get('login') === 'success' || 
+        params.get('loginSuccess') === 'true' || 
+        searchParams.get('login') === 'success' || 
+        searchParams.get('loginSuccess') === 'true' ||
+        (typeof window !== 'undefined' && (
+          sessionStorage.getItem('vector_login_success') === 'true' || 
+          localStorage.getItem('vector_login_success') === 'true'
+        ));
 
-      if (urlHasLogin || routerHasLogin || hasSessionFlag || hasLocalFlag) {
+      if (isRegistration || isLogin) {
+        if (title) {
+          setModalTitle(title);
+        } else if (isRegistration) {
+          setModalTitle('Registered Successfully!');
+        } else {
+          setModalTitle('Log in successfully!');
+        }
+
+        if (subtitle) {
+          setModalSubtitle(subtitle);
+        } else if (isRegistration) {
+          setModalSubtitle('Your account is ready. Let’s get started.');
+        } else {
+          setModalSubtitle('Let’s continue where you left off.');
+        }
+
         showModal();
 
         // Clear storage flags
         if (typeof window !== 'undefined') {
           sessionStorage.removeItem('vector_login_success');
           localStorage.removeItem('vector_login_success');
+          sessionStorage.removeItem('vector_register_success');
+          localStorage.removeItem('vector_register_success');
         }
 
         // Clean URL query parameters
         if (typeof window !== 'undefined') {
           const newUrl = new URL(window.location.href);
           let updated = false;
-          ['login', 'signup', 'loginSuccess'].forEach(p => {
+          ['login', 'signup', 'loginSuccess', 'registered'].forEach(p => {
             if (newUrl.searchParams.has(p)) {
               newUrl.searchParams.delete(p);
               updated = true;
@@ -112,10 +150,15 @@ function LoginSuccessModalInternal({ onClose, forceShow = false }: LoginSuccessM
     checkTrigger();
 
     // Listen for custom trigger event
-    const handleCustomTrigger = () => showModal();
+    const handleCustomTrigger = (e?: Event) => {
+      const customEvt = e as CustomEvent<{ title?: string; subtitle?: string }>;
+      if (customEvt?.detail?.title) setModalTitle(customEvt.detail.title);
+      if (customEvt?.detail?.subtitle) setModalSubtitle(customEvt.detail.subtitle);
+      showModal();
+    };
     window.addEventListener('vector-show-login-modal', handleCustomTrigger);
     return () => window.removeEventListener('vector-show-login-modal', handleCustomTrigger);
-  }, [searchParams, forceShow]);
+  }, [searchParams, forceShow, title, subtitle]);
 
   // Auto-dismiss after 4.5 seconds
   useEffect(() => {
@@ -194,12 +237,12 @@ function LoginSuccessModalInternal({ onClose, forceShow = false }: LoginSuccessM
 
         {/* Title */}
         <h2 className="relative z-10 text-[#25C9DC] font-bold text-xl sm:text-[21px] tracking-tight mt-3 mb-1 leading-tight">
-          Log in successfully!
+          {modalTitle}
         </h2>
 
         {/* Subtitle */}
         <p className="relative z-10 text-[#6B7280] font-normal text-xs sm:text-[13.5px] leading-relaxed">
-          Let’s continue where you left off.
+          {modalSubtitle}
         </p>
       </div>
     </div>

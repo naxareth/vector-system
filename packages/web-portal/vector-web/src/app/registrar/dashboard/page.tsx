@@ -37,7 +37,7 @@ interface IssuanceProgress {
   progress: number;
   status: 'processing' | 'complete' | 'error';
   message: string;
-
+  errorDetails?: string[];
 }
 
 // Parses the registrar's comma-separated skill_tags input into a clean string array
@@ -602,9 +602,25 @@ export default function RegistrarDashboard() {
                 onChange={(e) => { if (e.target.files?.[0]) { setCsvFile(e.target.files[0]); setCsvResult(null); } }}
               />
               {csvFile ? (
-                <div>
-                  <p className="font-semibold text-green-700">{csvFile.name}</p>
-                  <p className="text-xs text-gray-500 mt-1">{(csvFile.size / 1024).toFixed(1)} KB — click or drag to replace</p>
+                <div className="flex items-center justify-between w-full px-4">
+                  <div className="text-left min-w-0 pr-4">
+                    <p className="font-semibold text-green-700 truncate">{csvFile.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{(csvFile.size / 1024).toFixed(1)} KB — click or drag to replace</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCsvFile(null);
+                      setCsvResult(null);
+                    }}
+                    className="p-1.5 rounded-full text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors shrink-0"
+                    title="Remove file"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
               ) : (
                 <div>
@@ -621,6 +637,12 @@ export default function RegistrarDashboard() {
                 if (!csvFile) return;
                 setCsvUploading(true);
                 setCsvResult(null);
+                setIssuanceProgress({
+                  isOpen: true,
+                  progress: 30,
+                  status: 'processing',
+                  message: 'Uploading and validating batch CSV file...'
+                });
                 try {
                   const form = new FormData();
                   form.append('file', csvFile);
@@ -640,12 +662,42 @@ export default function RegistrarDashboard() {
                   const data = await res.json();
                   if (res.ok) {
                     setCsvResult({ success: true, rows: data.rows, warnings: data.warnings });
+                    setIssuanceProgress({
+                      isOpen: true,
+                      progress: 100,
+                      status: 'complete',
+                      message: `Successfully validated ${data.rows?.length || 0} record(s). Ready for issuance.`
+                    });
                   } else {
                     setCsvResult({ success: false, error: data.error, rowErrors: data.rowErrors });
+                    const details: string[] = [];
+                    if (data.rowErrors && data.rowErrors.length > 0) {
+                      data.rowErrors.forEach((re: { row: number; issues?: string[]; message?: string; field?: string }) => {
+                        if (re.issues && re.issues.length > 0) {
+                          details.push(`Row ${re.row}: ${re.issues.join(', ')}`);
+                        } else if (re.message) {
+                          details.push(`Row ${re.row}${re.field ? ` (${re.field})` : ''}: ${re.message}`);
+                        }
+                      });
+                    }
+                    setIssuanceProgress({
+                      isOpen: true,
+                      progress: 0,
+                      status: 'error',
+                      message: data.error || 'Invalid CSV file format or missing required headers.',
+                      errorDetails: details.length > 0 ? details : undefined
+                    });
                   }
                 } catch (err: unknown) {
                   const message = err instanceof Error ? err.message : "An unknown error occurred";
                   setCsvResult({ success: false, error: message });
+                  setIssuanceProgress({
+                    isOpen: true,
+                    progress: 0,
+                    status: 'error',
+                    message: 'Unreadable or invalid CSV file attached.',
+                    errorDetails: [message]
+                  });
                 } finally {
                   setCsvUploading(false);
                 }
@@ -658,26 +710,12 @@ export default function RegistrarDashboard() {
               {csvUploading ? 'Checking file…' : !batchSchemaId ? 'Select a template first' : 'Validate & Preview'}
             </button>
 
-            {/* Validation Results */}
-            {csvResult && (
-              <div className={`mt-6 rounded-xl border p-5 ${csvResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                <h3 className={`font-bold mb-3 ${csvResult.success ? 'text-green-800' : 'text-red-800'}`}>
-                  {csvResult.success ? `${csvResult.rows?.length} record(s) ready` : 'Validation failed'}
+            {/* Validation Results (Only render preview table on successful validation) */}
+            {csvResult && csvResult.success && (
+              <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-5">
+                <h3 className="font-bold mb-3 text-green-800">
+                  {csvResult.rows?.length} record(s) ready for issuance
                 </h3>
-
-                {csvResult.error && (
-                  <p className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm mb-3">{csvResult.error}</p>
-                )}
-
-                {csvResult.rowErrors && csvResult.rowErrors.length > 0 && (
-                  <div className="space-y-1.5 mb-3">
-                    {csvResult.rowErrors.map((re: { row: number; issues?: string[]; message?: string; field?: string }, i: number) => (
-                      <p key={i} className="bg-red-100 text-red-700 px-3 py-1.5 rounded text-sm">
-                        Row {re.row}: {re.issues ? re.issues.join(', ') : re.message ? `${re.field}: ${re.message}` : JSON.stringify(re)}
-                      </p>
-                    ))}
-                  </div>
-                )}
 
                 {csvResult.warnings && csvResult.warnings.length > 0 && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
@@ -689,7 +727,7 @@ export default function RegistrarDashboard() {
                 )}
 
                 {/* Validated rows table */}
-                {csvResult.success && csvResult.rows && csvResult.rows.length > 0 && (() => {
+                {csvResult.rows && csvResult.rows.length > 0 && (() => {
                   const allKeys = Object.keys(csvResult.rows[0]);
                   return (
                     <>
@@ -1118,28 +1156,122 @@ export default function RegistrarDashboard() {
           </div>
         )}
 
-        {/* Minting Progress Modal */}
+        {/* Batch Import & Issuance Loading Status Progress Modal */}
         {issuanceProgress.isOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-[#131825] rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                {issuanceProgress.status === 'complete' ? 'Success!' : issuanceProgress.status === 'error' ? 'Something went wrong' : 'Processing…'}
-              </h2>
-              <p className="mb-4 text-gray-600 dark:text-[#94A3B8]">{issuanceProgress.message}</p>
-              <div className="w-full bg-gray-100 dark:bg-[#1E2536] rounded-full h-2 overflow-hidden mb-6">
-                <div
-                  className={`h-full transition-all duration-500 ${issuanceProgress.status === 'error' ? 'bg-red-500' : 'bg-[#06B4C9]'}`}
-                  style={{ width: `${issuanceProgress.progress}%` }}
-                />
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-md">
+            <div className="bg-white dark:bg-[#0E1220] rounded-2xl shadow-2xl border border-gray-100 dark:border-[#1E2536] max-w-md w-full p-7 text-center relative overflow-hidden">
+              {/* Background glows */}
+              <div className="absolute -top-16 -left-16 w-32 h-32 bg-[#06B4C9]/20 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-16 -right-16 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
+
+              {/* Status Animated Icon */}
+              <div className="flex justify-center mb-4 relative">
+                {issuanceProgress.status === 'processing' && (
+                  <div className="relative flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full border-4 border-[#06B4C9]/20 border-t-[#06B4C9] animate-spin" />
+                    <svg className="w-7 h-7 text-[#06B4C9] absolute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                  </div>
+                )}
+
+                {issuanceProgress.status === 'complete' && (
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+
+                {issuanceProgress.status === 'error' && (
+                  <div className="w-16 h-16 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
+                    <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                )}
               </div>
-              {(issuanceProgress.status === 'complete' || issuanceProgress.status === 'error') && (
+
+              {/* Modal Title & Primary Message */}
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                {issuanceProgress.status === 'complete'
+                  ? 'Batch Operation Complete!'
+                  : issuanceProgress.status === 'error'
+                  ? 'Batch Validation Unsuccessful'
+                  : 'Processing Batch Import…'}
+              </h2>
+
+              <p className="text-xs text-gray-500 dark:text-slate-400 mb-4 leading-relaxed">
+                {issuanceProgress.message}
+              </p>
+
+              {/* Detailed Error Breakdown (For Failure state) */}
+              {issuanceProgress.status === 'error' && (
+                <div className="mb-5 space-y-3 text-left">
+                  {issuanceProgress.errorDetails && issuanceProgress.errorDetails.length > 0 && (
+                    <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl p-3 max-h-36 overflow-y-auto">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-1.5 flex items-center justify-between">
+                        <span>Row & Field Errors</span>
+                        <span className="font-mono text-[10px] bg-rose-200 dark:bg-rose-500/30 px-1.5 py-0.5 rounded">{issuanceProgress.errorDetails.length} issue(s)</span>
+                      </p>
+                      <ul className="space-y-1 text-xs text-rose-800 dark:text-rose-300 font-mono">
+                        {issuanceProgress.errorDetails.map((err, idx) => (
+                          <li key={idx} className="flex items-start gap-1">
+                            <span className="text-rose-500 font-bold shrink-0">•</span>
+                            <span className="break-words">{err}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 text-xs text-amber-800 dark:text-amber-300">
+                    <p className="font-bold text-[11px] uppercase tracking-wider mb-1">Checklist to fix file:</p>
+                    <ul className="space-y-0.5 text-[11px] opacity-90 list-disc list-inside">
+                      <li>Ensure file is saved as a <strong>valid .CSV file</strong></li>
+                      <li>Verify required column header <strong>student_id</strong> exists</li>
+                      <li>Confirm field names match the selected template schema</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Progress Bar (For Processing & Success states) */}
+              {issuanceProgress.status !== 'error' && (
+                <div className="space-y-2 mb-6">
+                  <div className="flex justify-between items-center text-xs font-semibold text-gray-500 dark:text-slate-400">
+                    <span>Progress Status</span>
+                    <span className="text-[#06B4C9] font-mono font-bold">{issuanceProgress.progress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-100 dark:bg-[#131825] rounded-full h-3 overflow-hidden p-0.5 border border-gray-200/60 dark:border-[#1E2536]">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        issuanceProgress.status === 'complete'
+                          ? 'bg-emerald-500'
+                          : 'bg-gradient-to-r from-[#06B4C9] to-cyan-400'
+                      }`}
+                      style={{ width: `${issuanceProgress.progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              {issuanceProgress.status === 'error' ? (
                 <button
                   onClick={() => setIssuanceProgress({ isOpen: false, progress: 0, status: 'processing', message: '' })}
-                  className="w-full py-3 bg-[#06B4C9] hover:bg-[#0496a3] text-white font-bold rounded-xl transition-all"
+                  className="w-full py-3 bg-rose-500 hover:bg-rose-600 active:scale-[0.98] text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-rose-500/20"
+                >
+                  Try Again & Fix File
+                </button>
+              ) : issuanceProgress.status === 'complete' ? (
+                <button
+                  onClick={() => setIssuanceProgress({ isOpen: false, progress: 0, status: 'processing', message: '' })}
+                  className="w-full py-3 bg-[#06B4C9] hover:bg-[#059ab0] active:scale-[0.98] text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-[#06B4C9]/20"
                 >
                   Close
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
         )}

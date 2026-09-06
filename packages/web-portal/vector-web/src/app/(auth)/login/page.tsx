@@ -172,11 +172,12 @@ function LoginForm() {
       // 4. No MFA? Proceed to standard redirect
       const returnUrl = searchParams.get('redirectTo');
       
+      if (typeof window !== 'undefined' && !sessionStorage.getItem('vector_register_success')) {
+        sessionStorage.setItem('vector_login_success', 'true');
+        localStorage.setItem('vector_login_success', 'true');
+      }
+
       if (returnUrl) {
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('vector_login_success', 'true');
-          localStorage.setItem('vector_login_success', 'true');
-        }
         router.push(returnUrl);
       } else {
         let target = '/student/dashboard?login=success'; 
@@ -187,11 +188,6 @@ function LoginForm() {
           target = '/employer/dashboard';
         } else if (userData.role === 'super_admin') {
           target = '/admin/dashboard';
-        } else {
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('vector_login_success', 'true');
-            localStorage.setItem('vector_login_success', 'true');
-          }
         }
         
         router.push(target);

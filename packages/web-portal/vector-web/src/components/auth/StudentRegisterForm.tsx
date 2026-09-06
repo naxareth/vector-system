@@ -79,10 +79,9 @@ export default function StudentRegisterForm() {
 
       if (authError) {
         if (authError.message.includes("already registered") || authError.status === 400) {
-           console.warn("Registration attempt on existing email (Suppressed for security)");
-        } else {
-           throw authError; 
+           throw new Error("An account with this email address already exists. Please log in or reset your password.");
         }
+        throw authError; 
       }
 
       // 4. Create Public Profile
@@ -105,11 +104,16 @@ export default function StudentRegisterForm() {
       }
 
       // 5. Trigger Verification Email API
-      await fetch('/api/auth/send-verification', {
+      const sendRes = await fetch('/api/auth/send-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: validData.email }),
       });
+
+      const sendData = await sendRes.json();
+      if (!sendRes.ok || !sendData.success) {
+        throw new Error(sendData.message || 'Failed to send verification code email. Please try again.');
+      }
 
       router.refresh();
       router.push(`/verify-email?email=${encodeURIComponent(validData.email)}`);

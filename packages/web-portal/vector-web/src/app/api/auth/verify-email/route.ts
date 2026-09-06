@@ -34,22 +34,59 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Verification code has expired. Please request a new one." }, { status: 400 });
     }
 
-    // 3. Update the User's Status
-    // Changing status from 'pending_verification' to 'verified' (or your active enum value)
-    const { error: updateError } = await supabaseAdmin
-      .from('users')
-      .update({ status: 'active' }) 
-      .eq('email', email);
+    // 3. Update the User's Status & ensure public.users profile exists with correct role
+    let userRole = 'student';
+    try {
+      const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
+      const targetAuthUser = authUsers?.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
-    if (updateError) {
-       console.error("Failed to update user status:", updateError);
-       return NextResponse.json({ success: false, message: "Failed to activate account." }, { status: 500 });
+      if (targetAuthUser) {
+        userRole = targetAuthUser.user_metadata?.role || 'employer';
+        const fullName = targetAuthUser.user_metadata?.full_name || email.split('@')[0];
+
+        // Mark email confirmed in Supabase Auth
+        await supabaseAdmin.auth.admin.updateUserById(targetAuthUser.id, { email_confirm: true });
+
+        // Upsert profile into public.users with active status and correct role
+        const { error: upsertError } = await supabaseAdmin
+          .from('users')
+          .upsert(
+            {
+              id: targetAuthUser.id,
+              email: email,
+              full_name: fullName,
+              role: userRole,
+              status: 'active',
+            },
+            { onConflict: 'email' }
+          );
+
+        if (upsertError) {
+          console.error("Failed to upsert user profile on verification:", upsertError);
+        }
+      } else {
+        const { error: updateError } = await supabaseAdmin
+          .from('users')
+          .update({ status: 'active' }) 
+          .eq('email', email);
+
+        if (updateError) {
+          console.error("Failed to update user status:", updateError);
+          return NextResponse.json({ success: false, message: "Failed to activate account." }, { status: 500 });
+        }
+      }
+    } catch (profileError) {
+      console.error("Error activating profile during verification:", profileError);
     }
 
     // 4. Delete the used code to prevent replay attacks
     await supabaseAdmin.from('verification_codes').delete().eq('id', record.id);
 
-    return NextResponse.json({ success: true, message: "Account verified successfully!" });
+    return NextResponse.json({ 
+      success: true, 
+      role: userRole, 
+      message: "Account verified successfully!" 
+    });
 
   } catch (error) {
     console.error("Verification Validation Error:", error);
